@@ -1,0 +1,96 @@
+import * as Yup from "yup";
+import { IMemberFormValues } from "@app/types/member";
+export type { IMemberFormValues };
+
+const emptyStringToNull = (value: any, originalValue: any) => {
+  if (typeof originalValue === "string" && originalValue === "") {
+    return null;
+  }
+  return value;
+};
+
+export const memberSchema = Yup.object().shape({
+  name: Yup.string().required("Name is required"),
+  voterId: Yup.string().optional(),
+  mobile: Yup.string()
+    .matches(/^[0-9]{10}$/, "Must be exactly 10 digits")
+    .optional(),
+  fatherName: Yup.string().optional(),
+  dob: Yup.string().optional(),
+  dom: Yup.string().optional(),
+  district: Yup.string().optional(),
+  block: Yup.string().optional(),
+  boothName: Yup.string().optional(),
+  boothNumber: Yup.string().optional(),
+  grampanchayat: Yup.string().optional(),
+  village: Yup.string().optional(),
+  samiti: Yup.string().optional(),
+  toll: Yup.string().optional(),
+  jaati: Yup.string().optional(),
+  age: Yup.number().optional(),
+  education: Yup.string().optional(),
+  address: Yup.string().optional(),
+  gender: Yup.string().optional(),
+  vehicle: Yup.string().optional(),
+  group: Yup.string().optional(),
+  govtEmployee: Yup.string().optional(),
+  party: Yup.string().optional(),
+  postYear: Yup.number().optional(),
+  code: Yup.string().optional(),
+  nariSammanYojna: Yup.string().optional(),
+  farmerLoanWaiver: Yup.string().optional(),
+  reference: Yup.string().optional(),
+  remark: Yup.string().optional(),
+  facebook: Yup.string().optional(),
+  instagram: Yup.string().optional(),
+  twitter: Yup.string().optional(),
+  startLat: Yup.number().optional(),
+  startLong: Yup.number().optional(),
+  startDate: Yup.string().optional(),
+  endLat: Yup.number().optional(),
+  endLong: Yup.number().optional(),
+  endDate: Yup.string().optional(),
+  image: Yup.string().optional(),
+});
+
+export const memberInitialValues: IMemberFormValues = {
+  name: "",
+  voterId: "",
+  mobile: "",
+  fatherName: "",
+  dob: "",
+  dom: "",
+  district: "",
+  block: "",
+  boothName: "",
+  boothNumber: "",
+  grampanchayat: "",
+  village: "",
+  samiti: "",
+  toll: "",
+  jaati: "",
+  age: 0,
+  education: "",
+  address: "",
+  gender: "",
+  vehicle: "",
+  group: "",
+  govtEmployee: "",
+  party: "",
+  postYear: 0,
+  code: "",
+  nariSammanYojna: "",
+  farmerLoanWaiver: "",
+  reference: "",
+  remark: "",
+  facebook: "",
+  instagram: "",
+  twitter: "",
+  startLat: 0,
+  startLong: 0,
+  startDate: "",
+  endLat: 0,
+  endLong: 0,
+  endDate: "",
+  image: "",
+};

@@ -1,0 +1,93 @@
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Please add a Name"],
+      trim: true,
+      index: true,
+    },
+    email: {
+      type: String,
+      required: [true, "Please add an Email"],
+      unique: true,
+      trim: true,
+      lowercase: true,
+      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
+      index: true,
+    },
+    password: {
+      type: String,
+      required: [true, "Please enter a password"],
+      minlength: [6, "Password must be at least 6 characters"],
+    },
+    role: {
+      // Ideally this should be ObjectId, but keeping Mixed for backward compatibility
+      // as seen in controllers that handle both String and ObjectId.
+      type: mongoose.Schema.Types.Mixed,
+      required: [true, "Please select a Role"],
+    },
+    mobile: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    userType: {
+      type: String,
+      default: "regularUser",
+      trim: true,
+    },
+    // Hierarchy-based access control
+    level: {
+      type: String,
+      enum: [
+        "superadmin",
+        "state",
+        "division",
+        "district",
+        "assembly",
+        "block",
+        "panchayat",
+        "village",
+        "booth",
+      ],
+      default: "superadmin",
+    },
+    state: { type: mongoose.Schema.Types.ObjectId, ref: "State" },
+    division: { type: mongoose.Schema.Types.ObjectId, ref: "Division" },
+    district: { type: mongoose.Schema.Types.ObjectId, ref: "District" },
+    assembly: { type: mongoose.Schema.Types.ObjectId, ref: "Assembly" },
+    block: { type: mongoose.Schema.Types.ObjectId, ref: "Block" },
+    panchayat: { type: mongoose.Schema.Types.ObjectId, ref: "Panchayat" },
+    village: { type: mongoose.Schema.Types.ObjectId, ref: "Village" },
+    booth: { type: mongoose.Schema.Types.ObjectId, ref: "Booth" },
+    permissions: {
+      type: Map, // Use Map instead of Object for better Mongoose handling
+      of: Boolean, // Assuming permissions are key-value booleans or similar
+      default: {},
+    },
+    requirePasswordChange: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { timestamps: true },
+);
+
+// Hash password before saving
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) {
+    return;
+  }
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+// Compare entered password to hashed password
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
+
+module.exports = mongoose.model("User", userSchema);

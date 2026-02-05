@@ -1,0 +1,73 @@
+const mongoose = require("mongoose");
+
+const permissionSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Permission Name is required"],
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
+    displayName: {
+      type: String,
+      required: [true, "Display Name is required"],
+      trim: true,
+    },
+    description: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    category: {
+      type: String,
+      enum: [
+        "dashboard",
+        "users",
+        "roles",
+        "user_count",
+        "projects",
+        "mp_public_problems",
+        "assembly_issue",
+        "events",
+        "voter",
+        "ganesh_samiti",
+        "tenkar_samiti",
+        "dp_samiti",
+        "mandir_samiti",
+        "bhagoria_samiti",
+        "nirman_samiti",
+        "booth_samiti",
+        "block_samiti",
+        "vidhansabha_samiti",
+        "districts",
+        "divisions",
+        "states",
+        "members",
+        "parliaments",
+        "assemblies",
+        "blocks",
+        "booths",
+        "panchayat",
+        "villages",
+        "visitors",
+        "party",
+        "vidhan_sabha",
+        "sub_type_of_work",
+        "department",
+        "phone_directory",
+        "worktype",
+        "in_docs",
+        "inward_register",
+        "dispatch_register",
+        "call_management",
+        "activity_management",
+        "other",
+      ],
+      default: "other",
+    },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Permission", permissionSchema);

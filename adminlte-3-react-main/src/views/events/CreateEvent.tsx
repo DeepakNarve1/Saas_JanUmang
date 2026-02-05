@@ -1,0 +1,54 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import axios from "@app/utils/axios";
+import { toast } from "react-toastify";
+import { ContentHeader } from "@app/components";
+import { RouteGuard } from "@app/components/RouteGuard";
+import EventForm from "./EventForm";
+import { IEventFormValues } from "./event.schema";
+
+const CreateEvent = () => {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (values: IEventFormValues) => {
+    try {
+      setIsSubmitting(true);
+      console.log("Submitting event data:", values);
+      const response = await axios.post("/events", values);
+      console.log("Event created successfully:", response.data);
+      toast.success("Event created successfully");
+      router.push("/events");
+    } catch (error: unknown) {
+      console.error("Event creation error:", error);
+      const err = error as {
+        response?: { data?: { message?: string; error?: string } };
+      };
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Failed to create event";
+      console.error("Error message:", errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <RouteGuard requiredPermissions={["create_events"]}>
+      <ContentHeader title="Create Event" />
+      <section className="content">
+        <div className="container-fluid px-4">
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <EventForm onSubmit={handleSubmit} loading={isSubmitting} />
+          </div>
+        </div>
+      </section>
+    </RouteGuard>
+  );
+};
+
+export default CreateEvent;

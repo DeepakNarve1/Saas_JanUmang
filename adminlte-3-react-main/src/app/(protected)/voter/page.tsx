@@ -1,0 +1,18 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { Skeleton } from "@app/components/ui/skeleton";
+
+const Voter = dynamic(() => import("@app/views/voter"), {
+  ssr: false,
+  loading: () => (
+    <div className="p-6 space-y-4">
+      <Skeleton className="h-12 w-full" />
+      <Skeleton className="h-[400px] w-full" />
+    </div>
+  ),
+});
+
+export default function VoterPage() {
+  return <Voter />;
+}
