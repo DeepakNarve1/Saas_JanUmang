@@ -5,7 +5,7 @@ const { logActivity } = require("./activityLogController");
 // Get all VidhanSabhas
 exports.getAll = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search } = req.query;
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.name = { $regex: search, $options: "i" };
@@ -17,6 +17,7 @@ exports.getAll = asyncHandler(async (req, res) => {
     paginationLimit = 0;
   }
 
+  const total = await VidhanSabha.countDocuments({ ...req.scopeFilter });
   const count = await VidhanSabha.countDocuments(query);
 
   let queryBuilder = VidhanSabha.find(query).sort({ createdAt: -1 });
@@ -31,6 +32,7 @@ exports.getAll = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
+    total,
     count,
     data,
   });
@@ -38,7 +40,10 @@ exports.getAll = asyncHandler(async (req, res) => {
 
 // Get single VidhanSabha
 exports.getById = asyncHandler(async (req, res) => {
-  const vidhanSabha = await VidhanSabha.findById(req.params.id);
+  const vidhanSabha = await VidhanSabha.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!vidhanSabha) {
     res.status(404);
     throw new Error("Vidhan Sabha not found");
@@ -55,10 +60,10 @@ exports.create = asyncHandler(async (req, res) => {
     const addedBy = createdBy;
 
     const vidhanSabha = await VidhanSabha.create({
-      name,
-      year,
+      ...req.body,
       createdBy,
       addedBy,
+      tenantId: req.tenantId, // SaaS: Link to organization
     });
 
     await logActivity(
@@ -82,7 +87,10 @@ exports.create = asyncHandler(async (req, res) => {
 // Update VidhanSabha
 exports.update = asyncHandler(async (req, res) => {
   try {
-    const oldData = await VidhanSabha.findById(req.params.id);
+    const oldData = await VidhanSabha.findOne({
+      _id: req.params.id,
+      ...req.scopeFilter,
+    });
 
     const vidhanSabha = await VidhanSabha.findByIdAndUpdate(
       req.params.id,
@@ -118,11 +126,16 @@ exports.update = asyncHandler(async (req, res) => {
 
 // Delete VidhanSabha
 exports.delete = asyncHandler(async (req, res) => {
-  const vidhanSabha = await VidhanSabha.findByIdAndDelete(req.params.id);
+  const vidhanSabha = await VidhanSabha.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!vidhanSabha) {
     res.status(404);
     throw new Error("Vidhan Sabha not found");
   }
+
+  await vidhanSabha.deleteOne();
 
   await logActivity(
     req,

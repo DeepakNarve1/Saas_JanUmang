@@ -124,7 +124,10 @@ exports.getVoters = asyncHandler(async (req, res) => {
 
   let voters;
   let filteredCount;
-  let totalCount = await Voter.countDocuments({ isActive: true });
+  let totalCount = await Voter.countDocuments({
+    isActive: true,
+    ...req.scopeFilter,
+  });
 
   if (limitNum === -1) {
     voters = await Voter.find(query)
@@ -152,10 +155,10 @@ exports.getVoters = asyncHandler(async (req, res) => {
 // @desc    Get single voter
 // @route   GET /api/voters/:id
 exports.getVoterById = asyncHandler(async (req, res) => {
-  const voter = await Voter.findById(req.params.id).populate(
-    "createdBy",
-    "name",
-  );
+  const voter = await Voter.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  }).populate("createdBy", "name");
 
   if (!voter) {
     res.status(404);
@@ -172,6 +175,7 @@ exports.createVoter = asyncHandler(async (req, res) => {
     const voterData = {
       ...req.body,
       createdBy: req.user ? req.user._id : undefined,
+      tenantId: req.tenantId, // SaaS: Link to organization
     };
 
     const voter = await Voter.create(voterData);
@@ -199,7 +203,10 @@ exports.createVoter = asyncHandler(async (req, res) => {
 // @desc    Update a voter
 // @route   PUT /api/voters/:id
 exports.updateVoter = asyncHandler(async (req, res) => {
-  const voter = await Voter.findById(req.params.id);
+  const voter = await Voter.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!voter) {
     res.status(404);
     throw new Error("Voter not found");
@@ -230,7 +237,10 @@ exports.updateVoter = asyncHandler(async (req, res) => {
 // @desc    Delete a voter
 // @route   DELETE /api/voters/:id
 exports.deleteVoter = asyncHandler(async (req, res) => {
-  const voter = await Voter.findById(req.params.id);
+  const voter = await Voter.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!voter) {
     res.status(404);
     throw new Error("Voter not found");

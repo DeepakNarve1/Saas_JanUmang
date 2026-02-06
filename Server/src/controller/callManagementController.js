@@ -5,7 +5,7 @@ const { logActivity } = require("./activityLogController");
 // Get all Call Records
 exports.getCalls = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search, category } = req.query;
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.$or = [
@@ -26,7 +26,8 @@ exports.getCalls = asyncHandler(async (req, res) => {
     paginationLimit = 0;
   }
 
-  const count = await CallManagement.countDocuments(query);
+  const count = await CallManagement.countDocuments({ ...req.scopeFilter });
+  const filteredCount = await CallManagement.countDocuments(query);
 
   let queryBuilder = CallManagement.find(query)
     .populate("addedBy", "name")
@@ -42,17 +43,18 @@ exports.getCalls = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    count,
+    total: count,
+    count: filteredCount,
     data,
   });
 });
 
 // Get single Call Record
 exports.getCall = asyncHandler(async (req, res) => {
-  const call = await CallManagement.findById(req.params.id).populate(
-    "addedBy",
-    "name",
-  );
+  const call = await CallManagement.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  }).populate("addedBy", "name");
 
   if (!call) {
     res.status(404);
@@ -71,6 +73,7 @@ exports.createCall = asyncHandler(async (req, res) => {
     const call = await CallManagement.create({
       ...req.body,
       addedBy: req.user._id,
+      tenantId: req.tenantId, // SaaS: Link to organization
     });
 
     await logActivity(
@@ -97,7 +100,10 @@ exports.createCall = asyncHandler(async (req, res) => {
 
 // Update Call Record
 exports.updateCall = asyncHandler(async (req, res) => {
-  let call = await CallManagement.findById(req.params.id);
+  let call = await CallManagement.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
 
   if (!call) {
     res.status(404);
@@ -127,7 +133,10 @@ exports.updateCall = asyncHandler(async (req, res) => {
 
 // Delete Call Record
 exports.deleteCall = asyncHandler(async (req, res) => {
-  const call = await CallManagement.findById(req.params.id);
+  const call = await CallManagement.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
 
   if (!call) {
     res.status(404);

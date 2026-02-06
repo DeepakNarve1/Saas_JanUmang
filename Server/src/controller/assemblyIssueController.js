@@ -19,7 +19,7 @@ exports.getAssemblyIssues = asyncHandler(async (req, res) => {
   } = req.query;
 
   // Build filter query
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (status) query.status = status;
   if (priority) query.priority = priority;
@@ -55,9 +55,10 @@ exports.getAssemblyIssues = asyncHandler(async (req, res) => {
   let totalCount;
 
   // Always get the true total (filtered by issueType if provided)
-  totalCount = await AssemblyIssue.countDocuments(
-    issueType ? { issueType } : {},
-  );
+  totalCount = await AssemblyIssue.countDocuments({
+    ...(issueType ? { issueType } : {}),
+    ...req.scopeFilter,
+  });
 
   // If limit is -1, fetch all records
   if (limitNum === -1) {
@@ -103,6 +104,7 @@ exports.createAssemblyIssue = asyncHandler(async (req, res) => {
       ...req.body,
       addedBy: req.user ? req.user.name || req.user.email : "Unknown",
       registrationDate: req.body.registrationDate || new Date().toISOString(),
+      tenantId: req.tenantId, // SaaS: Link to organization
     };
     const issue = await AssemblyIssue.create(issueData);
 

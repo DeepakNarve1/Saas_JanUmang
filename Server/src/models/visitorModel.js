@@ -89,6 +89,12 @@ const visitorSchema = new mongoose.Schema(
       required: [true, "Added By is required"],
       trim: true,
     },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
   },
   { timestamps: true },
 );

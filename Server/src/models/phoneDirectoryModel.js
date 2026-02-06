@@ -50,8 +50,14 @@ const phoneDirectorySchema = new mongoose.Schema(
       enum: ["Active", "Inactive"],
       default: "Active",
     },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("PhoneDirectory", phoneDirectorySchema);

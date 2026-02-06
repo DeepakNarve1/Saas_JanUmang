@@ -8,16 +8,18 @@ const checkPermission = (permissionName) => {
       throw new Error("User or role not found");
     }
 
-    // Superadmin has all permissions - check both string and object
-    const isSuperAdmin =
+    // Global Admins (Superadmin/SystemAdmin) have all permissions
+    const isGlobalAdmin =
       req.user.role === "superadmin" ||
-      (req.user.role && req.user.role.name === "superadmin");
+      (req.user.role && req.user.role.name === "superadmin") ||
+      req.user.level === "system_admin" ||
+      req.user.level === "superadmin";
 
     /* console.log(`[RBAC] Checking permission: ${permissionName}`);
     console.log(`[RBAC] User Role: ${JSON.stringify(req.user.role)}`);
-    console.log(`[RBAC] Is SuperAdmin: ${isSuperAdmin}`); */
+    console.log(`[RBAC] Is GlobalAdmin: ${isGlobalAdmin}`); */
 
-    if (isSuperAdmin) {
+    if (isGlobalAdmin) {
       return next();
     }
 
@@ -38,8 +40,8 @@ const checkPermission = (permissionName) => {
           : JSON.stringify(req.user.role);
       throw new Error(
         `Permission Denied. Required: ${permissionName}. Your Role: ${roleName}. Perms: ${userPermNames.join(
-          ","
-        )}`
+          ",",
+        )}`,
       );
     }
 
@@ -55,10 +57,12 @@ const checkAnyPermission = (permissionNames) => {
       throw new Error("User or role not found");
     }
 
-    // Unified Superadmin check
+    // Unified Global Admin check
     if (
       req.user.role === "superadmin" ||
-      (req.user.role && req.user.role.name === "superadmin")
+      (req.user.role && req.user.role.name === "superadmin") ||
+      req.user.level === "system_admin" ||
+      req.user.level === "superadmin"
     ) {
       return next();
     }
@@ -77,8 +81,8 @@ const checkAnyPermission = (permissionNames) => {
       res.status(403);
       throw new Error(
         `You do not have any of the required permissions: ${permissionNames.join(
-          ", "
-        )}`
+          ", ",
+        )}`,
       );
     }
 
@@ -94,10 +98,12 @@ const checkAllPermissions = (permissionNames) => {
       throw new Error("User or role not found");
     }
 
-    // Unified Superadmin check
+    // Unified Global Admin check
     if (
       req.user.role === "superadmin" ||
-      (req.user.role && req.user.role.name === "superadmin")
+      (req.user.role && req.user.role.name === "superadmin") ||
+      req.user.level === "system_admin" ||
+      req.user.level === "superadmin"
     ) {
       return next();
     }
@@ -107,7 +113,7 @@ const checkAllPermissions = (permissionNames) => {
       ? permissions.map((p) => p.name)
       : [];
     const hasAll = permissionNames.every((perm) =>
-      userPermNames.includes(perm)
+      userPermNames.includes(perm),
     );
 
     if (!hasAll) {

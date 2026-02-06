@@ -5,7 +5,7 @@ const { logActivity } = require("./activityLogController");
 // Get all SubTypeOfWorks
 exports.getSubTypeOfWorks = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search } = req.query;
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.$or = [
@@ -29,6 +29,7 @@ exports.getSubTypeOfWorks = asyncHandler(async (req, res) => {
     paginationLimit = 0;
   }
 
+  const total = await SubTypeOfWork.countDocuments({ ...req.scopeFilter });
   const count = await SubTypeOfWork.countDocuments(query);
 
   let queryBuilder = SubTypeOfWork.find(query).sort({ createdAt: -1 });
@@ -43,6 +44,7 @@ exports.getSubTypeOfWorks = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
+    total,
     count,
     data,
   });
@@ -50,7 +52,10 @@ exports.getSubTypeOfWorks = asyncHandler(async (req, res) => {
 
 // Get single SubTypeOfWork
 exports.getSubTypeOfWorkById = asyncHandler(async (req, res) => {
-  const subTypeOfWork = await SubTypeOfWork.findById(req.params.id);
+  const subTypeOfWork = await SubTypeOfWork.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  }).populate("workType", "name");
   if (!subTypeOfWork) {
     res.status(404);
     throw new Error("Sub Type Of Work not found");
@@ -60,11 +65,9 @@ exports.getSubTypeOfWorkById = asyncHandler(async (req, res) => {
 
 // Create SubTypeOfWork
 exports.createSubTypeOfWork = asyncHandler(async (req, res) => {
-  const { typeOfWork, subTypeOfWork } = req.body;
-
   const newSubTypeOfWork = await SubTypeOfWork.create({
-    typeOfWork,
-    subTypeOfWork,
+    ...req.body,
+    tenantId: req.tenantId, // SaaS: Link to organization
   });
 
   await logActivity(
@@ -80,40 +83,54 @@ exports.createSubTypeOfWork = asyncHandler(async (req, res) => {
 
 // Update SubTypeOfWork
 exports.updateSubTypeOfWork = asyncHandler(async (req, res) => {
-  const oldData = await SubTypeOfWork.findById(req.params.id);
+  try {
+    const oldData = await SubTypeOfWork.findOne({
+      _id: req.params.id,
+      ...req.scopeFilter,
+    });
 
-  const subTypeOfWork = await SubTypeOfWork.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    {
-      new: true,
-      runValidators: true,
-    },
-  );
+    const subTypeOfWork = await SubTypeOfWork.findOneAndUpdate(
+      { _id: req.params.id, ...req.scopeFilter },
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
 
-  if (!subTypeOfWork) {
-    res.status(404);
-    throw new Error("Sub Type Of Work not found");
+    if (!subTypeOfWork) {
+      res.status(404);
+      throw new Error("Sub Type Of Work not found");
+    }
+
+    await logActivity(
+      req,
+      "UPDATE",
+      "SubTypeOfWork",
+      `Updated sub-type work: ${subTypeOfWork.subTypeOfWork}`,
+      { recordId: subTypeOfWork._id, newData: subTypeOfWork, oldData },
+    );
+
+    res.status(200).json({ success: true, data: subTypeOfWork });
+  } catch (error) {
+    // Handle potential errors, e.g., validation errors
+    res.status(400);
+    throw new Error(error.message);
   }
-
-  await logActivity(
-    req,
-    "UPDATE",
-    "SubTypeOfWork",
-    `Updated sub-type work: ${subTypeOfWork.subTypeOfWork}`,
-    { recordId: subTypeOfWork._id, newData: subTypeOfWork, oldData },
-  );
-
-  res.status(200).json({ success: true, data: subTypeOfWork });
 });
 
 // Delete SubTypeOfWork
 exports.deleteSubTypeOfWork = asyncHandler(async (req, res) => {
-  const subTypeOfWork = await SubTypeOfWork.findByIdAndDelete(req.params.id);
+  const subTypeOfWork = await SubTypeOfWork.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!subTypeOfWork) {
     res.status(404);
-    throw new Error("Sub Type Of Work not found");
+    throw new Error("SubType of Work not found");
   }
+
+  await subTypeOfWork.deleteOne();
 
   await logActivity(
     req,

@@ -5,7 +5,7 @@ const { logActivity } = require("./activityLogController");
 // Get all Parties
 exports.getAll = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search } = req.query;
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.name = { $regex: search, $options: "i" };
@@ -17,6 +17,7 @@ exports.getAll = asyncHandler(async (req, res) => {
     paginationLimit = 0;
   }
 
+  const total = await PartyList.countDocuments({ ...req.scopeFilter });
   const count = await PartyList.countDocuments(query);
 
   let queryBuilder = PartyList.find(query).sort({ createdAt: -1 });
@@ -31,6 +32,7 @@ exports.getAll = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
+    total,
     count,
     data,
   });
@@ -38,7 +40,10 @@ exports.getAll = asyncHandler(async (req, res) => {
 
 // Get single Party
 exports.getById = asyncHandler(async (req, res) => {
-  const party = await PartyList.findById(req.params.id);
+  const party = await PartyList.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!party) {
     res.status(404);
     throw new Error("Party not found");
@@ -49,9 +54,10 @@ exports.getById = asyncHandler(async (req, res) => {
 // Create Party
 exports.create = asyncHandler(async (req, res) => {
   try {
-    const { name } = req.body;
-
-    const party = await PartyList.create({ name });
+    const party = await PartyList.create({
+      ...req.body,
+      tenantId: req.tenantId, // SaaS: Link to organization
+    });
 
     await logActivity(req, "CREATE", "Party", `Created party: ${party.name}`, {
       recordId: party._id,
@@ -71,7 +77,10 @@ exports.create = asyncHandler(async (req, res) => {
 // Update Party
 exports.update = asyncHandler(async (req, res) => {
   try {
-    const oldData = await PartyList.findById(req.params.id);
+    const oldData = await PartyList.findOne({
+      _id: req.params.id,
+      ...req.scopeFilter,
+    });
 
     const party = await PartyList.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -101,11 +110,16 @@ exports.update = asyncHandler(async (req, res) => {
 
 // Delete Party
 exports.delete = asyncHandler(async (req, res) => {
-  const party = await PartyList.findByIdAndDelete(req.params.id);
+  const party = await PartyList.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!party) {
     res.status(404);
     throw new Error("Party not found");
   }
+
+  await party.deleteOne();
 
   await logActivity(req, "DELETE", "Party", `Deleted party: ${party.name}`, {
     recordId: party._id,

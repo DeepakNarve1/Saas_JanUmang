@@ -5,7 +5,7 @@ const { logActivity } = require("./activityLogController");
 // Get all Worktypes
 exports.getWorktypes = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search } = req.query;
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.name = { $regex: search, $options: "i" };
@@ -16,6 +16,7 @@ exports.getWorktypes = asyncHandler(async (req, res) => {
     paginationLimit = 0;
   }
 
+  const total = await Worktype.countDocuments({ ...req.scopeFilter });
   const count = await Worktype.countDocuments(query);
 
   let queryBuilder = Worktype.find(query).sort({ createdAt: -1 });
@@ -30,6 +31,7 @@ exports.getWorktypes = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
+    total,
     count,
     data,
   });
@@ -37,7 +39,10 @@ exports.getWorktypes = asyncHandler(async (req, res) => {
 
 // Get single Worktype
 exports.getWorktypeById = asyncHandler(async (req, res) => {
-  const worktype = await Worktype.findById(req.params.id);
+  const worktype = await Worktype.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!worktype) {
     res.status(404);
     throw new Error("Worktype not found");
@@ -48,10 +53,9 @@ exports.getWorktypeById = asyncHandler(async (req, res) => {
 // Create Worktype
 exports.createWorktype = asyncHandler(async (req, res) => {
   try {
-    const { name } = req.body;
-
     const newWorktype = await Worktype.create({
-      name,
+      ...req.body,
+      tenantId: req.tenantId, // SaaS: Link to organization
     });
 
     await logActivity(
@@ -75,7 +79,10 @@ exports.createWorktype = asyncHandler(async (req, res) => {
 // Update Worktype
 exports.updateWorktype = asyncHandler(async (req, res) => {
   try {
-    const oldData = await Worktype.findById(req.params.id);
+    const oldData = await Worktype.findOne({
+      _id: req.params.id,
+      ...req.scopeFilter,
+    });
 
     const worktype = await Worktype.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -107,11 +114,16 @@ exports.updateWorktype = asyncHandler(async (req, res) => {
 
 // Delete Worktype
 exports.deleteWorktype = asyncHandler(async (req, res) => {
-  const worktype = await Worktype.findByIdAndDelete(req.params.id);
+  const worktype = await Worktype.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!worktype) {
     res.status(404);
     throw new Error("Worktype not found");
   }
+
+  await worktype.deleteOne();
 
   await logActivity(
     req,

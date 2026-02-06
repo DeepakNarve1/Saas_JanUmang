@@ -39,11 +39,26 @@ const userSchema = new mongoose.Schema(
       default: "regularUser",
       trim: true,
     },
-    // Hierarchy-based access control
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: ["active", "inactive", "suspended"],
+      default: "active",
+    },
+    // SaaS Hierarchy:
+    // 1. system_admin / superadmin: Global platform control (all tenants)
+    // 2. tenant_admin: Full control over a single organization (tenant)
+    // 3. other levels: Restricted access within a tenant
     level: {
       type: String,
       enum: [
-        "superadmin",
+        "system_admin",
+        "superadmin", // Existing global admin
+        "tenant_admin", // Client-level admin
         "state",
         "division",
         "district",
@@ -53,7 +68,7 @@ const userSchema = new mongoose.Schema(
         "village",
         "booth",
       ],
-      default: "superadmin",
+      default: "tenant_admin",
     },
     state: { type: mongoose.Schema.Types.ObjectId, ref: "State" },
     division: { type: mongoose.Schema.Types.ObjectId, ref: "Division" },

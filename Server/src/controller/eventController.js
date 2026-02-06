@@ -13,7 +13,7 @@ const { logActivity } = require("./activityLogController");
 exports.getEvents = asyncHandler(async (req, res) => {
   const { month, search, startDate, endDate, page = 1, limit } = req.query;
 
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (month && month !== "All Months") {
     query.month = month;
@@ -50,7 +50,7 @@ exports.getEvents = asyncHandler(async (req, res) => {
   let filteredCount;
   let totalCount;
 
-  totalCount = await Event.countDocuments({});
+  totalCount = await Event.countDocuments({ ...req.scopeFilter });
 
   // If limit is -1, fetch all records
   if (limitNum === -1) {
@@ -95,6 +95,9 @@ exports.createEvent = asyncHandler(async (req, res) => {
     if (!eventData.uniqueId || eventData.uniqueId.trim() === "") {
       delete eventData.uniqueId;
     }
+
+    // Add tenantId from context
+    eventData.tenantId = req.tenantId;
 
     // Create in Local DB
     const event = await Event.create(eventData);

@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const samitiSchema = mongoose.Schema(
   {
     samitiType: { type: String, required: true }, // informative
-    uniqueId: { type: String, unique: true },
+    uniqueId: { type: String, index: true },
     year: { type: String },
     acMpNo: { type: String, default: "N/A" },
     block: { type: String },
@@ -28,6 +28,12 @@ const samitiSchema = mongoose.Schema(
     image: { type: String },
 
     addedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -39,6 +45,7 @@ samitiSchema.pre("save", async function () {
   if (!this.uniqueId) {
     const count = await this.constructor.countDocuments({
       samitiType: this.samitiType,
+      tenantId: this.tenantId,
     });
     const prefix = this.samitiType
       ? this.samitiType.substring(0, 3).toUpperCase()
@@ -46,6 +53,8 @@ samitiSchema.pre("save", async function () {
     this.uniqueId = `${prefix}/${count + 1}`;
   }
 });
+
+samitiSchema.index({ uniqueId: 1, tenantId: 1 }, { unique: true });
 
 const getSamitiModel = (samitiType) => {
   const modelMap = {

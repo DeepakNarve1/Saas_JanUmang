@@ -13,7 +13,7 @@ exports.getPhoneDirectories = asyncHandler(async (req, res) => {
     district,
     block,
   } = req.query;
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.$or = [
@@ -139,7 +139,7 @@ exports.getPhoneDirectories = asyncHandler(async (req, res) => {
     paginationLimit = 0;
   }
 
-  const count = await PhoneDirectory.countDocuments(query);
+  const count = await PhoneDirectory.countDocuments({ ...req.scopeFilter });
   const filteredCount = await PhoneDirectory.countDocuments(query);
 
   let queryBuilder = PhoneDirectory.find(query)
@@ -159,15 +159,18 @@ exports.getPhoneDirectories = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    count,
-    filteredCount,
+    total: count,
+    count: filteredCount,
     data,
   });
 });
 
 // Get single Phone Directory entry
 exports.getPhoneDirectoryById = asyncHandler(async (req, res) => {
-  const phoneDirectory = await PhoneDirectory.findById(req.params.id)
+  const phoneDirectory = await PhoneDirectory.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  })
     .populate("department", "name")
     .populate("district", "name")
     .populate("block", "name")
@@ -183,7 +186,10 @@ exports.getPhoneDirectoryById = asyncHandler(async (req, res) => {
 // Create Phone Directory entry
 exports.createPhoneDirectory = asyncHandler(async (req, res) => {
   try {
-    const newPhoneDirectory = await PhoneDirectory.create(req.body);
+    const newPhoneDirectory = await PhoneDirectory.create({
+      ...req.body,
+      tenantId: req.tenantId, // SaaS: Link to organization
+    });
 
     await logActivity(
       req,
@@ -202,7 +208,10 @@ exports.createPhoneDirectory = asyncHandler(async (req, res) => {
 
 // Update Phone Directory entry
 exports.updatePhoneDirectory = asyncHandler(async (req, res) => {
-  const oldData = await PhoneDirectory.findById(req.params.id);
+  const oldData = await PhoneDirectory.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
 
   if (!oldData) {
     res.status(404);
@@ -231,7 +240,10 @@ exports.updatePhoneDirectory = asyncHandler(async (req, res) => {
 
 // Delete Phone Directory entry
 exports.deletePhoneDirectory = asyncHandler(async (req, res) => {
-  const phoneDirectory = await PhoneDirectory.findByIdAndDelete(req.params.id);
+  const phoneDirectory = await PhoneDirectory.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!phoneDirectory) {
     res.status(404);
     throw new Error("Phone Directory entry not found");

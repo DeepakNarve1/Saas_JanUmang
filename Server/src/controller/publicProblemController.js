@@ -21,7 +21,7 @@ exports.getPublicProblems = asyncHandler(async (req, res) => {
   } = req.query;
 
   // Build filter query
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (block) query.block = block;
   if (assembly) query.assembly = assembly;
@@ -45,7 +45,7 @@ exports.getPublicProblems = asyncHandler(async (req, res) => {
   let totalCount;
 
   // Always get the true total (unfiltered)
-  totalCount = await PublicProblem.countDocuments({});
+  totalCount = await PublicProblem.countDocuments({ ...req.scopeFilter });
 
   if (limitNum === -1) {
     // Return all filtered records (no pagination)
@@ -75,7 +75,10 @@ exports.createPublicProblem = asyncHandler(async (req, res) => {
   try {
     // Generate regNo if not provided
     if (!req.body.regNo) {
-      const lastProblem = await PublicProblem.findOne({}, { regNo: 1 }).sort({
+      const lastProblem = await PublicProblem.findOne(
+        { tenantId: req.tenantId },
+        { regNo: 1 },
+      ).sort({
         createdAt: -1,
       });
       let lastNum = 0;
@@ -87,6 +90,9 @@ exports.createPublicProblem = asyncHandler(async (req, res) => {
       }
       req.body.regNo = `MP/${lastNum + 1}`;
     }
+
+    // SaaS: Link to organization
+    req.body.tenantId = req.tenantId;
 
     if (req.user) {
       req.body.addedBy = req.user.name || req.user.email || "System";

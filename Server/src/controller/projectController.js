@@ -8,7 +8,7 @@ const { logActivity } = require("./activityLogController");
 exports.getProjects = asyncHandler(async (req, res) => {
   const { block, department, status, search, page = 1, limit } = req.query;
 
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (block) query.block = block;
   if (department) query.department = department;
@@ -35,7 +35,7 @@ exports.getProjects = asyncHandler(async (req, res) => {
 
   let projects;
   let filteredCount;
-  let totalCount = await Project.countDocuments({});
+  let totalCount = await Project.countDocuments({ ...req.scopeFilter });
 
   // If limit is -1, fetch all records
   if (limitNum === -1) {
@@ -100,7 +100,10 @@ exports.getProjectById = asyncHandler(async (req, res) => {
 // @desc    Create a project
 // @route   POST /api/projects
 exports.createProject = asyncHandler(async (req, res) => {
-  const project = await Project.create(req.body);
+  const project = await Project.create({
+    ...req.body,
+    tenantId: req.tenantId, // SaaS: Link to organization
+  });
 
   await logActivity(
     req,

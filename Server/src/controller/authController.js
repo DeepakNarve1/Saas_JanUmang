@@ -25,6 +25,8 @@ exports.registerUser = asyncHandler(async (req, res) => {
       role = role._id || role.value;
     }
 
+    const { checkUsageLimit } = require("../utils/usageGuard");
+
     if (!name || !email || !role) {
       res.status(400);
       throw new Error("Please fill all required fields (Name, Email, Role)");
@@ -33,6 +35,16 @@ exports.registerUser = asyncHandler(async (req, res) => {
     if (!password) {
       res.status(400);
       throw new Error("Password is required");
+    }
+
+    // SaaS: Check Usage Limit (Max Users)
+    // Only check if registrant is NOT a system admin
+    if (
+      req.user &&
+      req.user.level !== "system_admin" &&
+      req.user.level !== "superadmin"
+    ) {
+      await checkUsageLimit(req.tenantId, "users");
     }
 
     const userExists = await User.findOne({ email });
@@ -49,6 +61,7 @@ exports.registerUser = asyncHandler(async (req, res) => {
       mobile: mobile || "",
       userType: userType || "regularUser",
       permissions: {},
+      tenantId: req.tenantId, // SaaS: Assign to context tenant
     });
 
     if (newUser.role && mongoose.Types.ObjectId.isValid(newUser.role)) {
@@ -89,7 +102,8 @@ exports.registerUser = asyncHandler(async (req, res) => {
 // Get all users (exclude superadmin accounts unless showAll=true)
 exports.getUsers = asyncHandler(async (req, res) => {
   const { showAll } = req.query;
-  let users = await User.find().select("-password");
+  const total = await User.countDocuments({ ...req.scopeFilter });
+  let users = await User.find({ ...req.scopeFilter }).select("-password");
 
   const populatedUsers = await Promise.all(
     users.map(async (u) => {
@@ -117,13 +131,18 @@ exports.getUsers = asyncHandler(async (req, res) => {
     const filtered = populatedUsers.filter(
       (u) => u.role?.name !== "superadmin",
     );
-    res.json({ success: true, data: filtered });
+    res.json({ success: true, total, data: filtered });
   }
 });
 
 // Get single user by ID
 exports.getUserById = asyncHandler(async (req, res) => {
-  let user = await User.findById(req.params.id).select("-password").lean();
+  let user = await User.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  })
+    .select("-password")
+    .lean();
 
   if (!user) {
     res.status(404);
@@ -183,7 +202,10 @@ exports.getCurrentUser = asyncHandler(async (req, res) => {
 
 // Delete User
 exports.deleteUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
+  const user = await User.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!user) {
     res.status(404);
     throw new Error("User not found");
@@ -287,7 +309,10 @@ exports.updateUser = asyncHandler(async (req, res) => {
       throw new Error("Not authorized to update users");
     }
 
-    let user = await User.findById(req.params.id);
+    let user = await User.findOne({
+      _id: req.params.id,
+      ...req.scopeFilter,
+    });
     if (!user) {
       res.status(404);
       throw new Error("User not found");

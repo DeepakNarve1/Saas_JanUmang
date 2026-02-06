@@ -5,7 +5,7 @@ const publicProblemSchema = mongoose.Schema(
     regNo: {
       type: String,
       required: true,
-      unique: true,
+      index: true,
     },
     srNo: { type: String, default: "" },
     timer: { type: String, default: "" },
@@ -53,10 +53,18 @@ const publicProblemSchema = mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
   },
   {
     timestamps: true,
   },
 );
+
+publicProblemSchema.index({ regNo: 1, tenantId: 1 }, { unique: true });
 
 module.exports = mongoose.model("PublicProblem", publicProblemSchema);

@@ -6,10 +6,17 @@ const departmentSchema = new mongoose.Schema(
       type: String,
       required: [true, "Department name is required"],
       trim: true,
-      unique: true,
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
+
+departmentSchema.index({ name: 1, tenantId: 1 }, { unique: true });
 
 module.exports = mongoose.model("Department", departmentSchema);

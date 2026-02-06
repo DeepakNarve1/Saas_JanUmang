@@ -23,7 +23,7 @@ const protect = asyncHandler(async (req, res, next) => {
           // It's an ObjectId
           const roleDoc = await Role.findById(req.user.role).populate(
             "permissions",
-            "name displayName"
+            "name displayName",
           );
           if (roleDoc) {
             req.user.role = roleDoc;
@@ -32,7 +32,7 @@ const protect = asyncHandler(async (req, res, next) => {
           // It's a string name (legacy support)
           const roleDoc = await Role.findOne({ name: req.user.role }).populate(
             "permissions",
-            "name displayName"
+            "name displayName",
           );
           if (roleDoc) {
             req.user.role = roleDoc;
@@ -44,8 +44,23 @@ const protect = asyncHandler(async (req, res, next) => {
       console.log("[authMiddleware] Role:", req.user.role);
       console.log(
         "[authMiddleware] Permissions:",
-        req.user.role?.permissions?.map((p) => p.name)
+        req.user.role?.permissions?.map((p) => p.name),
       );
+
+      // SaaS: Attach tenantId to request
+      req.tenantId = req.user.tenantId;
+
+      // System Admin / Superadmin can override tenant context via header for management/support
+      const isGlobalAdmin =
+        req.user.level === "system_admin" || req.user.level === "superadmin";
+
+      if (
+        isGlobalAdmin &&
+        req.headers["x-tenant-id"] &&
+        mongoose.Types.ObjectId.isValid(req.headers["x-tenant-id"])
+      ) {
+        req.tenantId = new mongoose.Types.ObjectId(req.headers["x-tenant-id"]);
+      }
 
       next();
     } catch (error) {

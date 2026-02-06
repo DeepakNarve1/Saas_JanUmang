@@ -10,7 +10,7 @@ exports.getAll = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search } = req.query;
 
   // No need to filter by samitiType as we are in a specific collection
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.$or = [
@@ -39,12 +39,13 @@ exports.getAll = asyncHandler(async (req, res) => {
   }
 
   const data = await queryBuilder;
+  const total = await SamitiModel.countDocuments({ ...req.scopeFilter });
   const count = await SamitiModel.countDocuments(query); // Total count matching filter
 
   res.status(200).json({
     success: true,
+    total,
     count,
-    filteredCount: count,
     data,
   });
 });
@@ -54,7 +55,10 @@ exports.getById = asyncHandler(async (req, res) => {
   const samitiType = req.samitiType;
   const SamitiModel = getSamitiModel(samitiType);
 
-  const item = await SamitiModel.findById(req.params.id);
+  const item = await SamitiModel.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!item) {
     res.status(404);
     throw new Error("Record not found");
@@ -73,6 +77,7 @@ exports.create = asyncHandler(async (req, res) => {
       ...req.body,
       samitiType, // Still saving it for reference, though implicit by collection
       addedBy: req.user ? req.user._id : undefined,
+      tenantId: req.tenantId, // SaaS: Link to organization
     });
 
     await logActivity(
@@ -98,7 +103,10 @@ exports.update = asyncHandler(async (req, res) => {
   const samitiType = req.samitiType;
   const SamitiModel = getSamitiModel(samitiType);
 
-  const oldData = await SamitiModel.findById(req.params.id);
+  const oldData = await SamitiModel.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
 
   const updatedItem = await SamitiModel.findByIdAndUpdate(
     req.params.id,
@@ -126,18 +134,22 @@ exports.delete = asyncHandler(async (req, res) => {
   const samitiType = req.samitiType;
   const SamitiModel = getSamitiModel(samitiType);
 
-  const deletedItem = await SamitiModel.findByIdAndDelete(req.params.id);
-  if (!deletedItem) {
+  const item = await SamitiModel.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
+  if (!item) {
     res.status(404);
     throw new Error("Record not found");
   }
+  await item.deleteOne();
 
   await logActivity(
     req,
     "DELETE",
     `Samiti-${samitiType}`,
-    `Deleted: ${deletedItem.uniqueId}`,
-    { recordId: deletedItem._id, oldData: deletedItem },
+    `Deleted: ${item.uniqueId}`,
+    { recordId: item._id, oldData: item },
   );
 
   res

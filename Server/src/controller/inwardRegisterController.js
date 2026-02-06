@@ -5,7 +5,7 @@ const { logActivity } = require("./activityLogController");
 // Get all Inward Registers
 exports.getInwardRegisters = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search } = req.query;
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.$or = [
@@ -23,7 +23,8 @@ exports.getInwardRegisters = asyncHandler(async (req, res) => {
     paginationLimit = 0;
   }
 
-  const count = await InwardRegister.countDocuments(query);
+  const count = await InwardRegister.countDocuments({ ...req.scopeFilter });
+  const filteredCount = await InwardRegister.countDocuments(query);
 
   let queryBuilder = InwardRegister.find(query)
     .populate("addedBy", "name")
@@ -39,17 +40,18 @@ exports.getInwardRegisters = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    count,
+    total: count,
+    count: filteredCount,
     data,
   });
 });
 
 // Get single Inward Register
 exports.getInwardRegister = asyncHandler(async (req, res) => {
-  const inwardRegister = await InwardRegister.findById(req.params.id).populate(
-    "addedBy",
-    "name",
-  );
+  const inwardRegister = await InwardRegister.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  }).populate("addedBy", "name");
 
   if (!inwardRegister) {
     res.status(404);
@@ -68,6 +70,7 @@ exports.createInwardRegister = asyncHandler(async (req, res) => {
     const inwardRegister = await InwardRegister.create({
       ...req.body,
       addedBy: req.user._id,
+      tenantId: req.tenantId, // SaaS: Link to organization
     });
 
     await logActivity(
@@ -98,7 +101,10 @@ exports.createInwardRegister = asyncHandler(async (req, res) => {
 
 // Update Inward Register
 exports.updateInwardRegister = asyncHandler(async (req, res) => {
-  let inwardRegister = await InwardRegister.findById(req.params.id);
+  let inwardRegister = await InwardRegister.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
 
   if (!inwardRegister) {
     res.status(404);
@@ -132,7 +138,10 @@ exports.updateInwardRegister = asyncHandler(async (req, res) => {
 
 // Delete Inward Register
 exports.deleteInwardRegister = asyncHandler(async (req, res) => {
-  const inwardRegister = await InwardRegister.findById(req.params.id);
+  const inwardRegister = await InwardRegister.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
 
   if (!inwardRegister) {
     res.status(404);

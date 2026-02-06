@@ -21,7 +21,7 @@ exports.getMembers = asyncHandler(async (req, res) => {
 
     console.log("Fetching members with params:", req.query);
 
-    const query = {};
+    const query = { ...req.scopeFilter };
 
     // Text Search
     if (search) {
@@ -69,8 +69,9 @@ exports.getMembers = asyncHandler(async (req, res) => {
       queryBuilder = queryBuilder.skip(skip).limit(limitNum);
     }
 
-    const [members, count] = await Promise.all([
+    const [members, total, count] = await Promise.all([
       queryBuilder,
+      Member.countDocuments({ ...req.scopeFilter }),
       Member.countDocuments(query),
     ]);
 
@@ -86,7 +87,8 @@ exports.getMembers = asyncHandler(async (req, res) => {
     res.json({
       success: true,
       data: formattedMembers,
-      count: count,
+      total,
+      count,
       pagination: {
         page: pageNum,
         pages: limitNum === -1 ? 1 : Math.ceil(count / limitNum),
@@ -106,7 +108,10 @@ exports.getMembers = asyncHandler(async (req, res) => {
 // @route   GET /api/members/:id
 // @access  Private
 exports.getMemberById = asyncHandler(async (req, res) => {
-  const member = await Member.findById(req.params.id);
+  const member = await Member.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
 
   if (!member) {
     res.status(404);
@@ -125,6 +130,7 @@ exports.createMember = asyncHandler(async (req, res) => {
     addedBy: req.user ? req.user.name : "System",
     startDate: req.body.startDate || new Date(),
     endDate: req.body.endDate || new Date(),
+    tenantId: req.tenantId, // SaaS: Link to organization
   };
 
   const member = await Member.create(memberData);
@@ -144,7 +150,10 @@ exports.createMember = asyncHandler(async (req, res) => {
 // @route   PUT /api/members/:id
 // @access  Private
 exports.updateMember = asyncHandler(async (req, res) => {
-  const member = await Member.findById(req.params.id);
+  const member = await Member.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
 
   if (!member) {
     res.status(404);
@@ -177,7 +186,10 @@ exports.updateMember = asyncHandler(async (req, res) => {
 // @route   DELETE /api/members/:id
 // @access  Private
 exports.deleteMember = asyncHandler(async (req, res) => {
-  const member = await Member.findById(req.params.id);
+  const member = await Member.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
 
   if (!member) {
     res.status(404);

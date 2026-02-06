@@ -72,6 +72,12 @@ const projectSchema = mongoose.Schema(
       default: "",
       trim: true,
     },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
   },
   {
     timestamps: true,

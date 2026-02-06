@@ -679,7 +679,7 @@ const AssemblyIssueListContent = ({
                 <TableHeader>
                   <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-transparent border-gray-200 dark:border-gray-800">
                     {visibleColumns.srNo && (
-                      <TableHead className="text-center font-bold whitespace-nowrap sticky left-0 z-20 bg-gray-50 dark:bg-[#2a2b2d] border-r border-gray-200 dark:border-gray-800">
+                      <TableHead className="text-center font-bold whitespace-nowrap sticky left-0 z-20 bg-[#368F8B] text-white dark:bg-[#368F8B] border-r border-gray-200 dark:border-gray-800">
                         Sr.No.
                       </TableHead>
                     )}
@@ -922,7 +922,7 @@ const AssemblyIssueListContent = ({
                         className="hover:bg-gray-50 dark:hover:bg-white/5 border-gray-100 dark:border-gray-800 transition-colors"
                       >
                         {visibleColumns.srNo && (
-                          <TableCell className="text-center whitespace-nowrap bg-white dark:bg-[#202123] sticky left-0 z-10 font-bold border-r border-gray-200 dark:border-gray-800">
+                          <TableCell className="text-center whitespace-nowrap bg-white dark:bg-[#202123] sticky left-0 z-10 font-bold border-r border-gray-200 dark:border-gray-800 text-[#368F8B]">
                             {(currentPage - 1) * entriesPerPage + index + 1}
                           </TableCell>
                         )}

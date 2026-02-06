@@ -91,7 +91,12 @@ const voterSchema = new mongoose.Schema(
     },
     voterId: {
       type: String,
-      unique: true,
+      index: true,
+      trim: true,
+    },
+    uniqueId: {
+      type: String,
+      index: true,
       trim: true,
     },
     image: {
@@ -117,10 +122,31 @@ const voterSchema = new mongoose.Schema(
       enum: ["LEGACY", "NEW"],
       default: "NEW",
     },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
   },
   {
     timestamps: true,
   },
 );
+
+voterSchema.index({ voterId: 1, tenantId: 1 }, { unique: true });
+voterSchema.index({ uniqueId: 1, tenantId: 1 }, { unique: true });
+
+// Pre-save hook to generate uniqueId
+voterSchema.pre("save", async function (next) {
+  if (this.isNew && !this.uniqueId) {
+    const prefix = "VOTER"; // Or any other desired prefix
+    const count = await this.constructor.countDocuments({
+      tenantId: this.tenantId,
+    });
+    this.uniqueId = `${prefix}/${1000 + count + 1}`; // Starting from 1001
+  }
+  next();
+});
 
 module.exports = mongoose.model("Voter", voterSchema);

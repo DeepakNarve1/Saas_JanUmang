@@ -66,6 +66,9 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/rbac", rbacRoutes);
 
+const tenantRoutes = require("./routes/tenantRoute");
+app.use("/api/tenants", tenantRoutes);
+
 // Legacy support: map /api/roles/* to /api/rbac/roles/*
 app.use("/api/roles", (req, res, next) => {
   req.url = "/roles" + req.url;

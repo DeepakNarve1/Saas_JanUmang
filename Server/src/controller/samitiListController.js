@@ -5,7 +5,7 @@ const { logActivity } = require("./activityLogController");
 // Get all Samitis
 exports.getAll = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search } = req.query;
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.name = { $regex: search, $options: "i" };
@@ -17,6 +17,7 @@ exports.getAll = asyncHandler(async (req, res) => {
     paginationLimit = 0;
   }
 
+  const total = await SamitiList.countDocuments({ ...req.scopeFilter });
   const count = await SamitiList.countDocuments(query);
 
   let queryBuilder = SamitiList.find(query).sort({ createdAt: -1 });
@@ -31,6 +32,7 @@ exports.getAll = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
+    total,
     count,
     data,
   });
@@ -38,7 +40,10 @@ exports.getAll = asyncHandler(async (req, res) => {
 
 // Get single Samiti
 exports.getById = asyncHandler(async (req, res) => {
-  const samiti = await SamitiList.findById(req.params.id);
+  const samiti = await SamitiList.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!samiti) {
     res.status(404);
     throw new Error("Samiti not found");
@@ -49,9 +54,10 @@ exports.getById = asyncHandler(async (req, res) => {
 // Create Samiti
 exports.create = asyncHandler(async (req, res) => {
   try {
-    const { name } = req.body;
-
-    const samiti = await SamitiList.create({ name });
+    const samiti = await SamitiList.create({
+      ...req.body,
+      tenantId: req.tenantId, // SaaS: Link to organization
+    });
 
     await logActivity(
       req,
@@ -74,7 +80,10 @@ exports.create = asyncHandler(async (req, res) => {
 // Update Samiti
 exports.update = asyncHandler(async (req, res) => {
   try {
-    const oldData = await SamitiList.findById(req.params.id);
+    const oldData = await SamitiList.findOne({
+      _id: req.params.id,
+      ...req.scopeFilter,
+    });
 
     const samiti = await SamitiList.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -106,11 +115,16 @@ exports.update = asyncHandler(async (req, res) => {
 
 // Delete Samiti
 exports.delete = asyncHandler(async (req, res) => {
-  const samiti = await SamitiList.findByIdAndDelete(req.params.id);
+  const samiti = await SamitiList.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!samiti) {
     res.status(404);
     throw new Error("Samiti not found");
   }
+
+  await samiti.deleteOne();
 
   await logActivity(
     req,

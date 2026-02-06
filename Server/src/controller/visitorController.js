@@ -23,7 +23,7 @@ exports.getVisitors = asyncHandler(async (req, res) => {
     blockId,
   } = req.query;
 
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   // Text search
   if (search) {
@@ -63,7 +63,7 @@ exports.getVisitors = asyncHandler(async (req, res) => {
 
   let visitors;
   let filteredCount;
-  let totalCount = await Visitor.countDocuments();
+  let totalCount = await Visitor.countDocuments({ ...req.scopeFilter });
 
   if (limitNum === -1) {
     visitors = await Visitor.find(query).sort({ createdAt: -1 });
@@ -101,7 +101,12 @@ exports.getVisitorById = asyncHandler(async (req, res) => {
 // @desc    Create a visitor
 // @route   POST /api/visitors
 exports.createVisitor = asyncHandler(async (req, res) => {
-  const visitor = await Visitor.create(req.body);
+  // SaaS: Link to organization
+  const visitorData = {
+    ...req.body,
+    tenantId: req.tenantId,
+  };
+  const visitor = await Visitor.create(visitorData);
 
   await logActivity(
     req,

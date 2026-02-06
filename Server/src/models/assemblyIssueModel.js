@@ -4,9 +4,8 @@ const assemblyIssueSchema = mongoose.Schema(
   {
     uniqueId: {
       type: String,
-      unique: true,
-      trim: true,
       index: true,
+      trim: true,
     },
     year: {
       type: String,
@@ -200,6 +199,12 @@ const assemblyIssueSchema = mongoose.Schema(
       index: true,
     },
     file: { type: String }, // For file path or URL
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -219,9 +224,14 @@ assemblyIssueSchema.pre("save", async function () {
             ? "MY2"
             : "MY3";
 
-    const count = await this.constructor.countDocuments({ issueType: type });
+    const count = await this.constructor.countDocuments({
+      issueType: type,
+      tenantId: this.tenantId,
+    });
     this.uniqueId = `${prefix}/${170 + count + 1}`;
   }
 });
+
+assemblyIssueSchema.index({ uniqueId: 1, tenantId: 1 }, { unique: true });
 
 module.exports = mongoose.model("AssemblyIssue", assemblyIssueSchema);

@@ -5,7 +5,7 @@ const { logActivity } = require("./activityLogController");
 // Get all InDocs
 exports.getInDocs = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search } = req.query;
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.$or = [
@@ -21,7 +21,8 @@ exports.getInDocs = asyncHandler(async (req, res) => {
     paginationLimit = 0;
   }
 
-  const count = await InDocs.countDocuments(query);
+  const count = await InDocs.countDocuments({ ...req.scopeFilter });
+  const filteredCount = await InDocs.countDocuments(query);
 
   let queryBuilder = InDocs.find(query)
     .populate("addedBy", "name")
@@ -37,17 +38,18 @@ exports.getInDocs = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    count,
+    total: count,
+    count: filteredCount,
     data,
   });
 });
 
 // Get single InDocs
 exports.getInDocsById = asyncHandler(async (req, res) => {
-  const inDocs = await InDocs.findById(req.params.id).populate(
-    "addedBy",
-    "name",
-  );
+  const inDocs = await InDocs.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  }).populate("addedBy", "name");
   if (!inDocs) {
     res.status(404);
     throw new Error("InDocs entry not found");
@@ -61,6 +63,7 @@ exports.createInDocs = asyncHandler(async (req, res) => {
     const newInDocs = await InDocs.create({
       ...req.body,
       addedBy: req.user._id, // Assuming req.user is populated by auth middleware
+      tenantId: req.tenantId, // SaaS: Link to organization
     });
 
     await logActivity(
@@ -80,7 +83,10 @@ exports.createInDocs = asyncHandler(async (req, res) => {
 
 // Update InDocs
 exports.updateInDocs = asyncHandler(async (req, res) => {
-  const oldData = await InDocs.findById(req.params.id);
+  const oldData = await InDocs.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
 
   if (!oldData) {
     res.status(404);
@@ -105,7 +111,10 @@ exports.updateInDocs = asyncHandler(async (req, res) => {
 
 // Delete InDocs
 exports.deleteInDocs = asyncHandler(async (req, res) => {
-  const inDocs = await InDocs.findByIdAndDelete(req.params.id);
+  const inDocs = await InDocs.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!inDocs) {
     res.status(404);
     throw new Error("InDocs entry not found");

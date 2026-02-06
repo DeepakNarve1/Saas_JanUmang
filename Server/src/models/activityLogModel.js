@@ -47,10 +47,16 @@ const activityLogSchema = new mongoose.Schema(
     metadata: {
       type: mongoose.Schema.Types.Mixed, // For storing extra details like record ID, changed fields, etc.
     },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Compound index for filtering

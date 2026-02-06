@@ -4,9 +4,8 @@ const eventSchema = mongoose.Schema(
   {
     uniqueId: {
       type: String,
-      unique: true,
-      trim: true,
       index: true,
+      trim: true,
     },
     district: { type: String, required: true, trim: true, index: true },
     year: { type: String, required: true, trim: true },
@@ -52,6 +51,12 @@ const eventSchema = mongoose.Schema(
     lastSyncedAt: {
       type: Date,
     },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -61,9 +66,13 @@ const eventSchema = mongoose.Schema(
 // Pre-save hook to auto-generate uniqueId
 eventSchema.pre("save", async function () {
   if (!this.uniqueId) {
-    const count = await this.constructor.countDocuments();
+    const count = await this.constructor.countDocuments({
+      tenantId: this.tenantId,
+    });
     this.uniqueId = `EVT/${count + 1}`;
   }
 });
+
+eventSchema.index({ uniqueId: 1, tenantId: 1 }, { unique: true });
 
 module.exports = mongoose.model("Event", eventSchema);

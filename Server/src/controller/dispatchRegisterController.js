@@ -5,7 +5,7 @@ const { logActivity } = require("./activityLogController");
 // Get all Dispatch Registers
 exports.getDispatchRegisters = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search, district, month } = req.query;
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.$or = [
@@ -30,7 +30,8 @@ exports.getDispatchRegisters = asyncHandler(async (req, res) => {
     paginationLimit = 0;
   }
 
-  const count = await DispatchRegister.countDocuments(query);
+  const count = await DispatchRegister.countDocuments({ ...req.scopeFilter });
+  const filteredCount = await DispatchRegister.countDocuments(query);
 
   let queryBuilder = DispatchRegister.find(query)
     .populate("addedBy", "name")
@@ -51,14 +52,18 @@ exports.getDispatchRegisters = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    count,
+    total: count,
+    count: filteredCount,
     data,
   });
 });
 
 // Get single Dispatch Register
 exports.getDispatchRegister = asyncHandler(async (req, res) => {
-  const dispatchRegister = await DispatchRegister.findById(req.params.id)
+  const dispatchRegister = await DispatchRegister.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  })
     .populate("addedBy", "name")
     .populate("department", "name")
     .populate("district", "name")
@@ -83,6 +88,7 @@ exports.createDispatchRegister = asyncHandler(async (req, res) => {
     const dispatchRegister = await DispatchRegister.create({
       ...req.body,
       addedBy: req.user._id,
+      tenantId: req.tenantId, // SaaS: Link to organization
     });
 
     await logActivity(
@@ -113,7 +119,10 @@ exports.createDispatchRegister = asyncHandler(async (req, res) => {
 
 // Update Dispatch Register
 exports.updateDispatchRegister = asyncHandler(async (req, res) => {
-  let dispatchRegister = await DispatchRegister.findById(req.params.id);
+  let dispatchRegister = await DispatchRegister.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
 
   if (!dispatchRegister) {
     res.status(404);
@@ -147,7 +156,10 @@ exports.updateDispatchRegister = asyncHandler(async (req, res) => {
 
 // Delete Dispatch Register
 exports.deleteDispatchRegister = asyncHandler(async (req, res) => {
-  const dispatchRegister = await DispatchRegister.findById(req.params.id);
+  const dispatchRegister = await DispatchRegister.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
 
   if (!dispatchRegister) {
     res.status(404);

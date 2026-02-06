@@ -12,8 +12,14 @@ const subTypeOfWorkSchema = new mongoose.Schema(
       required: [true, "Sub Type of Work is required"],
       trim: true,
     },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("SubTypeOfWork", subTypeOfWorkSchema);

@@ -6,14 +6,26 @@ const asyncHandler = require("express-async-handler");
  */
 const scopeQuery = (levelFieldMap = {}) => {
   return (req, res, next) => {
-    // Superadmins can see everything
-    if (!req.user || req.user.level === "superadmin") {
+    // Global Admins can see everything
+    const isGlobalAdmin =
+      req.user.level === "system_admin" || req.user.level === "superadmin";
+
+    if (isGlobalAdmin) {
+      // If a global admin has selected a specific tenant, filter by it
+      if (req.tenantId) {
+        req.scopeFilter = { tenantId: req.tenantId };
+      } else {
+        req.scopeFilter = {};
+      }
       return next();
     }
 
     const { level } = req.user;
 
-    // Default field mapping if not provided
+    // SaaS: Every user (except global admin) MUST be restricted by their tenantId
+    req.scopeFilter = { tenantId: req.tenantId };
+
+    // Default field mapping for geographic scopes
     const fieldMap = {
       state: "state",
       division: "division",
@@ -28,14 +40,9 @@ const scopeQuery = (levelFieldMap = {}) => {
 
     const targetField = fieldMap[level];
 
-    // If the user's level has a corresponding field in the model, apply filter
+    // If the user's level has a corresponding geographic field, add it to the filter
     if (targetField && req.user[level]) {
-      // Initialize query object if it doesn't exist
-      req.query = req.query || {};
-
-      // Inject the scope filter into the query parameters
-      // This will be used by controllers to build the Mongoose query
-      req.scopeFilter = { [targetField]: req.user[level] };
+      req.scopeFilter[targetField] = req.user[level];
     }
 
     next();

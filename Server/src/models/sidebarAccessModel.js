@@ -13,9 +13,14 @@ const sidebarAccessSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("SidebarAccess", sidebarAccessSchema);
-

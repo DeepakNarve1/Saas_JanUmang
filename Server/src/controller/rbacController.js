@@ -48,9 +48,8 @@ exports.createPermission = asyncHandler(async (req, res) => {
 
 // Get all roles
 exports.getAllRoles = asyncHandler(async (req, res) => {
-  const roles = await Role.find({ isDeleted: { $ne: true } }).populate(
-    "permissions",
-  );
+  const query = { isDeleted: { $ne: true }, ...req.scopeFilter };
+  const roles = await Role.find(query).populate("permissions");
 
   // Format the response to match what the frontend expects
   const formattedRoles = roles.map((role) => ({
@@ -61,15 +60,26 @@ exports.getAllRoles = asyncHandler(async (req, res) => {
     ...role.toObject(),
   }));
 
+  const total = await Role.countDocuments({
+    isDeleted: { $ne: true },
+    ...req.scopeFilter,
+  });
+
   res.status(200).json({
     success: true,
+    total,
+    count: formattedRoles.length,
     data: formattedRoles,
   });
 });
 
 // Get single role by id
 exports.getRoleById = asyncHandler(async (req, res) => {
-  const role = await Role.findById(req.params.id).populate("permissions");
+  const role = await Role.findOne({
+    _id: req.params.id,
+    isDeleted: { $ne: true },
+    ...req.scopeFilter,
+  }).populate("permissions");
 
   if (!role || role.isDeleted) {
     res.status(404);
@@ -99,6 +109,7 @@ exports.createRole = asyncHandler(async (req, res) => {
     permissions: permissions || [],
     sidebarAccess: sidebarAccess || [],
     status: req.body.status || "active",
+    tenantId: req.tenantId, // SaaS: Link to organization
   });
 
   await logActivity(
@@ -120,7 +131,11 @@ exports.updateRole = asyncHandler(async (req, res) => {
   const { name, displayName, description, permissions, sidebarAccess, status } =
     req.body;
 
-  const role = await Role.findById(req.params.id);
+  const role = await Role.findOne({
+    _id: req.params.id,
+    isDeleted: { $ne: true },
+    ...req.scopeFilter,
+  });
 
   if (!role || role.isDeleted) {
     res.status(404);
@@ -160,7 +175,11 @@ exports.updateRole = asyncHandler(async (req, res) => {
 
 // Delete role
 exports.deleteRole = asyncHandler(async (req, res) => {
-  const role = await Role.findById(req.params.id);
+  const role = await Role.findOne({
+    _id: req.params.id,
+    isDeleted: { $ne: true },
+    ...req.scopeFilter,
+  });
 
   if (!role || role.isDeleted) {
     res.status(404);
@@ -193,9 +212,10 @@ exports.deleteRole = asyncHandler(async (req, res) => {
 
 // Get sidebar permissions map
 exports.getSidebarAccess = asyncHandler(async (req, res) => {
-  const roles = await Role.find({ isDeleted: { $ne: true } }).select(
-    "name sidebarAccess",
-  );
+  const roles = await Role.find({
+    isDeleted: { $ne: true },
+    ...req.scopeFilter,
+  }).select("name sidebarAccess");
 
   const accessMap = {};
   roles.forEach((role) => {
@@ -228,7 +248,7 @@ exports.upsertSidebarAccess = asyncHandler(async (req, res) => {
 
   const updates = Object.entries(accessMap).map(([roleName, paths]) =>
     Role.findOneAndUpdate(
-      { name: roleName },
+      { name: roleName, ...req.scopeFilter },
       { sidebarAccess: Array.isArray(paths) ? paths : [] },
       { new: true, upsert: false }, // don't create new roles here
     ),

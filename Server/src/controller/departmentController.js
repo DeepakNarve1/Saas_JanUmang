@@ -5,7 +5,7 @@ const { logActivity } = require("./activityLogController");
 // Get all Departments
 exports.getDepartments = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search } = req.query;
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.name = { $regex: search, $options: "i" };
@@ -16,6 +16,7 @@ exports.getDepartments = asyncHandler(async (req, res) => {
     paginationLimit = 0;
   }
 
+  const total = await Department.countDocuments({ ...req.scopeFilter });
   const count = await Department.countDocuments(query);
 
   let queryBuilder = Department.find(query).sort({ createdAt: -1 });
@@ -30,6 +31,7 @@ exports.getDepartments = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
+    total,
     count,
     data,
   });
@@ -37,7 +39,10 @@ exports.getDepartments = asyncHandler(async (req, res) => {
 
 // Get single Department
 exports.getDepartmentById = asyncHandler(async (req, res) => {
-  const department = await Department.findById(req.params.id);
+  const department = await Department.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!department) {
     res.status(404);
     throw new Error("Department not found");
@@ -48,10 +53,9 @@ exports.getDepartmentById = asyncHandler(async (req, res) => {
 // Create Department
 exports.createDepartment = asyncHandler(async (req, res) => {
   try {
-    const { name } = req.body;
-
     const newDepartment = await Department.create({
-      name,
+      ...req.body,
+      tenantId: req.tenantId, // SaaS: Link to organization
     });
 
     await logActivity(
@@ -75,14 +79,17 @@ exports.createDepartment = asyncHandler(async (req, res) => {
 // Update Department
 exports.updateDepartment = asyncHandler(async (req, res) => {
   try {
-    const oldData = await Department.findById(req.params.id);
+    const oldData = await Department.findOne({
+      _id: req.params.id,
+      ...req.scopeFilter,
+    });
     if (!oldData) {
       res.status(404);
       throw new Error("Department not found");
     }
 
-    const department = await Department.findByIdAndUpdate(
-      req.params.id,
+    const department = await Department.findOneAndUpdate(
+      { _id: req.params.id, ...req.scopeFilter },
       req.body,
       {
         new: true,
@@ -110,11 +117,16 @@ exports.updateDepartment = asyncHandler(async (req, res) => {
 
 // Delete Department
 exports.deleteDepartment = asyncHandler(async (req, res) => {
-  const department = await Department.findByIdAndDelete(req.params.id);
+  const department = await Department.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!department) {
     res.status(404);
     throw new Error("Department not found");
   }
+
+  await department.deleteOne();
 
   await logActivity(
     req,

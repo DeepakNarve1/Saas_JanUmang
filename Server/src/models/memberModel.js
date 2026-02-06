@@ -156,6 +156,12 @@ const memberSchema = mongoose.Schema(
     endLat: { type: Number, default: 0 },
     endLong: { type: Number, default: 0 },
     endDate: { type: Date },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
   },
   {
     timestamps: true,

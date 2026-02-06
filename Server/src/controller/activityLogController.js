@@ -17,7 +17,7 @@ exports.getLogs = asyncHandler(async (req, res, next) => {
     dateTo,
   } = req.query;
 
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   // Search in description, module, or ip
   if (search) {
@@ -60,6 +60,7 @@ exports.getLogs = asyncHandler(async (req, res, next) => {
   if (isNaN(paginationLimit)) paginationLimit = 10;
   if (paginationLimit === -1) paginationLimit = 0;
 
+  const total = await ActivityLog.countDocuments({ ...req.scopeFilter });
   const count = await ActivityLog.countDocuments(query);
 
   let queryBuilder = ActivityLog.find(query)
@@ -82,14 +83,17 @@ exports.getLogs = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     success: true,
     count,
-    total: count,
+    total,
     data,
   });
 });
 
 // Get single activity log by ID
 exports.getLogById = asyncHandler(async (req, res, next) => {
-  const log = await ActivityLog.findById(req.params.id)
+  const log = await ActivityLog.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  })
     .populate("user", "name role")
     .populate({
       path: "user",
@@ -110,7 +114,7 @@ exports.getLogById = asyncHandler(async (req, res, next) => {
 exports.getActivityReport = asyncHandler(async (req, res, next) => {
   const { user, dateFrom, dateTo } = req.query;
 
-  const matchStage = {};
+  const matchStage = { ...req.scopeFilter };
 
   if (user && user !== "All Users") {
     if (!mongoose.Types.ObjectId.isValid(user)) {
@@ -384,6 +388,7 @@ exports.logActivity = async (
 
     await ActivityLog.create({
       user: userId,
+      tenantId: req.tenantId, // SaaS: Link to organization
       action: action.toUpperCase(),
       module: moduleName,
       description,
