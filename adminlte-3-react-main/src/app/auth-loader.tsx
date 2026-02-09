@@ -23,30 +23,22 @@ export default function AuthLoader({
       const storedUser = localStorage.getItem("user");
       const storedToken = localStorage.getItem("token");
 
-      if (storedUser && storedToken) {
+      if (storedToken) {
         try {
-          const parsedUser = JSON.parse(storedUser);
-
-          // If role is missing, refresh from backend
-          if (!parsedUser.role && parsedUser._id) {
-            try {
-              const res = await axios.get(`/auth/users/${parsedUser._id}`);
-
-              const freshUser = res.data?.data || parsedUser;
-              localStorage.setItem("user", JSON.stringify(freshUser));
-              dispatch(setCurrentUser(freshUser));
-            } catch (err) {
-              console.error("Failed to refresh user from backend", err);
-              dispatch(setCurrentUser(parsedUser));
-            }
-          } else {
-            dispatch(setCurrentUser(parsedUser));
+          // Always refresh user from profile endpoint to get fresh SaaS context (tenantId, level, etc.)
+          const res = await axios.get("/auth/profile");
+          const freshUser = res.data?.data;
+          if (freshUser) {
+            localStorage.setItem("user", JSON.stringify(freshUser));
+            dispatch(setCurrentUser(freshUser));
+          } else if (storedUser) {
+            dispatch(setCurrentUser(JSON.parse(storedUser)));
           }
         } catch (error) {
-          console.error("Failed to parse stored user", error);
-          localStorage.removeItem("user");
-          localStorage.removeItem("token");
-          dispatch(setCurrentUser(null));
+          console.error("Failed to sync auth state", error);
+          if (storedUser) {
+            dispatch(setCurrentUser(JSON.parse(storedUser)));
+          }
         }
       } else {
         dispatch(setCurrentUser(null));

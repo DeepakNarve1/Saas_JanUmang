@@ -61,7 +61,16 @@ exports.registerUser = asyncHandler(async (req, res) => {
       mobile: mobile || "",
       userType: userType || "regularUser",
       permissions: {},
-      tenantId: req.tenantId, // SaaS: Assign to context tenant
+      mobile: mobile || "",
+      userType: userType || "regularUser",
+      permissions: {},
+      // SaaS: Allow System Admin to override tenant, otherwise use context
+      tenantId:
+        (req.user.level === "system_admin" ||
+          req.user.level === "superadmin") &&
+        req.body.tenantId
+          ? req.body.tenantId
+          : req.tenantId,
     });
 
     if (newUser.role && mongoose.Types.ObjectId.isValid(newUser.role)) {
@@ -73,6 +82,7 @@ exports.registerUser = asyncHandler(async (req, res) => {
     }
 
     req.user = newUser;
+    req.tenantId = newUser.tenantId; // SaaS: Set tenantId for logging
     await logActivity(
       req,
       "CREATE",
@@ -197,6 +207,12 @@ exports.getCurrentUser = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 
+  // Populate tenant info
+  if (req.tenantId) {
+    const Tenant = require("../models/tenantModel");
+    user.tenant = await Tenant.findById(req.tenantId).select("name slug");
+  }
+
   res.json({ success: true, data: user });
 });
 
@@ -304,7 +320,16 @@ exports.updateUser = asyncHandler(async (req, res) => {
     const requesterRole =
       typeof roleName === "object" && roleName.name ? roleName.name : roleName;
 
-    if (!req.user || !["admin", "superadmin"].includes(requesterRole)) {
+    // SaaS: Allow System/Tenant Admins to update users
+    const isAuthorized =
+      ["admin", "superadmin", "system_admin", "tenant_admin"].includes(
+        requesterRole,
+      ) ||
+      req.user.level === "system_admin" ||
+      req.user.level === "superadmin" ||
+      req.user.level === "tenant_admin";
+
+    if (!req.user || !isAuthorized) {
       res.status(403);
       throw new Error("Not authorized to update users");
     }
@@ -395,7 +420,20 @@ exports.loginUser = asyncHandler(async (req, res) => {
     throw new Error("Invalid email or password");
   }
 
+  // SaaS: Block login if organization is suspended (skip for users without tenant, e.g. legacy superadmin)
+  if (user.tenantId) {
+    const Tenant = require("../models/tenantModel");
+    const tenant = await Tenant.findById(user.tenantId).select("status name");
+    if (tenant && tenant.status === "suspended") {
+      res.status(401);
+      throw new Error(
+        "Your organization has been suspended. Please contact support.",
+      );
+    }
+  }
+
   req.user = user;
+  req.tenantId = user.tenantId; // SaaS: Set tenantId for logging
   await logActivity(
     req,
     "LOGIN",
@@ -414,6 +452,8 @@ exports.loginUser = asyncHandler(async (req, res) => {
         role: user.role,
         mobile: user.mobile,
         userType: user.userType,
+        tenantId: user.tenantId,
+        level: user.level,
       },
     },
   });
@@ -475,6 +515,8 @@ exports.googleLogin = asyncHandler(async (req, res) => {
         role: user.role,
         mobile: user.mobile,
         userType: user.userType,
+        tenantId: user.tenantId,
+        level: user.level,
         photoURL: picture,
       },
     },
@@ -527,9 +569,18 @@ exports.resetUserPassword = asyncHandler(async (req, res) => {
   let isSuperAdmin = false;
 
   // Check userType field (case-insensitive)
+  // Check userType field (case-insensitive)
   if (
     requestingUser.userType &&
     requestingUser.userType.toLowerCase() === "superadmin"
+  ) {
+    isSuperAdmin = true;
+  }
+
+  // Check administrative level
+  if (
+    requestingUser.level === "system_admin" ||
+    requestingUser.level === "superadmin"
   ) {
     isSuperAdmin = true;
   }

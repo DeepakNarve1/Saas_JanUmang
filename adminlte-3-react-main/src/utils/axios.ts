@@ -16,13 +16,19 @@ axiosInstance.interceptors.request.use(
       const token = localStorage.getItem("token");
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
+
+        // SaaS: Support tenant override for Global Admins
+        const overrideTenantId = localStorage.getItem("overrideTenantId");
+        if (overrideTenantId) {
+          config.headers["x-tenant-id"] = overrideTenantId;
+        }
       }
     }
     return config;
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response Interceptor: Handle Global Errors (Optional but recommended)
@@ -32,7 +38,7 @@ axiosInstance.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       // Don't auto-logout for password change attempts (this endpoint uses 401 for incorrect current password)
       const isChangePassword = error.config.url?.includes(
-        "/auth/change-password"
+        "/auth/change-password",
       );
 
       if (!isChangePassword && typeof window !== "undefined") {
@@ -42,7 +48,7 @@ axiosInstance.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosInstance;

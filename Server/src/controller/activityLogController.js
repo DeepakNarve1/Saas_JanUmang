@@ -386,9 +386,19 @@ exports.logActivity = async (
     }
     const userAgent = req.get ? req.get("User-Agent") : "";
 
+    // Robust tenantId resolution
+    const tenantId = req.tenantId || (req.user && req.user.tenantId);
+
+    if (!tenantId) {
+      console.warn(
+        `[ActivityLog] Skipped logging for action ${action}: No tenantId found.`,
+      );
+      return;
+    }
+
     await ActivityLog.create({
       user: userId,
-      tenantId: req.tenantId, // SaaS: Link to organization
+      tenantId: tenantId, // SaaS: Link to organization
       action: action.toUpperCase(),
       module: moduleName,
       description,

@@ -10,6 +10,9 @@ export interface IMenuItem {
   resource?: string;
 }
 
+/** Paths that super admin is allowed to see (Dashboard + Organization management only) */
+export const SUPER_ADMIN_MENU_PATHS = ["/dashboard", "/tenants"];
+
 export const DEFAULT_SIDEBAR_ACCESS_BY_ROLE: Record<string, string[]> = {
   superadmin: ["*"],
   testing: ["/dashboard", "/review", "/report"],
@@ -36,21 +39,28 @@ export const MENU: IMenuItem[] = [
     name: i18n.t("menusidebar.label.users"),
     icon: "fas fa-wrench nav-icon",
     path: "/users",
-    allowedRoles: ["superadmin"],
+    allowedRoles: ["tenant_admin"],
     resource: "users",
+  },
+  {
+    name: "Organizations",
+    icon: "fas fa-building nav-icon",
+    path: "/tenants",
+    allowedRoles: ["superadmin", "system_admin"],
+    resource: "tenants",
   },
   {
     name: "Roles",
     icon: "fas fa-user-shield nav-icon",
     path: "/roles",
-    allowedRoles: ["superadmin"],
+    allowedRoles: ["tenant_admin"],
     allowedPermissions: ["manage_roles", "view_roles"],
   },
   {
     name: "User Count",
     icon: "fas fa-user nav-icon",
     path: "/user-count",
-    allowedRoles: ["superadmin"],
+    allowedRoles: ["tenant_admin"],
     allowedPermissions: ["view_user_count"],
     resource: "user_count",
   },
@@ -58,7 +68,7 @@ export const MENU: IMenuItem[] = [
     name: "Member List",
     icon: "fas fa-users nav-icon",
     path: "/member-list",
-    allowedRoles: ["superadmin"],
+    allowedRoles: ["tenant_admin"],
     allowedPermissions: ["view_members"],
     resource: "members",
   },
@@ -67,13 +77,13 @@ export const MENU: IMenuItem[] = [
     name: "MP Public Problem",
     icon: "fas fa-exclamation-circle nav-icon",
     path: "/mp-public-problem",
-    allowedRoles: ["superadmin"],
+    allowedRoles: ["tenant_admin"],
     resource: "mp_public_problems",
   },
   {
     name: "Assembly Issue",
     icon: "fas fa-university nav-icon",
-    allowedRoles: ["superadmin"],
+    allowedRoles: ["tenant_admin"],
     resource: "assembly_issues",
     children: [
       {
@@ -99,7 +109,7 @@ export const MENU: IMenuItem[] = [
   {
     name: "Vidhasabha Samiti",
     icon: "fas fa-building nav-icon",
-    allowedRoles: ["superadmin"],
+    allowedRoles: ["tenant_admin"],
     allowedPermissions: ["view_vidhansabha_samiti"],
     resource: "vidhasabha-samiti",
     children: [

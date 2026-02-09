@@ -1,11 +1,11 @@
 const asyncHandler = require("express-async-handler");
+const AppError = require("../utils/AppError");
 
 // @desc    Check if user has a specific permission
 const checkPermission = (permissionName) => {
   return asyncHandler(async (req, res, next) => {
     if (!req.user || !req.user.role) {
-      res.status(403);
-      throw new Error("User or role not found");
+      return next(new AppError("User or role not found", 403));
     }
 
     // Global Admins (Superadmin/SystemAdmin) have all permissions
@@ -33,15 +33,16 @@ const checkPermission = (permissionName) => {
     console.log(`[RBAC] Checking for: ${permissionName}`);
 
     if (!userPermNames.includes(permissionName)) {
-      res.status(403);
       const roleName =
         req.user.role && req.user.role.name
           ? req.user.role.name
           : JSON.stringify(req.user.role);
-      throw new Error(
-        `Permission Denied. Required: ${permissionName}. Your Role: ${roleName}. Perms: ${userPermNames.join(
-          ",",
-        )}`,
+
+      return next(
+        new AppError(
+          `Permission Denied. Required: ${permissionName}. Your Role: ${roleName}.`,
+          403,
+        ),
       );
     }
 
@@ -53,8 +54,7 @@ const checkPermission = (permissionName) => {
 const checkAnyPermission = (permissionNames) => {
   return asyncHandler(async (req, res, next) => {
     if (!req.user || !req.user.role) {
-      res.status(403);
-      throw new Error("User or role not found");
+      return next(new AppError("User or role not found", 403));
     }
 
     // Unified Global Admin check
@@ -78,11 +78,13 @@ const checkAnyPermission = (permissionNames) => {
     const hasAny = permissionNames.some((perm) => userPermNames.includes(perm));
 
     if (!hasAny) {
-      res.status(403);
-      throw new Error(
-        `You do not have any of the required permissions: ${permissionNames.join(
-          ", ",
-        )}`,
+      return next(
+        new AppError(
+          `You do not have any of the required permissions: ${permissionNames.join(
+            ", ",
+          )}`,
+          403,
+        ),
       );
     }
 
@@ -94,8 +96,7 @@ const checkAnyPermission = (permissionNames) => {
 const checkAllPermissions = (permissionNames) => {
   return asyncHandler(async (req, res, next) => {
     if (!req.user || !req.user.role) {
-      res.status(403);
-      throw new Error("User or role not found");
+      return next(new AppError("User or role not found", 403));
     }
 
     // Unified Global Admin check
@@ -117,8 +118,9 @@ const checkAllPermissions = (permissionNames) => {
     );
 
     if (!hasAll) {
-      res.status(403);
-      throw new Error("You do not have all required permissions");
+      return next(
+        new AppError("You do not have all required permissions", 403),
+      );
     }
 
     next();

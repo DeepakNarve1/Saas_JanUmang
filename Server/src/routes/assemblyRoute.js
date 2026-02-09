@@ -8,6 +8,7 @@ const {
 } = require("../controller/assemblyController");
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
+const { scopeQuery } = require("../middleware/scopeMiddleware");
 
 const router = express.Router();
 
@@ -18,7 +19,12 @@ router
 
 router
   .route("/:id")
-  .get(protect, checkPermission("view_assemblies"), getAssemblyById)
+  .get(
+    protect,
+    checkPermission("view_assemblies"),
+    scopeQuery(),
+    getAssemblyById,
+  )
   .put(protect, checkPermission("edit_assemblies"), updateAssembly)
   .delete(protect, checkPermission("delete_assemblies"), deleteAssembly);
 

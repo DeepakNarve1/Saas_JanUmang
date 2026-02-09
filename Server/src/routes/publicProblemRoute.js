@@ -9,16 +9,22 @@ const {
 } = require("../controller/publicProblemController");
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
+const { scopeQuery } = require("../middleware/scopeMiddleware");
 
 const router = express.Router();
 
 router
   .route("/")
-  .get(protect, checkPermission("view_mp_public_problems"), getPublicProblems)
+  .get(
+    protect,
+    checkPermission("view_mp_public_problems"),
+    scopeQuery(),
+    getPublicProblems,
+  )
   .post(
     protect,
     checkPermission("create_mp_public_problems"),
-    createPublicProblem
+    createPublicProblem,
   );
 
 router
@@ -26,7 +32,7 @@ router
   .post(
     protect,
     checkPermission("create_mp_public_problems"),
-    seedPublicProblems
+    seedPublicProblems,
   );
 
 router
@@ -34,13 +40,14 @@ router
   .get(
     protect,
     checkPermission("view_mp_public_problems"),
-    getPublicProblemById
+    scopeQuery(),
+    getPublicProblemById,
   )
   .put(protect, checkPermission("edit_mp_public_problems"), updatePublicProblem)
   .delete(
     protect,
     checkPermission("delete_mp_public_problems"),
-    deletePublicProblem
+    deletePublicProblem,
   );
 
 module.exports = router;

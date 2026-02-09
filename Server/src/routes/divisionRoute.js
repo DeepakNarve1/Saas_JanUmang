@@ -8,6 +8,7 @@ const {
 } = require("../controller/divisionController");
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
+const { scopeQuery } = require("../middleware/scopeMiddleware");
 
 const router = express.Router();
 
@@ -18,7 +19,12 @@ router
 
 router
   .route("/:id")
-  .get(protect, checkPermission("view_divisions"), getDivisionById)
+  .get(
+    protect,
+    checkPermission("view_divisions"),
+    scopeQuery(),
+    getDivisionById,
+  )
   .put(protect, checkPermission("edit_divisions"), updateDivision)
   .delete(protect, checkPermission("delete_divisions"), deleteDivision);
 

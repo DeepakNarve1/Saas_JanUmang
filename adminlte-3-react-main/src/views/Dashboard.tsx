@@ -4,7 +4,9 @@ import React from "react";
 import dynamic from "next/dynamic";
 import { ContentHeader } from "@app/components";
 import { RouteGuard } from "@app/components/RouteGuard";
+import { usePermissions } from "@app/hooks/usePermissions";
 import { useDashboardData } from "@app/hooks/useDashboardData";
+import SuperAdminDashboard from "@app/views/dashboard/SuperAdminDashboard";
 import DashboardStatsGrid from "@app/views/dashboard/DashboardStatsGrid";
 import DashboardFilters from "@app/views/dashboard/DashboardFilters";
 import SummaryTable from "@app/views/dashboard/SummaryTable";
@@ -32,9 +34,11 @@ const OtherModuleGraphs = dynamic(
 const REQUIRED_PERMISSIONS = ["view_dashboard"];
 
 const Dashboard = () => {
+  const { isSuperAdmin } = usePermissions();
+
   return (
     <RouteGuard requiredPermissions={REQUIRED_PERMISSIONS}>
-      <DashboardContent />
+      {isSuperAdmin() ? <SuperAdminDashboard /> : <DashboardContent />}
     </RouteGuard>
   );
 };

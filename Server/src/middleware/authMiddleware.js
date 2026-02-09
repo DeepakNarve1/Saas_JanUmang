@@ -40,12 +40,12 @@ const protect = asyncHandler(async (req, res, next) => {
         }
       }
 
+      /*
       console.log("[authMiddleware] User:", req.user.email);
-      console.log("[authMiddleware] Role:", req.user.role);
-      console.log(
-        "[authMiddleware] Permissions:",
-        req.user.role?.permissions?.map((p) => p.name),
-      );
+      // Clean log for role which can be object or string
+      const roleLog = typeof req.user.role === 'object' ? req.user.role?.name : req.user.role;
+      console.log("[authMiddleware] Role:", roleLog);
+      */
 
       // SaaS: Attach tenantId to request
       req.tenantId = req.user.tenantId;

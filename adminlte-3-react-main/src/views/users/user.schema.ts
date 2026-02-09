@@ -122,7 +122,7 @@ export const getUserSchema = (isEdit: boolean) =>
               // Only validate if password is provided in edit mode
               if (!value || value.length === 0) return true;
               return validatePasswordStrength(value);
-            }
+            },
           )
       : Yup.string()
           .required(ERROR_MESSAGES.password.required)
@@ -131,22 +131,22 @@ export const getUserSchema = (isEdit: boolean) =>
           .test(
             "password-lowercase",
             ERROR_MESSAGES.password.lowercase,
-            (value) => !value || PASSWORD_PATTERNS.lowercase.test(value)
+            (value) => !value || PASSWORD_PATTERNS.lowercase.test(value),
           )
           .test(
             "password-uppercase",
             ERROR_MESSAGES.password.uppercase,
-            (value) => !value || PASSWORD_PATTERNS.uppercase.test(value)
+            (value) => !value || PASSWORD_PATTERNS.uppercase.test(value),
           )
           .test(
             "password-number",
             ERROR_MESSAGES.password.number,
-            (value) => !value || PASSWORD_PATTERNS.number.test(value)
+            (value) => !value || PASSWORD_PATTERNS.number.test(value),
           )
           .test(
             "password-special",
             ERROR_MESSAGES.password.specialChar,
-            (value) => !value || PASSWORD_PATTERNS.specialChar.test(value)
+            (value) => !value || PASSWORD_PATTERNS.specialChar.test(value),
           ),
 
     // Confirm password validation
@@ -188,6 +188,7 @@ export const getUserSchema = (isEdit: boolean) =>
     panchayat: Yup.string().optional(),
     village: Yup.string().optional(),
     booth: Yup.string().optional(),
+    tenantId: Yup.string().optional(),
   });
 
 // ============================================================================
@@ -232,6 +233,7 @@ export const userInitialValues: IUserFormValues = {
   panchayat: "",
   village: "",
   booth: "",
+  tenantId: "",
 };
 
 // ============================================================================
@@ -244,7 +246,7 @@ export const userInitialValues: IUserFormValues = {
  * @returns Sanitized form values
  */
 export const sanitizeUserFormValues = (
-  values: IUserFormValues
+  values: IUserFormValues,
 ): IUserFormValues => {
   return {
     ...values,

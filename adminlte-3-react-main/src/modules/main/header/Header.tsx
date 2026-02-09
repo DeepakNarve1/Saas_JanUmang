@@ -8,6 +8,7 @@ import LanguagesDropdown from "@app/modules/main/header/languages-dropdown/Langu
 import Image from "@app/components/Image";
 import { useAppDispatch, useAppSelector } from "@app/store/store";
 import { Users } from "lucide-react";
+import TenantSwitcher from "./tenant-switcher/TenantSwitcher";
 
 import ThemeToggle from "@app/components/common/ThemeToggle";
 
@@ -102,6 +103,9 @@ const Header = ({ containered, ...rest }: { containered?: boolean } & any) => {
           id="user-dropdown"
           className="flex list-none gap-4 m-0 p-0 items-center ml-auto"
         >
+          <li>
+            <TenantSwitcher />
+          </li>
           <li>
             <LanguagesDropdown />
           </li>

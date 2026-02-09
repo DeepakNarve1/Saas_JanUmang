@@ -66,6 +66,9 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/rbac", rbacRoutes);
 
+const dashboardRoutes = require("./routes/dashboardRoute");
+app.use("/api/dashboard", dashboardRoutes);
+
 const tenantRoutes = require("./routes/tenantRoute");
 app.use("/api/tenants", tenantRoutes);
 

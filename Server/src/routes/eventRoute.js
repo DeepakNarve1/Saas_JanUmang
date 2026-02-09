@@ -10,6 +10,7 @@ const {
 } = require("../controller/eventController");
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
+const { scopeQuery } = require("../middleware/scopeMiddleware");
 
 const router = express.Router();
 console.log("Event routes initialized");
@@ -22,17 +23,17 @@ router.post(
   },
   protect,
   checkPermission("edit_events"),
-  syncAllEvents
+  syncAllEvents,
 );
 
 router
   .route("/")
-  .get(protect, checkPermission("view_events"), getEvents)
+  .get(protect, checkPermission("view_events"), scopeQuery(), getEvents)
   .post(protect, checkPermission("create_events"), createEvent);
 
 router
   .route("/:id")
-  .get(protect, checkPermission("view_events"), getEventById)
+  .get(protect, checkPermission("view_events"), scopeQuery(), getEventById)
   .put(protect, checkPermission("edit_events"), updateEvent)
   .delete(protect, checkPermission("delete_events"), deleteEvent);
 

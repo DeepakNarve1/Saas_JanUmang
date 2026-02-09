@@ -3,7 +3,7 @@ import Link from "next/link";
 import { MenuItem } from "@components";
 import Image from "@app/components/Image";
 import { useAppSelector } from "@app/store/store";
-import { MENU, IMenuItem } from "@app/utils/menu";
+import { MENU, IMenuItem, SUPER_ADMIN_MENU_PATHS } from "@app/utils/menu";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { Avatar, AvatarFallback, AvatarImage } from "@app/components/ui/avatar";
 import { Users } from "lucide-react";
@@ -21,42 +21,86 @@ const MenuSidebar = () => {
   // Use our permission hook
   const { hasPermission, user } = usePermissions();
 
-  // Check if user is superadmin
+  // Check if user is superadmin (Global platform access)
   const isSuperadmin = useMemo(() => {
-    if (!user || !user.role) return false;
-    if (typeof user.role === "string") {
-      return user.role === "superadmin";
-    }
-    return user.role.name === "superadmin";
-  }, [user]);
+    if (!user) return false;
 
-  const canAccess = (item: IMenuItem) => {
-    // Superadmin can see everything
-    if (isSuperadmin) {
+    // SaaS Level check
+    if (user.level === "system_admin" || user.level === "superadmin") {
       return true;
     }
 
-    // 1. Check strict permissions if defined (e.g. manage_roles)
-    if (item.allowedPermissions && item.allowedPermissions.length > 0) {
-      const hasAccess = item.allowedPermissions.some((p) => hasPermission(p));
-      return hasAccess;
+    if (!user.role) return false;
+
+    // Legacy/Role check
+    if (typeof user.role === "string") {
+      return user.role === "superadmin" || user.role === "system_admin";
+    }
+    return user.role.name === "superadmin" || user.role.name === "system_admin";
+  }, [user]);
+
+  const canAccess = (item: IMenuItem) => {
+    // Super admin sees only Dashboard + Organizations
+    if (isSuperadmin) {
+      const path = item.path ?? item.children?.[0]?.path;
+      return path ? SUPER_ADMIN_MENU_PATHS.includes(path) : false;
     }
 
-    // 2. If item has a resource, check view permission for that resource
+    // For tenant admins and other users:
+    // Block access to Organizations module
+    if (item.path === "/tenants" || item.resource === "tenants") {
+      return false;
+    }
+
+    // 1. Check role-based access if allowedRoles is defined
+    if (item.allowedRoles && item.allowedRoles.length > 0) {
+      // Check if user's level matches any allowed role
+      const userLevel = user?.level || "";
+      const hasRoleAccess = item.allowedRoles.includes(userLevel);
+      if (hasRoleAccess) return true;
+
+      // Also check user's role name
+      if (user?.role) {
+        const roleName =
+          typeof user.role === "string" ? user.role : user.role.name;
+        if (item.allowedRoles.includes(roleName)) return true;
+      }
+    }
+
+    // 2. Check strict permissions if defined (e.g. manage_roles)
+    if (item.allowedPermissions && item.allowedPermissions.length > 0) {
+      const hasAccess = item.allowedPermissions.some((p) => hasPermission(p));
+      if (hasAccess) return true;
+    }
+
+    // 3. If item has a resource, check view permission for that resource
     if (item.resource) {
       const viewPermission = `view_${item.resource}`;
       const canView = hasPermission(viewPermission);
-
-      return canView;
+      if (canView) return true;
     }
 
-    // Allow items without resource (like headers)
-    return true;
+    // 4. Allow items without specific restrictions (like headers)
+    // But only if they don't have allowedRoles or allowedPermissions defined
+    if (!item.allowedRoles && !item.allowedPermissions && !item.resource) {
+      return true;
+    }
+
+    return false;
   };
 
   const filteredMenu = useMemo(() => {
-    const filterItems = (items: IMenuItem[]): IMenuItem[] =>
-      items
+    let items = MENU;
+    // Super admin: only show Dashboard and Organizations (no nested children for others)
+    if (isSuperadmin) {
+      items = MENU.filter((item) => {
+        const path = item.path ?? item.children?.[0]?.path;
+        return path && SUPER_ADMIN_MENU_PATHS.includes(path);
+      });
+    }
+
+    const filterItems = (list: IMenuItem[]): IMenuItem[] =>
+      list
         .map((item) => {
           const filteredChildren = item.children
             ? filterItems(item.children)
@@ -74,7 +118,7 @@ const MenuSidebar = () => {
         })
         .filter(Boolean) as IMenuItem[];
 
-    return filterItems(MENU);
+    return filterItems(items);
   }, [user, isSuperadmin]); // Re-filter when user changes
 
   const darkMode = useAppSelector((state) => state.ui.darkMode);
@@ -160,10 +204,13 @@ const MenuSidebar = () => {
                 href={"/profile"}
                 className="block text-sm font-semibold truncate hover:text-pink-500 transition-colors"
               >
-                {currentUser?.email?.split("@")[0]}
+                {currentUser?.name || currentUser?.email?.split("@")[0]}
               </Link>
-              <span className="text-xs opacity-60 truncate block">
-                Administrator
+              <span className="text-xs font-bold text-[#368F8B] truncate block">
+                {(currentUser as any).tenant?.name || "Organization"}
+              </span>
+              <span className="text-[10px] opacity-60 truncate block uppercase">
+                {currentUser?.level || "Member"}
               </span>
             </div>
           </div>

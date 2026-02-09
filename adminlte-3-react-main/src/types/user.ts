@@ -9,6 +9,8 @@ export interface IUser {
   permissions?: string[];
   mobile?: string;
   userType?: string;
+  tenantId?: string;
+  level?: string;
   metadata?: any;
 }
 
@@ -54,6 +56,7 @@ export interface IUserFormValues {
   panchayat?: string;
   village?: string;
   booth?: string;
+  tenantId?: string;
 }
 
 export interface IRoleOption {

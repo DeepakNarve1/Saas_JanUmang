@@ -9,18 +9,19 @@ const {
 } = require("../controller/visitorController");
 const { checkPermission } = require("../middleware/permissionMiddleware");
 const protect = require("../middleware/authMiddleware");
+const { scopeQuery } = require("../middleware/scopeMiddleware");
 
 // All routes are protected
 router.use(protect);
 
 router
   .route("/")
-  .get(checkPermission("view_visitors"), getVisitors)
+  .get(checkPermission("view_visitors"), scopeQuery(), getVisitors)
   .post(checkPermission("create_visitors"), createVisitor);
 
 router
   .route("/:id")
-  .get(checkPermission("view_visitors"), getVisitorById)
+  .get(checkPermission("view_visitors"), scopeQuery(), getVisitorById)
   .put(checkPermission("edit_visitors"), updateVisitor)
   .delete(checkPermission("delete_visitors"), deleteVisitor);
 

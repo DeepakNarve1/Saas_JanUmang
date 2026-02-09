@@ -3,6 +3,7 @@ const router = express.Router();
 const samitiController = require("../controller/samitiController");
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
+const { scopeQuery } = require("../middleware/scopeMiddleware");
 
 // Permissions need to be mapped.
 // "ganesh-samiti" -> "view_ganesh_samiti"
@@ -29,12 +30,22 @@ const dynamicPermission = (action) => {
 
 router
   .route("/")
-  .get(protect, dynamicPermission("view"), samitiController.getAll)
+  .get(
+    protect,
+    dynamicPermission("view"),
+    scopeQuery(),
+    samitiController.getAll,
+  )
   .post(protect, dynamicPermission("create"), samitiController.create);
 
 router
   .route("/:id")
-  .get(protect, dynamicPermission("view"), samitiController.getById)
+  .get(
+    protect,
+    dynamicPermission("view"),
+    scopeQuery(),
+    samitiController.getById,
+  )
   .put(protect, dynamicPermission("edit"), samitiController.update)
   .delete(protect, dynamicPermission("delete"), samitiController.delete);
 

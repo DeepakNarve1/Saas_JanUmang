@@ -45,14 +45,13 @@ const tenantSchema = new mongoose.Schema(
 );
 
 // Pre-save hook to ensure slug is URL-friendly if not already
-tenantSchema.pre("validate", function (next) {
+tenantSchema.pre("validate", async function () {
   if (this.name && !this.slug) {
     this.slug = this.name
       .toLowerCase()
       .replace(/[^\w ]+/g, "")
       .replace(/ +/g, "-");
   }
-  next();
 });
 
 module.exports = mongoose.model("Tenant", tenantSchema);

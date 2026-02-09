@@ -37,6 +37,10 @@ import {
 import { USER_TYPE_OPTIONS, ADMIN_LEVEL_OPTIONS } from "./user.constants";
 import { IRoleOption } from "@app/types/user";
 import { HierarchySelector } from "@app/components";
+import { useAppSelector } from "@app/store/store";
+
+import { ITenant } from "@app/types/tenant";
+import { Building2 } from "lucide-react";
 
 interface UserFormProps {
   initialValues?: IUserFormValues;
@@ -55,8 +59,30 @@ const UserForm = ({
   const [roles, setRoles] = useState<IRoleOption[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [rolesError, setRolesError] = useState<string | null>(null);
+  const currentUser = useAppSelector((state) => state.auth.currentUser);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [tenants, setTenants] = useState<ITenant[]>([]);
+
+  // Fetch tenants if system admin
+  useEffect(() => {
+    if (
+      currentUser?.level === "system_admin" ||
+      currentUser?.level === "superadmin"
+    ) {
+      const fetchTenants = async () => {
+        try {
+          const res = await axios.get("/tenants?limit=-1");
+          if (res.data?.data) {
+            setTenants(res.data.data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch tenants:", error);
+        }
+      };
+      fetchTenants();
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -279,8 +305,8 @@ const UserForm = ({
               value={formik.values.level}
               onValueChange={(value) => {
                 formik.setFieldValue("level", value);
-                // Reset hierarchy if switched back to superadmin
-                if (value === "superadmin") {
+                // Reset hierarchy if switched back to global admin
+                if (value === "system_admin") {
                   formik.setFieldValue("state", "");
                   formik.setFieldValue("division", "");
                   formik.setFieldValue("district", "");
@@ -299,7 +325,22 @@ const UserForm = ({
                 <SelectValue placeholder="Select access level" />
               </SelectTrigger>
               <SelectContent>
-                {ADMIN_LEVEL_OPTIONS.map((opt) => (
+                {ADMIN_LEVEL_OPTIONS.filter((opt) => {
+                  if (!currentUser) return false;
+                  // System admins can create anyone
+                  if (
+                    currentUser.level === "system_admin" ||
+                    currentUser.level === "superadmin"
+                  )
+                    return true;
+
+                  // Others can only create users at their level or below
+                  const levels = ADMIN_LEVEL_OPTIONS.map((o) => o.value);
+                  const myLevelIndex = levels.indexOf(currentUser.level as any);
+                  const targetLevelIndex = levels.indexOf(opt.value);
+
+                  return targetLevelIndex >= myLevelIndex;
+                }).map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>
@@ -313,25 +354,57 @@ const UserForm = ({
             )}
           </div>
 
-          {/* Hierarchical Scope Selection */}
-          {formik.values.level !== "superadmin" && (
-            <div className="md:col-span-2 p-6 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl border border-gray-200/50 dark:border-gray-700/50 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin size={16} className="text-[#368F8B]" />
-                <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-tight">
-                  Jurisdiction Assignment
-                </h4>
-              </div>
-              <HierarchySelector
-                formik={formik}
-                targetLevel={formik.values.level as any}
-              />
-              <p className="text-[10px] text-gray-500 italic">
-                * User will be restricted to data within the selected{" "}
-                {formik.values.level}.
-              </p>
+          {/* Organization Selection (Only for System Admins) */}
+          {(currentUser?.level === "system_admin" ||
+            currentUser?.level === "superadmin") && (
+            <div className="space-y-2">
+              <Label
+                htmlFor="tenantId"
+                className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase flex items-center gap-2"
+              >
+                <Building2 size={14} className="text-[#368F8B]" />
+                Assign Organization
+              </Label>
+              <Select
+                value={formik.values.tenantId}
+                onValueChange={(value) =>
+                  formik.setFieldValue("tenantId", value)
+                }
+              >
+                <SelectTrigger className="h-11 border-gray-200 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-200 focus:border-[#368F8B]">
+                  <SelectValue placeholder="Select organization" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tenants.map((t) => (
+                    <SelectItem key={t._id} value={t._id}>
+                      {t.name} ({t.slug})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
+
+          {/* Hierarchical Scope Selection */}
+          {formik.values.level !== "system_admin" &&
+            formik.values.level !== "superadmin" && (
+              <div className="md:col-span-2 p-6 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl border border-gray-200/50 dark:border-gray-700/50 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin size={16} className="text-[#368F8B]" />
+                  <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-tight">
+                    Jurisdiction Assignment
+                  </h4>
+                </div>
+                <HierarchySelector
+                  formik={formik}
+                  targetLevel={formik.values.level as any}
+                />
+                <p className="text-[10px] text-gray-500 italic">
+                  * User will be restricted to data within the selected{" "}
+                  {formik.values.level}.
+                </p>
+              </div>
+            )}
 
           {/* Row 4: Security Section Divider */}
           <div className="md:col-span-2 pt-4 border-t border-gray-50 dark:border-gray-800">

@@ -63,8 +63,10 @@ module.exports = (err, req, res, next) => {
   if (process.env.NODE_ENV === "development") {
     sendErrorDev(err, res);
   } else {
-    let error = { ...err };
+    // We shouldn't use { ...err } because it doesn't copy non-enumerable properties like 'name' from Error objects
+    let error = Object.assign(Object.create(Object.getPrototypeOf(err)), err);
     error.message = err.message;
+    error.stack = err.stack;
 
     if (error.name === "CastError") error = handleCastErrorDB(error);
     if (error.code === 11000) error = handleDuplicateFieldsDB(error);

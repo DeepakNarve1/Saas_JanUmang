@@ -33,6 +33,7 @@ const UserDropdown = () => {
     } finally {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("overrideTenantId");
       dispatch(setCurrentUser(null));
       toast.success("Logged out successfully");
       setOpen(false);
@@ -100,6 +101,9 @@ const UserDropdown = () => {
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {currentUser.email}
+            </p>
+            <p className="text-sm font-bold mt-1 text-[#368F8B]">
+              {(currentUser as any).tenant?.name || "Independent Organization"}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
               {typeof currentUser.role === "string"

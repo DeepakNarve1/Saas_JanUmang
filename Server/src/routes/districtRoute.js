@@ -8,6 +8,7 @@ const {
 } = require("../controller/districtController");
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
+const { scopeQuery } = require("../middleware/scopeMiddleware");
 
 const router = express.Router();
 
@@ -18,7 +19,12 @@ router
 
 router
   .route("/:id")
-  .get(protect, checkPermission("view_districts"), getDistrictById)
+  .get(
+    protect,
+    checkPermission("view_districts"),
+    scopeQuery(),
+    getDistrictById,
+  )
   .put(protect, checkPermission("edit_districts"), updateDistrict)
   .delete(protect, checkPermission("delete_districts"), deleteDistrict);
 
