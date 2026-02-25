@@ -1,329 +1,278 @@
-import { useState, useMemo } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
-import { ContentHeader } from "@components";
-import { useAppSelector } from "@app/store/store";
-import { DEFAULT_SIDEBAR_ACCESS_BY_ROLE, MENU } from "@app/utils/menu";
-import { Columns } from "lucide-react";
-import { Button } from "@app/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@app/components/ui/dropdown-menu";
-
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@app/components/ui/card";
+import { Badge } from "@app/components/ui/badge";
+import { Skeleton } from "@app/components/ui/skeleton";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@app/components/ui/select";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@app/components/ui/table";
 import {
-  ISidebarPermissionsResponse,
-  SidebarAccessMap,
-} from "@app/types/permission";
-import { IRole } from "@app/types/role";
+  Shield,
+  Package,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
+import { IPermission } from "@app/types/role";
 
-const flattenMenu = (items = MENU) => {
-  const flattened: { name: string; path?: string }[] = [];
+interface ModulePermissions {
+  module: string;
+  moduleName: string;
+  moduleDescription: string;
+  permissions: IPermission[];
+}
 
-  const walk = (list: typeof MENU) => {
-    list.forEach((item) => {
-      if (item.path) {
-        flattened.push({ name: item.name, path: item.path });
-      }
-      if (item.children && item.children.length > 0) {
-        walk(item.children as any);
-      }
-    });
-  };
+interface PermissionsData {
+  enabledModules: string[];
+  permissions: ModulePermissions[];
+}
 
-  walk(items as any);
-  return flattened;
+const moduleIcons: Record<string, string> = {
+  dashboard: "fas fa-tachometer-alt",
+  users: "fas fa-wrench",
+  roles: "fas fa-user-shield",
+  user_count: "fas fa-chart-pie",
+  activity_management: "fas fa-history",
+  mp_public_problems: "fas fa-exclamation-circle",
+  assembly_issues: "fas fa-university",
+  projects: "fas fa-user-friends",
+  visitors: "fas fa-id-badge",
+  events: "fas fa-calendar-alt",
+  members: "fas fa-users",
+  voters: "fas fa-id-card",
+  phone_directory: "fas fa-address-book",
+  departments: "fas fa-building",
+  blocks: "fas fa-cubes",
+  booths: "fas fa-person-booth",
+  panchayats: "fas fa-users",
+  villages: "fas fa-home",
+  states: "fas fa-map-marker-alt",
+  divisions: "fas fa-map-signs",
+  districts: "fas fa-map",
+  parliaments: "fas fa-landmark",
+  assemblies: "fas fa-university",
+  samiti: "fas fa-users-cog",
+  parties: "fas fa-flag",
+  work_types: "fas fa-briefcase",
+  sub_work_types: "fas fa-tasks",
+  call_management: "fas fa-phone-volume",
+  inward_register: "fas fa-file-import",
+  dispatch_register: "fas fa-file-export",
 };
 
-const PermissionsPage = () => {
-  const currentUser = useAppSelector((state) => state.auth.currentUser);
-  const [selectedRole, setSelectedRole] = useState<string>("");
-  const queryClient = useQueryClient();
+const PERMISSION_TYPES = ["view", "create", "edit", "delete", "other"] as const;
 
-  const [visibleColumns, setVisibleColumns] = useState({
-    name: true,
-    path: true,
-    access: true,
+type PermissionType = (typeof PERMISSION_TYPES)[number];
+
+const hasType = (permissions: IPermission[], type: PermissionType): boolean => {
+  return permissions.some((p) => {
+    if (type === "other") {
+      const name = p.name.toLowerCase();
+      return (
+        !name.includes("view") &&
+        !name.includes("list") &&
+        !name.includes("create") &&
+        !name.includes("edit") &&
+        !name.includes("delete")
+      );
+    }
+    if (type === "view")
+      return p.name.includes("view") || p.name.includes("list");
+    return p.name.includes(type);
   });
+};
 
-  const toggleColumn = (key: keyof typeof visibleColumns) => {
-    setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+const PermissionCell = ({ has }: { has: boolean }) =>
+  has ? (
+    <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto" />
+  ) : (
+    <XCircle className="w-4 h-4 text-gray-300 dark:text-gray-600 mx-auto" />
+  );
 
-  const menuItems = useMemo(() => flattenMenu(), []);
+const PermissionsView = () => {
+  const [data, setData] = useState<PermissionsData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const isSuperAdmin = useMemo(() => {
-    const rolesList = Array.isArray(currentUser?.roles)
-      ? currentUser?.roles
-      : [];
-    return (
-      currentUser?.role === "superadmin" || rolesList.includes("superadmin")
-    );
-  }, [currentUser]);
-
-  // Fetch Roles
-  const { data: roles = [] } = useQuery<IRole[]>({
-    queryKey: ["roles-list-simple"],
-    queryFn: async () => {
-      const res = await axios.get("/roles"); // Keeping the endpoint as per original file
-      return res.data?.data || [];
-    },
-  });
-
-  // Fetch Sidebar Permissions
-  const {
-    data: accessMap = DEFAULT_SIDEBAR_ACCESS_BY_ROLE,
-    isLoading: isLoadingMap,
-  } = useQuery<SidebarAccessMap>({
-    queryKey: ["sidebar-permissions"],
-    queryFn: async () => {
-      const res = await axios.get("/rbac/sidebar-permissions");
-      const map = res.data?.data;
-      if (map && typeof map === "object" && !Array.isArray(map)) {
-        // FORCE superadmin wildcard
-        map.superadmin = ["*"];
-        return map;
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get("/rbac/permissions/available");
+        setData(res.data.data || { enabledModules: [], permissions: [] });
+      } catch (err) {
+        console.error("Failed to load permissions", err);
+        toast.error("Failed to load permissions");
+      } finally {
+        setLoading(false);
       }
-      return DEFAULT_SIDEBAR_ACCESS_BY_ROLE;
-    },
-  });
+    };
+    fetchPermissions();
+  }, []);
 
-  // Mutation to save permissions
-  const saveMutation = useMutation({
-    mutationFn: async (updatedMap: SidebarAccessMap) => {
-      await axios.put("/rbac/sidebar-permissions", updatedMap);
-      return updatedMap;
-    },
-    onSuccess: (data) => {
-      toast.success("Sidebar permissions updated");
-      localStorage.setItem("sidebarAccessByRole", JSON.stringify(data));
-      queryClient.setQueryData(["sidebar-permissions"], data);
-    },
-    onError: (err: any) => {
-      console.error(err);
-      toast.error("Failed to save permissions");
-    },
-  });
-
-  const handleTogglePath = (path: string) => {
-    if (!selectedRole) {
-      toast.warn("Select a role first");
-      return;
-    }
-
-    const currentRoleAccess = accessMap?.[selectedRole] || [];
-    const hasAccess = currentRoleAccess.includes(path);
-
-    // Create new list
-    let newRoleAccess: string[];
-    if (hasAccess) {
-      newRoleAccess = currentRoleAccess.filter((p) => p !== path);
-    } else {
-      newRoleAccess = [...currentRoleAccess, path];
-    }
-
-    // Update local cache optimistically or just update state if we were using state
-    // Here we are using React Query data. We can't mutate accessMap directly if it comes from RQ.
-    // We should ideally use a local state initialized from RQ data, OR use queryClient.setQueryData
-    // But since the user has to click "Save", we need a local buffer.
-    // So I will introduce a local state that syncs with `accessMap` when fetched.
-  };
-
-  // To implement the "Save" pattern correctly with React Query:
-  // 1. We start with data from Query.
-  // 2. We copy it to local state for editing.
-  // 3. On Save, we mutate.
-
-  // Let's re-introduce local state
-  const [localMap, setLocalMap] = useState<SidebarAccessMap | null>(null);
-
-  // Sync local map when data is loaded
-  useMemo(() => {
-    if (accessMap && !localMap) {
-      setLocalMap(accessMap);
-    }
-  }, [accessMap, localMap]);
-
-  // Also if accessMap updates from background refetch, we might want to respect that?
-  // For "Edit form" usually we don't want background updates to overwrite user changes.
-  // We'll rely on `localMap` for rendering if it exists.
-
-  const safeMap = localMap || accessMap;
-
-  const onTogglePath = (path: string) => {
-    if (!selectedRole) {
-      toast.warn("Select a role first");
-      return;
-    }
-
-    if (!localMap) return; // Should be set by now if data loaded
-
-    setLocalMap((prev) => {
-      if (!prev) return prev;
-      const roleAccess = new Set(prev[selectedRole] || []);
-      if (roleAccess.has(path)) {
-        roleAccess.delete(path);
-      } else {
-        roleAccess.add(path);
-      }
-      return { ...prev, [selectedRole]: Array.from(roleAccess) };
-    });
-  };
-
-  const onSave = () => {
-    if (selectedRole === "superadmin") {
-      toast.info("Superadmin permissions are fixed and cannot be changed");
-      return;
-    }
-    if (localMap) {
-      saveMutation.mutate(localMap);
-    }
-  };
-
-  if (!isSuperAdmin) {
+  if (loading) {
     return (
-      <div className="container-fluid">
-        <ContentHeader title="Sidebar Permissions" />
-        <div className="alert alert-warning mt-3">
-          You do not have access to manage sidebar permissions.
-        </div>
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-[400px] w-full" />
       </div>
     );
   }
 
-  return (
-    <div className="container-fluid">
-      <ContentHeader title="Sidebar Permissions" />
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 mt-6 overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex flex-col lg:flex-row gap-6 items-end justify-between">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-700">
-                Select Role
-              </label>
-              <Select value={selectedRole} onValueChange={setSelectedRole}>
-                <SelectTrigger className="w-36 h-9 bg-white text-sm">
-                  <SelectValue placeholder="-- Choose Role --" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((r: any) => (
-                    <SelectItem
-                      key={r._id}
-                      value={r.role || r.displayName || r.name || ""}
-                    >
-                      {r.displayName || r.name || r.role}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+  if (!data || data.permissions.length === 0) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-10">
+            <div className="flex flex-col items-center justify-center text-center space-y-3">
+              <AlertCircle className="h-14 w-14 text-yellow-500" />
+              <h3 className="text-lg font-semibold">
+                No Permissions Available
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+                No modules are enabled for your organisation. Please contact
+                your administrator to enable modules.
+              </p>
             </div>
-            <Button
-              className="bg-[#00563B] hover:bg-[#368F8B]"
-              disabled={!selectedRole || saveMutation.isPending || !localMap}
-              onClick={onSave}
-            >
-              {saveMutation.isPending ? "Saving..." : "Save Permissions"}
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex justify-start mb-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Columns className="w-4 h-4 mr-2" /> Columns
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {Object.keys(visibleColumns).map((key) => (
-                <DropdownMenuCheckboxItem
-                  key={key}
-                  checked={visibleColumns[key as keyof typeof visibleColumns]}
-                  onCheckedChange={() =>
-                    toggleColumn(key as keyof typeof visibleColumns)
-                  }
-                >
-                  {key === "name"
-                    ? "Sidebar Item"
-                    : key === "path"
-                      ? "Path"
-                      : "Visible for Role"}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <div className="table-responsive">
-          <table className="table table-bordered">
-            <thead>
-              <tr>
-                {visibleColumns.name && <th>Sidebar Item</th>}
-                {visibleColumns.path && <th>Path</th>}
-                {visibleColumns.access && (
-                  <th className="text-center" style={{ width: 140 }}>
-                    Visible for Role
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {menuItems.map((item) => (
-                <tr key={item.path}>
-                  {visibleColumns.name && <td>{item.name}</td>}
-                  {visibleColumns.path && <td>{item.path}</td>}
-                  {visibleColumns.access && (
-                    <td className="text-center">
-                      <input
-                        type="checkbox"
-                        checked={
-                          selectedRole === "superadmin"
-                            ? true
-                            : !!selectedRole &&
-                              (safeMap?.[selectedRole] || []).includes(
-                                item.path || "",
-                              )
-                        }
-                        onChange={() => item.path && onTogglePath(item.path)}
-                        disabled={
-                          !selectedRole || selectedRole === "superadmin"
-                        }
-                      />
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {menuItems.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={
-                      Object.values(visibleColumns).filter(Boolean).length
-                    }
-                    className="text-center"
-                  >
-                    No menu items found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          {isLoadingMap && !localMap && (
-            <div className="text-center p-3 text-muted">Loading...</div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
+    );
+  }
+
+  const totalPermissions = data.permissions.reduce(
+    (acc, m) => acc + m.permissions.length,
+    0,
+  );
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#00563B]/10 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-[#00563B]" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">System Permissions</CardTitle>
+                <CardDescription>
+                  All permissions available in the system, grouped by module.
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-sm px-3 py-1">
+                <Package className="w-3.5 h-3.5 mr-1.5" />
+                {data.enabledModules.length} Modules Enabled
+              </Badge>
+              <Badge className="text-sm px-3 py-1 bg-[#00563B] text-white">
+                {totalPermissions} Total Permissions
+              </Badge>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Permissions Table */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto custom-scrollbar rounded-lg">
+            <Table className="w-full border-collapse">
+              <TableHeader className="bg-[#00563B] dark:bg-gray-800">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="font-bold text-white h-10 pl-6 w-1/4">
+                    Module
+                  </TableHead>
+                  <TableHead className="font-bold text-white text-center h-10">
+                    Total
+                  </TableHead>
+                  <TableHead className="font-bold text-white text-center h-10">
+                    View
+                  </TableHead>
+                  <TableHead className="font-bold text-white text-center h-10">
+                    Create
+                  </TableHead>
+                  <TableHead className="font-bold text-white text-center h-10">
+                    Edit
+                  </TableHead>
+                  <TableHead className="font-bold text-white text-center h-10">
+                    Delete
+                  </TableHead>
+                  <TableHead className="font-bold text-white text-center h-10">
+                    Others
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.permissions.map((mp) => (
+                  <TableRow
+                    key={mp.module}
+                    className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                  >
+                    {/* Module name */}
+                    <TableCell className="py-3 pl-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 shrink-0">
+                          {moduleIcons[mp.module] ? (
+                            <i className={moduleIcons[mp.module]} />
+                          ) : (
+                            <i className="fas fa-layer-group" />
+                          )}
+                        </div>
+                        <div>
+                          <span className="block font-semibold text-gray-800 dark:text-gray-200">
+                            {mp.moduleName}
+                          </span>
+                          {mp.moduleDescription && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {mp.moduleDescription}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    {/* Total count */}
+                    <TableCell className="text-center py-3">
+                      <Badge
+                        variant="outline"
+                        className="text-xs font-semibold"
+                      >
+                        {mp.permissions.length}
+                      </Badge>
+                    </TableCell>
+
+                    {/* Permission type columns */}
+                    {PERMISSION_TYPES.map((type) => (
+                      <TableCell key={type} className="text-center py-3">
+                        <PermissionCell has={hasType(mp.permissions, type)} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default PermissionsPage;
+export default PermissionsView;

@@ -85,7 +85,7 @@ const ViewWorktype = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_worktype") && (
+                {hasPermission("edit_work_types") && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
                     onClick={() => router.push(`/worktype/${id}/edit`)}

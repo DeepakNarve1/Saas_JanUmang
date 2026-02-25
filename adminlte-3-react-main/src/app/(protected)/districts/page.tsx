@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
 
+import { RouteGuard } from "@app/components/RouteGuard";
+
 const District = dynamic(() => import("@app/views/district"), {
   ssr: false,
   loading: () => (
@@ -14,5 +16,9 @@ const District = dynamic(() => import("@app/views/district"), {
 });
 
 export default function DistrictPage() {
-  return <District />;
+  return (
+    <RouteGuard requiredPermission="view_districts">
+      <District />
+    </RouteGuard>
+  );
 }

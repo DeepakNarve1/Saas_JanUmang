@@ -8,6 +8,7 @@ const {
 } = require("../controller/blockController");
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
+const { checkModuleAccess } = require("../middleware/moduleAccessMiddleware");
 
 const router = express.Router();
 

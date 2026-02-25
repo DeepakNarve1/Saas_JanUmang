@@ -72,9 +72,9 @@ const voterSchema = new mongoose.Schema(
       required: [true, "Panchayat is required"],
     },
     village: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Village",
+      type: String,
       required: [true, "Village is required"],
+      trim: true,
     },
     booth: {
       type: mongoose.Schema.Types.ObjectId,
@@ -115,6 +115,7 @@ const voterSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+      index: true,
     },
 
     source: {
@@ -125,8 +126,8 @@ const voterSchema = new mongoose.Schema(
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tenant",
-      required: true,
       index: true,
+      default: null,
     },
   },
   {
@@ -134,6 +135,12 @@ const voterSchema = new mongoose.Schema(
   },
 );
 
+voterSchema.index({ createdAt: -1 });
+voterSchema.index({ tenantId: 1, createdAt: -1 });
+voterSchema.index({ district: 1 });
+voterSchema.index({ block: 1 });
+voterSchema.index({ panchayat: 1 });
+voterSchema.index({ booth: 1 });
 voterSchema.index({ voterId: 1, tenantId: 1 }, { unique: true });
 voterSchema.index({ uniqueId: 1, tenantId: 1 }, { unique: true });
 

@@ -5,7 +5,7 @@ import EditWorktype from "@app/views/worktype/EditWorktype";
 
 export default function EditWorktypePage() {
   return (
-    <RouteGuard requiredPermission="edit_worktype">
+    <RouteGuard requiredPermission="edit_work_types">
       <EditWorktype />
     </RouteGuard>
   );

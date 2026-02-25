@@ -176,7 +176,7 @@ const SubTypeOfWorkList = () => {
                   onChange={handleImport}
                   className="hidden"
                 />
-                {hasPermission("create_sub_type_of_work") && (
+                {hasPermission("create_sub_work_types") && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium h-9"
                     onClick={() => router.push("/sub-type-of-work/create")}
@@ -345,7 +345,7 @@ const SubTypeOfWorkList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-40">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_sub_type_of_work") && (
+                                {hasPermission("view_sub_work_types") && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -357,7 +357,7 @@ const SubTypeOfWorkList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_sub_type_of_work") && (
+                                {hasPermission("edit_sub_work_types") && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -369,7 +369,7 @@ const SubTypeOfWorkList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_sub_type_of_work") && (
+                                {hasPermission("delete_sub_work_types") && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-700 cursor-pointer"
                                     onClick={() =>

@@ -5,7 +5,7 @@ import EditSubTypeOfWork from "@app/views/subtypeOfWork/EditSubTypeOfWork";
 
 export default function EditSubTypeOfWorkPage() {
   return (
-    <RouteGuard requiredPermission="edit_sub_type_of_work">
+    <RouteGuard requiredPermission="edit_sub_work_types">
       <EditSubTypeOfWork />
     </RouteGuard>
   );

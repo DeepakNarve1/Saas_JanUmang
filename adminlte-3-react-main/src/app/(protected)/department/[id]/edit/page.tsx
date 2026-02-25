@@ -5,7 +5,7 @@ import EditDepartment from "@app/views/department/EditDepartment";
 
 export default function EditDepartmentPage() {
   return (
-    <RouteGuard requiredPermission="edit_department">
+    <RouteGuard requiredPermission="edit_departments">
       <EditDepartment />
     </RouteGuard>
   );

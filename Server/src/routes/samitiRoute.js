@@ -33,7 +33,7 @@ router
   .get(
     protect,
     dynamicPermission("view"),
-    scopeQuery(),
+    scopeQuery({}, false),
     samitiController.getAll,
   )
   .post(protect, dynamicPermission("create"), samitiController.create);
@@ -43,7 +43,7 @@ router
   .get(
     protect,
     dynamicPermission("view"),
-    scopeQuery(),
+    scopeQuery({}, false),
     samitiController.getById,
   )
   .put(protect, dynamicPermission("edit"), samitiController.update)

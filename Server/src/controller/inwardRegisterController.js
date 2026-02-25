@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const InwardRegister = require("../models/inwardRegisterModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // Get all Inward Registers
 exports.getInwardRegisters = asyncHandler(async (req, res) => {
@@ -18,29 +19,29 @@ exports.getInwardRegisters = asyncHandler(async (req, res) => {
     ];
   }
 
-  let paginationLimit = parseInt(limit);
-  if (paginationLimit === -1) {
-    paginationLimit = 0;
-  }
+  const paginationLimit = parseInt(limit) === -1 ? 0 : parseInt(limit);
+  const skip = (page - 1) * paginationLimit;
 
-  const count = await InwardRegister.countDocuments({ ...req.scopeFilter });
-  const filteredCount = await InwardRegister.countDocuments(query);
-
-  let queryBuilder = InwardRegister.find(query)
-    .populate("addedBy", "name")
-    .sort({ createdAt: -1 });
-
-  if (paginationLimit > 0) {
-    queryBuilder = queryBuilder
-      .limit(paginationLimit)
-      .skip((page - 1) * paginationLimit);
-  }
-
-  const data = await queryBuilder;
+  // Run queries in parallel for better performance
+  const [data, filteredCount, total] = await Promise.all([
+    paginationLimit > 0
+      ? InwardRegister.find(query)
+          .populate("addedBy", "name")
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(paginationLimit)
+          .lean()
+      : InwardRegister.find(query)
+          .populate("addedBy", "name")
+          .sort({ createdAt: -1 })
+          .lean(),
+    InwardRegister.countDocuments(query),
+    InwardRegister.countDocuments({ ...req.scopeFilter }),
+  ]);
 
   res.status(200).json({
     success: true,
-    total: count,
+    total,
     count: filteredCount,
     data,
   });
@@ -70,7 +71,7 @@ exports.createInwardRegister = asyncHandler(async (req, res) => {
     const inwardRegister = await InwardRegister.create({
       ...req.body,
       addedBy: req.user._id,
-      tenantId: req.tenantId, // SaaS: Link to organization
+      tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
     });
 
     await logActivity(

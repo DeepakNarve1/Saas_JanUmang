@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import axios from "@app/utils/axios";
@@ -22,11 +22,11 @@ import {
   User as UserIcon,
   Mail,
   Phone,
-  Shield,
   UserCog,
+  Shield,
   Lock,
   Key,
-  MapPin,
+  Building2,
 } from "lucide-react";
 import {
   userInitialValues,
@@ -34,13 +34,11 @@ import {
   getCachedUserSchema,
   sanitizeUserFormValues,
 } from "./user.schema";
-import { USER_TYPE_OPTIONS, ADMIN_LEVEL_OPTIONS } from "./user.constants";
+import { USER_TYPE_OPTIONS } from "./user.constants";
 import { IRoleOption } from "@app/types/user";
-import { HierarchySelector } from "@app/components";
 import { useAppSelector } from "@app/store/store";
 
 import { ITenant } from "@app/types/tenant";
-import { Building2 } from "lucide-react";
 
 interface UserFormProps {
   initialValues?: IUserFormValues;
@@ -59,17 +57,30 @@ const UserForm = ({
   const [roles, setRoles] = useState<IRoleOption[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [rolesError, setRolesError] = useState<string | null>(null);
-  const currentUser = useAppSelector((state) => state.auth.currentUser);
+  const currentUser = useAppSelector((state: any) => state.auth.currentUser);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [tenants, setTenants] = useState<ITenant[]>([]);
 
-  // Fetch tenants if system admin
+  const formik = useFormik<IUserFormValues>({
+    initialValues,
+    enableReinitialize: true,
+    validationSchema: getCachedUserSchema(isEdit),
+    onSubmit: (values) => {
+      // Sanitize values before submission
+      const sanitizedValues = sanitizeUserFormValues(values);
+      onSubmit(sanitizedValues);
+    },
+  });
+
+  // Fetch tenants if true platform global admin (no tenantId + system-level)
+  const isCurrentUserGlobalAdmin =
+    !currentUser?.tenantId &&
+    (currentUser?.level === "system_admin" ||
+      currentUser?.level === "superadmin");
+
   useEffect(() => {
-    if (
-      currentUser?.level === "system_admin" ||
-      currentUser?.level === "superadmin"
-    ) {
+    if (isCurrentUserGlobalAdmin) {
       const fetchTenants = async () => {
         try {
           const res = await axios.get("/tenants?limit=-1");
@@ -89,7 +100,17 @@ const UserForm = ({
       try {
         setRolesLoading(true);
         setRolesError(null);
-        const res = await axios.get("/rbac/roles", { params: { limit: -1 } });
+
+        // Pass the selected tenantId to get specific roles if applicable
+        const headers: any = {};
+        if (formik.values.tenantId) {
+          headers["x-tenant-id"] = formik.values.tenantId;
+        }
+
+        const res = await axios.get("/rbac/roles", {
+          params: { limit: -1 },
+          headers,
+        });
 
         if (res.data?.data && Array.isArray(res.data.data)) {
           setRoles(res.data.data);
@@ -107,18 +128,53 @@ const UserForm = ({
       }
     };
     fetchRoles();
-  }, []);
+  }, [formik.values.tenantId, currentUser]);
 
-  const formik = useFormik<IUserFormValues>({
-    initialValues,
-    enableReinitialize: true,
-    validationSchema: getCachedUserSchema(isEdit),
-    onSubmit: (values) => {
-      // Sanitize values before submission
-      const sanitizedValues = sanitizeUserFormValues(values);
-      onSubmit(sanitizedValues);
-    },
-  });
+  const filteredRoles = useMemo(() => {
+    if (!roles || roles.length === 0) return [];
+
+    // For non-global admins, roles are already filtered by the API
+    if (!isCurrentUserGlobalAdmin) {
+      return roles;
+    }
+
+    // For global admins:
+    // We only want to show exactly two "levels": System Admin and Organization Admin
+    const selectedTenantId = formik.values.tenantId;
+    const roleMap = new Map();
+
+    roles.forEach((r: any) => {
+      const name = (r.name || "").toLowerCase();
+      const level = (r.level || "").toLowerCase();
+      const isSysAdmin =
+        name === "system_admin" ||
+        name === "superadmin" ||
+        level === "system_admin";
+      const isOrgAdmin =
+        name === "tenant_admin" ||
+        name === "organization admin" ||
+        level === "tenant_admin";
+
+      if (isSysAdmin || isOrgAdmin) {
+        const key = isSysAdmin ? "System Administrator" : "Organization Admin";
+        const belongsToSelected =
+          selectedTenantId && r.tenantId === selectedTenantId;
+
+        // Logic:
+        // 1. If we haven't added this role type yet, add it.
+        // 2. If we found a version of this role that belongs to the selected organization,
+        //    prefer its ID over any others to ensure correct permissions.
+        if (!roleMap.has(key) || belongsToSelected) {
+          roleMap.set(key, {
+            ...r,
+            displayName: key, // Force consistent display name
+          });
+        }
+      }
+    });
+
+    return Array.from(roleMap.values());
+  }, [roles, formik.values.tenantId, currentUser]);
 
   return (
     <div className="p-8 bg-white dark:bg-card">
@@ -233,7 +289,21 @@ const UserForm = ({
             </Label>
             <Select
               value={formik.values.role}
-              onValueChange={(value) => formik.setFieldValue("role", value)}
+              onValueChange={(value: string) => {
+                formik.setFieldValue("role", value);
+                const selectedRole = filteredRoles.find((r) => r._id === value);
+                if (selectedRole) {
+                  const roleName = (selectedRole.name || "").toLowerCase();
+                  if (
+                    roleName === "system_admin" ||
+                    roleName === "superadmin"
+                  ) {
+                    formik.setFieldValue("level", "system_admin");
+                  } else if (roleName === "tenant_admin") {
+                    formik.setFieldValue("level", "tenant_admin");
+                  }
+                }
+              }}
               disabled={rolesLoading}
             >
               <SelectTrigger
@@ -250,7 +320,7 @@ const UserForm = ({
                 />
               </SelectTrigger>
               <SelectContent>
-                {roles.map((r) => (
+                {filteredRoles.map((r) => (
                   <SelectItem key={r._id} value={r._id}>
                     {r.displayName || r.name}
                   </SelectItem>
@@ -275,7 +345,9 @@ const UserForm = ({
             </Label>
             <Select
               value={formik.values.userType}
-              onValueChange={(value) => formik.setFieldValue("userType", value)}
+              onValueChange={(value: string) =>
+                formik.setFieldValue("userType", value)
+              }
             >
               <SelectTrigger
                 id="userType"
@@ -293,70 +365,8 @@ const UserForm = ({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label
-              htmlFor="level"
-              className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase flex items-center gap-2"
-            >
-              <Shield size={14} className="text-[#368F8B]" />
-              Administrative Level <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              value={formik.values.level}
-              onValueChange={(value) => {
-                formik.setFieldValue("level", value);
-                // Reset hierarchy if switched back to global admin
-                if (value === "system_admin") {
-                  formik.setFieldValue("state", "");
-                  formik.setFieldValue("division", "");
-                  formik.setFieldValue("district", "");
-                  formik.setFieldValue("assembly", "");
-                  formik.setFieldValue("block", "");
-                  formik.setFieldValue("panchayat", "");
-                  formik.setFieldValue("village", "");
-                  formik.setFieldValue("booth", "");
-                }
-              }}
-            >
-              <SelectTrigger
-                id="level"
-                className={`h-11 border-gray-200 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-200 focus:border-[#368F8B] ${formik.touched.level && formik.errors.level ? "border-red-500" : ""}`}
-              >
-                <SelectValue placeholder="Select access level" />
-              </SelectTrigger>
-              <SelectContent>
-                {ADMIN_LEVEL_OPTIONS.filter((opt) => {
-                  if (!currentUser) return false;
-                  // System admins can create anyone
-                  if (
-                    currentUser.level === "system_admin" ||
-                    currentUser.level === "superadmin"
-                  )
-                    return true;
-
-                  // Others can only create users at their level or below
-                  const levels = ADMIN_LEVEL_OPTIONS.map((o) => o.value);
-                  const myLevelIndex = levels.indexOf(currentUser.level as any);
-                  const targetLevelIndex = levels.indexOf(opt.value);
-
-                  return targetLevelIndex >= myLevelIndex;
-                }).map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {formik.touched.level && formik.errors.level && (
-              <p className="text-[10px] text-red-500 font-bold uppercase">
-                {formik.errors.level}
-              </p>
-            )}
-          </div>
-
-          {/* Organization Selection (Only for System Admins) */}
-          {(currentUser?.level === "system_admin" ||
-            currentUser?.level === "superadmin") && (
+          {/* Organization Selection (Only for true Platform Admins) */}
+          {isCurrentUserGlobalAdmin && (
             <div className="space-y-2">
               <Label
                 htmlFor="tenantId"
@@ -367,7 +377,7 @@ const UserForm = ({
               </Label>
               <Select
                 value={formik.values.tenantId}
-                onValueChange={(value) =>
+                onValueChange={(value: string) =>
                   formik.setFieldValue("tenantId", value)
                 }
               >
@@ -385,26 +395,7 @@ const UserForm = ({
             </div>
           )}
 
-          {/* Hierarchical Scope Selection */}
-          {formik.values.level !== "system_admin" &&
-            formik.values.level !== "superadmin" && (
-              <div className="md:col-span-2 p-6 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl border border-gray-200/50 dark:border-gray-700/50 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin size={16} className="text-[#368F8B]" />
-                  <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-tight">
-                    Jurisdiction Assignment
-                  </h4>
-                </div>
-                <HierarchySelector
-                  formik={formik}
-                  targetLevel={formik.values.level as any}
-                />
-                <p className="text-[10px] text-gray-500 italic">
-                  * User will be restricted to data within the selected{" "}
-                  {formik.values.level}.
-                </p>
-              </div>
-            )}
+          {/* Hierarchy and Level fields removed as requested */}
 
           {/* Row 4: Security Section Divider */}
           <div className="md:col-span-2 pt-4 border-t border-gray-50 dark:border-gray-800">

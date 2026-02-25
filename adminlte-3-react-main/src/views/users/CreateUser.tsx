@@ -32,6 +32,16 @@ const CreateUserContent = () => {
         role: values.role,
         mobile: values.mobile || "",
         userType: values.userType || "",
+        level: values.level,
+        state: values.state || null,
+        division: values.division || null,
+        district: values.district || null,
+        assembly: values.assembly || null,
+        block: values.block || null,
+        panchayat: values.panchayat || null,
+        village: values.village || null,
+        booth: values.booth || null,
+        tenantId: values.tenantId || null,
       };
 
       await axios.post("/auth/register", payload);

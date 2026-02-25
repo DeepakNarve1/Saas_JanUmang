@@ -1,21 +1,31 @@
 const asyncHandler = require("express-async-handler");
+const { isGlobalAdmin } = require("../utils/authHelpers");
 
 /**
  * Middleware to restrict database queries based on user's geographic assignment (level and scope).
  * This ensures a 'District Admin' can't see data from other districts, even if they hit the same API.
  */
-const scopeQuery = (levelFieldMap = {}) => {
+const scopeQuery = (levelFieldMap = {}, geographic = true) => {
   return (req, res, next) => {
     // Global Admins can see everything
-    const isGlobalAdmin =
-      req.user.level === "system_admin" || req.user.level === "superadmin";
-
-    if (isGlobalAdmin) {
-      // If a global admin has selected a specific tenant, filter by it
+    if (isGlobalAdmin(req.user)) {
+      // If a global admin has selected a specific tenant, show that tenant's data PLUS global data
       if (req.tenantId) {
-        req.scopeFilter = { tenantId: req.tenantId };
+        req.scopeFilter = {
+          tenantId: { $in: [req.tenantId, null, undefined] },
+        };
       } else {
-        req.scopeFilter = {};
+        // Show Global data
+        // For roles specifically, we also want to show 'tenant_admin' roles by name
+        // so the frontend can deduplicate them and show the "Organization Admin" option.
+        req.scopeFilter = {
+          $or: [
+            { tenantId: { $in: [null, undefined] } },
+            { level: "tenant_admin" },
+            { name: "tenant_admin" },
+            { name: "organization admin" },
+          ],
+        };
       }
       return next();
     }
@@ -24,6 +34,11 @@ const scopeQuery = (levelFieldMap = {}) => {
 
     // SaaS: Every user (except global admin) MUST be restricted by their tenantId
     req.scopeFilter = { tenantId: req.tenantId };
+
+    // If geographic filtering is disabled, or it's a tenant admin, we stop here
+    if (!geographic || level === "tenant_admin") {
+      return next();
+    }
 
     // Default field mapping for geographic scopes
     const fieldMap = {

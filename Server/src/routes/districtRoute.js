@@ -8,9 +8,11 @@ const {
 } = require("../controller/districtController");
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
-const { scopeQuery } = require("../middleware/scopeMiddleware");
 
 const router = express.Router();
+
+// NOTE: Districts are MASTER DATA - globally accessible across all tenants
+// Do NOT apply scopeQuery() middleware to these routes
 
 router
   .route("/")
@@ -19,12 +21,7 @@ router
 
 router
   .route("/:id")
-  .get(
-    protect,
-    checkPermission("view_districts"),
-    scopeQuery(),
-    getDistrictById,
-  )
+  .get(protect, checkPermission("view_districts"), getDistrictById)
   .put(protect, checkPermission("edit_districts"), updateDistrict)
   .delete(protect, checkPermission("delete_districts"), deleteDistrict);
 

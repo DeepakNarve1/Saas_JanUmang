@@ -43,7 +43,7 @@ interface IUserCountRow {
 }
 
 const UserCount = () => {
-  const { hasPermission } = usePermissions();
+  const { hasPermission, user } = usePermissions();
   const router = useRouter();
 
   // State for filtering/pagination
@@ -111,10 +111,18 @@ const UserCount = () => {
   const totalUserCount = usersRaw.length;
 
   useEffect(() => {
-    if (!hasPermission("view_user_count")) {
+    // Only redirect if we have a user but they lack the permission.
+    // If user is null, ProtectedLayout will handle the redirect to login or wait for loading.
+    const userLoaded =
+      !!(window as any).__REDUX_STATE__?.auth?.currentUser || user; // Simplified check or just use 'user' if it's reliable
+    if (
+      user &&
+      user.level !== "tenant_admin" &&
+      !hasPermission("view_user_count")
+    ) {
       router.push("/");
     }
-  }, [hasPermission, router]);
+  }, [hasPermission, router, user]);
 
   // Filtering Logic
   const filteredUsers = useMemo(() => {

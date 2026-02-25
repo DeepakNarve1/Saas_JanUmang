@@ -268,6 +268,23 @@ const CreateMember = () => {
                       const booth = boothsList.find((b) => b.name === val);
                       formik.setFieldValue("boothName", val);
                       formik.setFieldValue("boothNumber", booth?.code || "");
+
+                      // Auto-select Gram Panchayat linked to this Booth
+                      if (booth && panchayatsList.length > 0) {
+                        const linkedPanchayat = panchayatsList.find(
+                          (p) =>
+                            p.booth?._id === booth._id ||
+                            p.booth?.name === val ||
+                            p.booth === booth._id,
+                        );
+                        if (linkedPanchayat) {
+                          formik.setFieldValue(
+                            "grampanchayat",
+                            linkedPanchayat.name,
+                          );
+                          fetchVillages(linkedPanchayat._id);
+                        }
+                      }
                     }}
                     value={formik.values.boothName}
                     disabled={!formik.values.block}
@@ -335,24 +352,19 @@ const CreateMember = () => {
                   <Label className="font-bold text-gray-700 dark:text-gray-300">
                     Village
                   </Label>
-                  <Select
-                    onValueChange={(val) => {
-                      formik.setFieldValue("village", val);
-                    }}
+                  <Input
+                    name="village"
+                    list="villages-options"
+                    className="bg-gray-50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700 dark:text-gray-200"
                     value={formik.values.village}
-                    disabled={!formik.values.grampanchayat}
-                  >
-                    <SelectTrigger className="bg-gray-50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700 dark:text-gray-200">
-                      <SelectValue placeholder="Select Village" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {villagesList.map((v) => (
-                        <SelectItem key={v._id} value={v.name}>
-                          {v.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={formik.handleChange}
+                    placeholder="Type or Select Village"
+                  />
+                  <datalist id="villages-options">
+                    {villagesList.map((v) => (
+                      <option key={v._id} value={v.name} />
+                    ))}
+                  </datalist>
                 </div>
 
                 {/* Spacer */}

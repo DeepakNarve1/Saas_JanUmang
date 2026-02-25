@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const PhoneDirectory = require("../models/phoneDirectoryModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // Get all Phone Directory entries
 exports.getPhoneDirectories = asyncHandler(async (req, res) => {
@@ -188,7 +189,7 @@ exports.createPhoneDirectory = asyncHandler(async (req, res) => {
   try {
     const newPhoneDirectory = await PhoneDirectory.create({
       ...req.body,
-      tenantId: req.tenantId, // SaaS: Link to organization
+      tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
     });
 
     await logActivity(

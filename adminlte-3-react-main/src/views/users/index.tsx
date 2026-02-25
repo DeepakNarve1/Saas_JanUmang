@@ -58,7 +58,14 @@ import { Pagination } from "@app/components/common/Pagination";
 import { useDebounce } from "@app/hooks/useDebounce";
 
 const Users = () => {
-  const { hasPermission, isSuperAdmin } = usePermissions();
+  const {
+    hasPermission,
+    isSuperAdmin,
+    isTenantAdmin,
+    user: loggedInUser,
+  } = usePermissions();
+  const isGlobalAdmin = isSuperAdmin();
+  const isOrgAdmin = isTenantAdmin();
   const router = useRouter();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -580,16 +587,24 @@ const Users = () => {
                                       <Eye className="mr-2 h-4 w-4" /> View
                                     </DropdownMenuItem>
                                   )}
-                                  {hasPermission("edit_users") && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        router.push(`/users/${user._id}/edit`)
-                                      }
-                                    >
-                                      <Edit className="mr-2 h-4 w-4" /> Edit
-                                    </DropdownMenuItem>
-                                  )}
-                                  {isSuperAdmin() && (
+                                  {hasPermission("edit_users") &&
+                                    (user.level !== "tenant_admin" ||
+                                      isGlobalAdmin) && (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          router.push(`/users/${user._id}/edit`)
+                                        }
+                                      >
+                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                      </DropdownMenuItem>
+                                    )}
+                                  {/* Reset Password — visible to: global admins for anyone,
+                                       tenant admins for non-admin employees in their org only */}
+                                  {(isSuperAdmin() ||
+                                    (isOrgAdmin &&
+                                      user.level !== "tenant_admin" &&
+                                      user.level !== "system_admin" &&
+                                      user.level !== "superadmin")) && (
                                     <DropdownMenuItem
                                       onClick={() =>
                                         setResetPasswordDialog({
@@ -604,14 +619,17 @@ const Users = () => {
                                       Reset Password
                                     </DropdownMenuItem>
                                   )}
-                                  {hasPermission("delete_users") && (
-                                    <DropdownMenuItem
-                                      className="text-red-600"
-                                      onClick={() => handleDelete(user._id)}
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                    </DropdownMenuItem>
-                                  )}
+                                  {hasPermission("delete_users") &&
+                                    (user.level !== "tenant_admin" ||
+                                      isGlobalAdmin) && (
+                                      <DropdownMenuItem
+                                        className="text-red-600"
+                                        onClick={() => handleDelete(user._id)}
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />{" "}
+                                        Delete
+                                      </DropdownMenuItem>
+                                    )}
                                   {hasPermission("view_activity_logs") && (
                                     <DropdownMenuItem
                                       onClick={() =>

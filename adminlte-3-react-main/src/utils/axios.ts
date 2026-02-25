@@ -36,12 +36,13 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Don't auto-logout for password change attempts (this endpoint uses 401 for incorrect current password)
-      const isChangePassword = error.config.url?.includes(
-        "/auth/change-password",
-      );
+      const url = error.config.url || "";
+      const isAuthEndpoint =
+        url.includes("/auth/change-password") ||
+        url.includes("/auth/login") ||
+        url.includes("/auth/google-login");
 
-      if (!isChangePassword && typeof window !== "undefined") {
+      if (!isAuthEndpoint && typeof window !== "undefined") {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         window.location.href = "/login";

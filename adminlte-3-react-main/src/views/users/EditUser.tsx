@@ -84,6 +84,7 @@ const EditUserContent = () => {
               user.booth?._id ||
               (typeof user.booth === "string" ? user.booth : "") ||
               "",
+            tenantId: user.tenantId || "",
           };
 
           console.log("Setting initial form values:", formValues);
@@ -128,6 +129,7 @@ const EditUserContent = () => {
         panchayat: values.panchayat || null,
         village: values.village || null,
         booth: values.booth || null,
+        tenantId: values.tenantId || null,
       };
 
       // Only include password if it's provided (edit mode allows empty password)

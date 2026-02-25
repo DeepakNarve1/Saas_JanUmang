@@ -12,6 +12,7 @@ export interface IRoleFormValues {
   description: string;
   permissions: string[];
   status: "active" | "inactive";
+  tenantId?: string;
 }
 
 export interface IRole {

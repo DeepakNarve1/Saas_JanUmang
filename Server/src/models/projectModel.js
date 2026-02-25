@@ -75,8 +75,8 @@ const projectSchema = mongoose.Schema(
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tenant",
-      required: true,
       index: true,
+      default: null,
     },
   },
   {

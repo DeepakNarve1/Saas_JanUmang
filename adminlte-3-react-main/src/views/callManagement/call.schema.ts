@@ -23,4 +23,5 @@ export const callInitialValues: ICallFormValues = {
   address: "",
   description: "",
   remark: "",
+  tenantId: "",
 };

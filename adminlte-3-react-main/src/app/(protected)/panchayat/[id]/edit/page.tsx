@@ -5,7 +5,7 @@ import EditPanchayat from "@app/views/Panchayat/EditPanchayat";
 
 const EditPanchayatPage = () => {
   return (
-    <RouteGuard requiredPermission="edit_panchayat">
+    <RouteGuard requiredPermission="edit_panchayats">
       <EditPanchayat />
     </RouteGuard>
   );

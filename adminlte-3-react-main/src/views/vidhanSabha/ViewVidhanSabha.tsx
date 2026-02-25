@@ -87,7 +87,7 @@ const ViewVidhanSabha = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_vidhan_sabha") && (
+                {hasPermission("edit_assemblies") && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white dark:bg-[#368F8B] dark:hover:bg-[#2d7a76] rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
                     onClick={() => router.push(`/vidhansabha/${id}/edit`)}

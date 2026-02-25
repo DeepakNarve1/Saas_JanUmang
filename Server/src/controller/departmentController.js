@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Department = require("../models/departmentModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // Get all Departments
 exports.getDepartments = asyncHandler(async (req, res) => {
@@ -53,9 +54,27 @@ exports.getDepartmentById = asyncHandler(async (req, res) => {
 // Create Department
 exports.createDepartment = asyncHandler(async (req, res) => {
   try {
+    const { name } = req.body;
+
+    // Explicit tenant check
+    const existingDept = await Department.findOne({
+      name: { $regex: `^${name}$`, $options: "i" },
+      tenantId: getCreateTenantId(req),
+    });
+
+    if (existingDept) {
+      res.status(400);
+      throw new Error("Department already exists in your organization");
+    }
+
+    // EMERGENCY: Attempt to drop global unique index if it exists
+    try {
+      await Department.collection.dropIndex("name_1").catch(() => {});
+    } catch (e) {}
+
     const newDepartment = await Department.create({
       ...req.body,
-      tenantId: req.tenantId, // SaaS: Link to organization
+      tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
     });
 
     await logActivity(

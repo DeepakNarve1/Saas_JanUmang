@@ -91,11 +91,14 @@ const inwardRegisterSchema = new mongoose.Schema(
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tenant",
-      required: true,
       index: true,
+      default: null,
     },
   },
   { timestamps: true },
 );
+
+inwardRegisterSchema.index({ createdAt: -1 });
+inwardRegisterSchema.index({ tenantId: 1, createdAt: -1 });
 
 module.exports = mongoose.model("InwardRegister", inwardRegisterSchema);

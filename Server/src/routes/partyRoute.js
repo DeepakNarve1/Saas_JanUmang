@@ -10,21 +10,21 @@ router
   .route("/")
   .get(
     protect,
-    checkPermission("view_party"),
-    scopeQuery(),
+    checkPermission("view_parties"),
+    scopeQuery({}, false),
     partyController.getAll,
   )
-  .post(protect, checkPermission("create_party"), partyController.create);
+  .post(protect, checkPermission("create_parties"), partyController.create);
 
 router
   .route("/:id")
   .get(
     protect,
-    checkPermission("view_party"),
-    scopeQuery(),
+    checkPermission("view_parties"),
+    scopeQuery({}, false),
     partyController.getById,
   )
-  .put(protect, checkPermission("edit_party"), partyController.update)
-  .delete(protect, checkPermission("delete_party"), partyController.delete);
+  .put(protect, checkPermission("edit_parties"), partyController.update)
+  .delete(protect, checkPermission("delete_parties"), partyController.delete);
 
 module.exports = router;

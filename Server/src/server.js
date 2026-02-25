@@ -12,6 +12,7 @@ const compression = require("compression");
 // Error Handling
 const AppError = require("./utils/AppError");
 const globalErrorHandler = require("./middleware/errorMiddleware");
+const { generalApiLimiter } = require("./middleware/rateLimitMiddleware");
 
 // Routes
 const authRoutes = require("./routes/authRoute");
@@ -37,6 +38,10 @@ const app = express();
 // Set security HTTP headers
 app.use(helmet());
 
+// Global rate limiter — broad safety net for all routes
+// Specific stricter limiters are applied per-route in authRoute.js
+app.use("/api", generalApiLimiter);
+
 // Development logging
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
@@ -47,19 +52,81 @@ const corsOptions = {
   origin: process.env.FRONTEND_URL || "http://localhost:3001",
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "x-tenant-id",
+  ],
 };
 
 app.use(cors(corsOptions));
 app.use(compression());
 
-// Body parser, reading data from body into req.body
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+// Body parser — 1mb is plenty for JSON API calls
+// 50mb was dangerous: it invited DoS via huge payloads
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ limit: "1mb", extended: true }));
 
 // Test middleware
 app.get("/", (req, res) => {
   res.send("Api is running...");
+});
+
+// TEMPORARY FIX ROUTE
+app.get("/api/fix-indices", async (req, res) => {
+  try {
+    const mongoose = require("mongoose");
+    const db = mongoose.connection.db;
+    const results = [];
+
+    // Explicit list of collections likely to have stale indices
+    const targets = [
+      "samitilists",
+      "parties",
+      "departments",
+      "worktypes",
+      "subtypeofworks",
+      "vidhasabha.ganesh_samitis",
+      "vidhasabha.tenkar_samitis",
+      "vidhasabha.dp_samitis",
+      "vidhasabha.mandir_samitis",
+      "vidhasabha.bhagoria_samitis",
+      "vidhasabha.nirman_samitis",
+      "vidhasabha.booth_samitis",
+      "vidhasabha.block_samitis",
+      "vidhasabha.vidhan_sabha_lists",
+    ];
+
+    for (const colName of targets) {
+      try {
+        const collection = db.collection(colName);
+        const indexes = await collection.indexes();
+        for (const idx of indexes) {
+          if (
+            idx.unique &&
+            (idx.key.name || idx.key.uniqueId || idx.key.code) &&
+            !idx.key.tenantId &&
+            idx.name !== "_id_"
+          ) {
+            results.push(`Dropped index ${idx.name} on ${colName}`);
+            await collection.dropIndex(idx.name);
+          }
+        }
+      } catch (e) {
+        // Skip collections that don't exist yet
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Database cleanup completed.",
+      actionTaken:
+        results.length > 0 ? results : "No stale global indices found.",
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // 2) ROUTES

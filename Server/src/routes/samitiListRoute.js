@@ -11,7 +11,7 @@ router
   .get(
     protect,
     checkPermission("view_samiti"),
-    scopeQuery(),
+    scopeQuery({}, false),
     samitiListController.getAll,
   )
   .post(protect, checkPermission("create_samiti"), samitiListController.create);
@@ -21,7 +21,7 @@ router
   .get(
     protect,
     checkPermission("view_samiti"),
-    scopeQuery(),
+    scopeQuery({}, false),
     samitiListController.getById,
   )
   .put(protect, checkPermission("edit_samiti"), samitiListController.update)

@@ -5,6 +5,7 @@ const {
   getDepartmentSummary,
   getBlockSummary,
   getChartData,
+  getMemberBlockSummary,
 } = require("../controller/dashboardController");
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
@@ -39,5 +40,14 @@ router.get(
 // @desc    Get chart data for dashboard visualizations
 // @access  Private (requires view_dashboard permission)
 router.get("/charts", checkPermission("view_dashboard"), getChartData);
+
+// @route   GET /api/dashboard/member-block-summary
+// @desc    Get member block summary with code counts
+// @access  Private (requires view_dashboard permission)
+router.get(
+  "/member-block-summary",
+  checkPermission("view_dashboard"),
+  getMemberBlockSummary,
+);
 
 module.exports = router;

@@ -52,7 +52,8 @@ import { IRoleResponse, IRole } from "@app/types/role";
 import { Badge } from "@app/components/ui/badge";
 
 const RoleList = () => {
-  const { hasPermission } = usePermissions();
+  const { hasPermission, isSuperAdmin } = usePermissions();
+  const isGlobalAdmin = isSuperAdmin();
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -432,7 +433,7 @@ const RoleList = () => {
                                 )}
                                 {(hasPermission("manage_roles") ||
                                   hasPermission("edit_roles")) &&
-                                  !role.isSystem && (
+                                  (!role.isSystem || isGlobalAdmin) && (
                                     <DropdownMenuItem
                                       onClick={() =>
                                         router.push(`/roles/${role._id}/edit`)
@@ -443,7 +444,7 @@ const RoleList = () => {
                                   )}
                                 {(hasPermission("manage_roles") ||
                                   hasPermission("delete_roles")) &&
-                                  !role.isSystem && (
+                                  (!role.isSystem || isGlobalAdmin) && (
                                     <DropdownMenuItem
                                       className="text-red-600"
                                       onClick={() => handleDelete(role._id)}

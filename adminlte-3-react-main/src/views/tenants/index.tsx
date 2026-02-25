@@ -19,7 +19,17 @@ import {
 import { Button } from "@app/components/ui/button";
 import { Input } from "@app/components/ui/input";
 import { Badge } from "@app/components/ui/badge";
-import { Building2, Search, Plus, Edit, Trash2, Globe, Eye, PauseCircle, PlayCircle } from "lucide-react";
+import {
+  Building2,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Globe,
+  Eye,
+  PauseCircle,
+  PlayCircle,
+} from "lucide-react";
 import { Skeleton } from "@app/components/ui/skeleton";
 
 const TenantsList = () => {
@@ -35,20 +45,63 @@ const TenantsList = () => {
         slug: true,
         status: true,
         actions: true,
-    },
-  });
+      },
+    });
 
   const tenants = response?.data || [];
 
-  const handleStatusChange = async (tenantId: string, newStatus: "active" | "suspended") => {
+  const handleStatusChange = async (
+    tenantId: string,
+    newStatus: "active" | "suspended",
+  ) => {
     try {
       await axios.put(`/tenants/${tenantId}`, { status: newStatus });
-      toast.success(`Organization ${newStatus === "suspended" ? "suspended" : "activated"}`);
+      toast.success(
+        `Organization ${newStatus === "suspended" ? "suspended" : "activated"}`,
+      );
       queryClient.invalidateQueries({ queryKey: ["tenants-list"] });
       queryClient.invalidateQueries({ queryKey: ["tenant-stats"] });
     } catch (e: any) {
       toast.error(e.response?.data?.message || "Failed to update status");
     }
+  };
+
+  const getBadgeVariant = (status: string = "") => {
+    switch (status) {
+      case "active":
+        return "default";
+      case "suspended":
+      case "cancelled":
+      case "expired":
+        return "destructive";
+      case "trialing":
+      case "inactive":
+        return "secondary";
+      default:
+        return "secondary"; // Fallback
+    }
+  };
+
+  const getBadgeClassName = (status: string = "") => {
+    switch (status) {
+      case "active":
+        return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+      case "suspended":
+        return "bg-red-500/10 text-red-600 border-red-500/20";
+      case "trialing":
+        return "bg-blue-500/10 text-blue-600 border-blue-500/20";
+      case "inactive":
+      case "cancelled":
+      case "expired":
+        return "bg-gray-500/10 text-gray-600 border-gray-500/20";
+      default:
+        return "bg-gray-100 text-gray-500 border-gray-200"; // Fallback for unknown/missing
+    }
+  };
+
+  const formatStatus = (status: string = "") => {
+    if (!status) return "Unknown";
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   return (
@@ -154,7 +207,9 @@ const TenantsList = () => {
                             </div>
                             <button
                               type="button"
-                              onClick={() => router.push(`/tenants/${tenant._id}`)}
+                              onClick={() =>
+                                router.push(`/tenants/${tenant._id}`)
+                              }
                               className="font-semibold text-gray-700 dark:text-gray-200 hover:text-[#368F8B] text-left"
                             >
                               {tenant.name}
@@ -167,24 +222,24 @@ const TenantsList = () => {
                           </code>
                         </TableCell>
                         <TableCell className="text-gray-600 dark:text-gray-400 text-sm">
-                          {(tenant as any).userCount ?? 0} / {tenant.maxUsers ?? "—"}
+                          {tenant.userCount ?? 0} /{" "}
+                          {tenant.maxUsers === -1
+                            ? "Unlimited"
+                            : tenant.maxUsers ?? "—"}
                         </TableCell>
                         <TableCell>
                           <Badge
-                            variant={
-                              tenant.status === "active"
-                                ? "default"
-                                : "secondary"
-                            }
-                            className={
-                              tenant.status === "active"
-                                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                : tenant.status === "suspended"
-                                  ? "bg-red-500/10 text-red-600 border-red-500/20"
-                                  : ""
+                            variant={getBadgeVariant(tenant.status) as any}
+                            className={getBadgeClassName(tenant.status)}
+                            title={
+                              tenant.subscriptionStatus
+                                ? `Subscription: ${formatStatus(
+                                    tenant.subscriptionStatus,
+                                  )}`
+                                : undefined
                             }
                           >
-                            {tenant.status}
+                            {formatStatus(tenant.status)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -194,7 +249,9 @@ const TenantsList = () => {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10"
-                                onClick={() => handleStatusChange(tenant._id, "active")}
+                                onClick={() =>
+                                  handleStatusChange(tenant._id, "active")
+                                }
                                 title="Activate"
                               >
                                 <PlayCircle size={16} />
@@ -204,7 +261,9 @@ const TenantsList = () => {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-amber-600 hover:bg-amber-500/10"
-                                onClick={() => handleStatusChange(tenant._id, "suspended")}
+                                onClick={() =>
+                                  handleStatusChange(tenant._id, "suspended")
+                                }
                                 title="Suspend"
                               >
                                 <PauseCircle size={16} />
@@ -214,7 +273,9 @@ const TenantsList = () => {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-gray-400 hover:text-[#368F8B] hover:bg-[#368F8B]/10"
-                              onClick={() => router.push(`/tenants/${tenant._id}`)}
+                              onClick={() =>
+                                router.push(`/tenants/${tenant._id}`)
+                              }
                               title="View"
                             >
                               <Eye size={16} />

@@ -185,7 +185,7 @@ const DepartmentList = () => {
                   onChange={handleImport}
                   className="hidden"
                 />
-                {hasPermission("create_department") && (
+                {hasPermission("create_departments") && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all"
                     onClick={() => router.push("/department/create")}
@@ -349,7 +349,7 @@ const DepartmentList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_department") && (
+                                {hasPermission("view_departments") && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -360,7 +360,7 @@ const DepartmentList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_department") && (
+                                {hasPermission("edit_departments") && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -371,7 +371,7 @@ const DepartmentList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_department") && (
+                                {hasPermission("delete_departments") && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600 focus:bg-red-50"
                                     onClick={() =>

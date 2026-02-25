@@ -1,8 +1,8 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import axios from "@app/utils/axios";
 import { Label } from "@app/components/ui/label";
+import { Input } from "@app/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -39,7 +39,6 @@ const HierarchySelector = ({
     assemblies: [],
     blocks: [],
     panchayats: [],
-    villages: [],
     booths: [],
   });
 
@@ -57,100 +56,159 @@ const HierarchySelector = ({
   const targetIndex = levels.indexOf(targetLevel);
 
   useEffect(() => {
-    fetchStates();
+    // Initial fetch of states
+    const fetchInit = async () => {
+      try {
+        const { data } = await axios.get("/states?limit=-1");
+        setLists((prev) => ({ ...prev, states: data.data || [] }));
+      } catch (error) {
+        console.error("Failed to fetch states", error);
+      }
+    };
+    fetchInit();
   }, []);
 
-  const fetchStates = async () => {
-    try {
-      const { data } = await axios.get("/states?limit=-1");
-      setLists((prev) => ({ ...prev, states: data.data || [] }));
-    } catch (error) {
-      console.error("Failed to fetch states", error);
-    }
-  };
-
   const fetchData = async (
-    level: string,
-    parentId: string,
-    parentField: string,
+    endpoint: string,
+    params: Record<string, string>,
+    listKey: string,
   ) => {
-    if (!parentId) {
-      updateLists(level, []);
-      return;
-    }
     try {
-      // Maps level to plural endpoint and plural list key
-      const endpointMap: Record<string, string> = {
-        division: "divisions",
-        district: "districts",
-        parliament: "parliaments",
-        assembly: "assemblies",
-        block: "blocks",
-        panchayat: "panchayats",
-        village: "villages",
-        booth: "booths",
-      };
-
-      const plural = endpointMap[level];
-      const { data } = await axios.get(
-        `/${plural}?limit=-1&${parentField}=${parentId}`,
-      );
-      updateLists(plural, data.data || []);
+      const { data } = await axios.get(`/${endpoint}?limit=-1`, { params });
+      setLists((prev) => ({ ...prev, [listKey]: data.data || [] }));
     } catch (error) {
-      console.error(`Failed to fetch ${level}`, error);
+      console.error(`Failed to fetch ${listKey}`, error);
     }
   };
 
-  const updateLists = (key: string, data: any[]) => {
-    setLists((prev) => ({ ...prev, [key]: data }));
-  };
+  const handleValueChange = (field: string, value: string) => {
+    formik.setFieldValue(field, value);
 
-  const handleValueChange = (level: string, value: string) => {
-    formik.setFieldValue(level, value);
-
-    // Reset all downstream levels
-    const levelIndex = levels.indexOf(level);
-    for (let i = levelIndex + 1; i < levels.length; i++) {
-      formik.setFieldValue(levels[i], "");
-      const listKey = levels[i] === "state" ? "states" : levels[i] + "s";
-      if (listKey !== "states") updateLists(listKey, []);
+    // Logic to reset downstream fields and fetch next level data
+    // This is a simplified approach to avoid complex cascading issues
+    switch (field) {
+      case "state":
+        formik.setFieldValue("division", "");
+        formik.setFieldValue("district", "");
+        formik.setFieldValue("parliament", "");
+        formik.setFieldValue("assembly", "");
+        formik.setFieldValue("block", "");
+        formik.setFieldValue("panchayat", "");
+        formik.setFieldValue("village", "");
+        formik.setFieldValue("booth", "");
+        if (value) fetchData("divisions", { state: value }, "divisions");
+        break;
+      case "division":
+        formik.setFieldValue("district", "");
+        formik.setFieldValue("parliament", "");
+        formik.setFieldValue("assembly", "");
+        formik.setFieldValue("block", "");
+        formik.setFieldValue("panchayat", "");
+        formik.setFieldValue("village", "");
+        formik.setFieldValue("booth", "");
+        if (value) {
+          fetchData("districts", { division: value }, "districts");
+          fetchData("parliaments", { division: value }, "parliaments");
+        }
+        break;
+      case "district":
+        // Depending on hierarchy, district might filter assembly?
+        // Assuming assembly is under district/parliament
+        break;
+      case "parliament":
+        formik.setFieldValue("assembly", "");
+        formik.setFieldValue("block", "");
+        formik.setFieldValue("panchayat", "");
+        formik.setFieldValue("village", "");
+        formik.setFieldValue("booth", "");
+        if (value) fetchData("assemblies", { parliament: value }, "assemblies");
+        break;
+      case "assembly":
+        formik.setFieldValue("block", "");
+        formik.setFieldValue("panchayat", "");
+        formik.setFieldValue("village", "");
+        formik.setFieldValue("booth", "");
+        if (value) fetchData("blocks", { assembly: value }, "blocks");
+        break;
+      case "block":
+        formik.setFieldValue("panchayat", "");
+        formik.setFieldValue("village", "");
+        formik.setFieldValue("booth", "");
+        if (value) {
+          fetchData("panchayats", { block: value }, "panchayats");
+          fetchData("booths", { block: value }, "booths");
+        }
+        break;
+      case "panchayat":
+        if (value === "") formik.setFieldValue("village", "");
+        // No longer fetching villages as it is now a text input
+        break;
+      case "booth":
+        // Auto-select linked Panchayat if not already selected
+        if (value && !formik.values.panchayat) {
+          // We need to find the panchayat associated with this booth
+          // Since we can't easily reverse lookup client-side without extra calls,
+          // we'll fetch panchayats filtered by this booth
+          const fetchLinkedPanchayat = async () => {
+            try {
+              const { data } = await axios.get(`/panchayat?booth=${value}`);
+              if (data.data && data.data.length > 0) {
+                const p = data.data[0];
+                formik.setFieldValue("panchayat", p._id);
+                // No longer fetching villages as it is now a text input
+              }
+            } catch (error) {
+              console.error("Failed to auto-select panchayat", error);
+            }
+          };
+          fetchLinkedPanchayat();
+        }
+        break;
     }
-
-    // Fetch next level
-    if (level === "state") fetchData("division", value, "state");
-    else if (level === "division") {
-      fetchData("district", value, "division");
-      fetchData("parliament", value, "division");
-    } else if (level === "district") {
-      fetchData("assembly", value, "district");
-    } else if (level === "parliament")
-      fetchData("assembly", value, "parliament");
-    else if (level === "assembly") fetchData("block", value, "assembly");
-    else if (level === "block") {
-      fetchData("panchayat", value, "block");
-      fetchData("booth", value, "block");
-    } else if (level === "panchayat") fetchData("village", value, "panchayat");
   };
 
   // Pre-fetch logic for existing values (edit mode)
   useEffect(() => {
     const init = async () => {
       if (formik.values.state)
-        await fetchData("division", formik.values.state, "state");
+        await fetchData(
+          "divisions",
+          { state: formik.values.state },
+          "divisions",
+        );
       if (formik.values.division) {
-        await fetchData("district", formik.values.division, "division");
-        await fetchData("parliament", formik.values.division, "division");
+        await fetchData(
+          "districts",
+          { division: formik.values.division },
+          "districts",
+        );
+        await fetchData(
+          "parliaments",
+          { division: formik.values.division },
+          "parliaments",
+        );
       }
       if (formik.values.parliament)
-        await fetchData("assembly", formik.values.parliament, "parliament");
+        await fetchData(
+          "assemblies",
+          { parliament: formik.values.parliament },
+          "assemblies",
+        );
       if (formik.values.assembly)
-        await fetchData("block", formik.values.assembly, "assembly");
+        await fetchData(
+          "blocks",
+          { assembly: formik.values.assembly },
+          "blocks",
+        );
       if (formik.values.block) {
-        await fetchData("panchayat", formik.values.block, "block");
-        await fetchData("booth", formik.values.block, "block");
+        await fetchData(
+          "panchayats",
+          { block: formik.values.block },
+          "panchayats",
+        );
+        await fetchData("booths", { block: formik.values.block }, "booths");
       }
-      if (formik.values.panchayat)
-        await fetchData("village", formik.values.panchayat, "panchayat");
+      // No longer initializing village list
     };
     init();
   }, [formik.initialValues]);
@@ -201,6 +259,40 @@ const HierarchySelector = ({
     );
   };
 
+  const renderInput = (level: string, label: string, parentLevel?: string) => {
+    const isLevelDisabled = Boolean(
+      disabled || (parentLevel && !formik.values[parentLevel]),
+    );
+
+    if (levels.indexOf(level) > targetIndex) return null;
+
+    return (
+      <div className="space-y-2" key={level}>
+        <Label
+          htmlFor={level}
+          className="text-gray-700 dark:text-gray-300 font-medium uppercase tracking-wider"
+        >
+          {label}
+        </Label>
+        <Input
+          id={level}
+          name={level}
+          placeholder={`Enter ${label}`}
+          value={formik.values[level] || ""}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          disabled={isLevelDisabled}
+          className={`h-10 border-gray-200 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-200 focus:ring-[#00563B] ${formik.touched[level] && formik.errors[level] ? "border-red-500" : ""}`}
+        />
+        {formik.touched[level] && formik.errors[level] && (
+          <p className="text-[10px] text-red-500 font-bold uppercase">
+            {formik.errors[level]}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
       {renderSelect("state", "State")}
@@ -210,7 +302,7 @@ const HierarchySelector = ({
       {renderSelect("assembly", "Assembly", "parliament")}
       {renderSelect("block", "Block", "assembly")}
       {renderSelect("panchayat", "Panchayat", "block")}
-      {renderSelect("village", "Village", "panchayat")}
+      {renderInput("village", "Village", "panchayat")}
       {renderSelect("booth", "Booth", "block")}
     </div>
   );

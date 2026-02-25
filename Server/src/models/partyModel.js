@@ -7,11 +7,24 @@ const partySchema = new mongoose.Schema(
       required: [true, "Name is required"],
       trim: true,
     },
+    shortName: {
+      type: String,
+      trim: true,
+    },
+    symbol: {
+      type: String,
+      trim: true,
+    },
+    type: {
+      type: String,
+      enum: ["National", "State", "Regional", "Independent"],
+      default: "State",
+    },
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tenant",
-      required: true,
       index: true,
+      default: null,
     },
   },
   { timestamps: true },

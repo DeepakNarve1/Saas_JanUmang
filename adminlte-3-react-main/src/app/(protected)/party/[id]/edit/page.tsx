@@ -5,7 +5,7 @@ import EditParty from "@app/views/party/EditParty";
 
 export default function EditPartyPage() {
   return (
-    <RouteGuard requiredPermission="edit_party">
+    <RouteGuard requiredPermission="edit_parties">
       <EditParty />
     </RouteGuard>
   );

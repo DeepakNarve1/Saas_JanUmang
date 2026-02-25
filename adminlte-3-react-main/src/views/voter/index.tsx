@@ -151,9 +151,9 @@ const Voter = () => {
   });
 
   const { hasPermission } = usePermissions();
-  const canDelete = hasPermission("delete_voter");
-  const canCreate = hasPermission("create_voter");
-  const canEdit = hasPermission("edit_voter");
+  const canDelete = hasPermission("delete_voters");
+  const canCreate = hasPermission("create_voters");
+  const canEdit = hasPermission("edit_voters");
 
   // Mutation
   const deleteMutation = useMutation({

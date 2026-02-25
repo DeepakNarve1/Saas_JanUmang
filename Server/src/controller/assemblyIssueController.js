@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const AssemblyIssue = require("../models/assemblyIssueModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // @desc    Get all assembly issues
 // @route   GET /api/assembly-issues
@@ -39,41 +40,25 @@ exports.getAssemblyIssues = asyncHandler(async (req, res) => {
     ];
   }
 
+  const limitNum = parseInt(limit) === -1 ? -1 : parseInt(limit) || 10;
   const pageNum = parseInt(page) || 1;
-  // Parse limit: if not provided or invalid, default to 10
-  // If explicitly -1, keep it as -1 for "all" entries
-  let limitNum = 10;
-  if (limit !== undefined && limit !== null && limit !== "") {
-    const parsedLimit = parseInt(limit);
-    if (!isNaN(parsedLimit)) {
-      limitNum = parsedLimit;
-    }
-  }
+  const skip = (pageNum - 1) * limitNum;
 
-  let issues;
-  let filteredCount;
-  let totalCount;
-
-  // Always get the true total (filtered by issueType if provided)
-  totalCount = await AssemblyIssue.countDocuments({
-    ...(issueType ? { issueType } : {}),
-    ...req.scopeFilter,
-  });
-
-  // If limit is -1, fetch all records
-  if (limitNum === -1) {
-    // Return all filtered records (no pagination)
-    issues = await AssemblyIssue.find(query).sort({ createdAt: -1 });
-    filteredCount = issues.length;
-  } else {
-    const skip = (pageNum - 1) * limitNum;
-    issues = await AssemblyIssue.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum);
-
-    filteredCount = await AssemblyIssue.countDocuments(query);
-  }
+  // Run queries in parallel for better performance
+  const [issues, filteredCount, totalCount] = await Promise.all([
+    limitNum === -1
+      ? AssemblyIssue.find(query).sort({ createdAt: -1 }).lean()
+      : AssemblyIssue.find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limitNum)
+          .lean(),
+    AssemblyIssue.countDocuments(query),
+    AssemblyIssue.countDocuments({
+      ...(issueType ? { issueType } : {}),
+      ...req.scopeFilter,
+    }),
+  ]);
 
   res.json({
     success: true,
@@ -104,7 +89,7 @@ exports.createAssemblyIssue = asyncHandler(async (req, res) => {
       ...req.body,
       addedBy: req.user ? req.user.name || req.user.email : "Unknown",
       registrationDate: req.body.registrationDate || new Date().toISOString(),
-      tenantId: req.tenantId, // SaaS: Link to organization
+      tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
     };
     const issue = await AssemblyIssue.create(issueData);
 

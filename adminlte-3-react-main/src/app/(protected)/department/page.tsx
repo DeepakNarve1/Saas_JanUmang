@@ -5,7 +5,7 @@ import DepartmentList from "@app/views/department";
 
 export default function DepartmentPage() {
   return (
-    <RouteGuard requiredPermission="view_department">
+    <RouteGuard requiredPermission="view_departments">
       <DepartmentList />
     </RouteGuard>
   );

@@ -47,11 +47,18 @@ export const getErrorMessage = (
       return "This record already exists. Please check for duplicates.";
     }
 
+    const url = error.config?.url || "";
+    const isAuthRequest =
+      url.includes("/auth/login") ||
+      url.includes("/auth/google-login") ||
+      url.includes("/auth/change-password");
+
     // Handle other statuses
     switch (status) {
       case 400:
         return backendMessage || "Invalid request. Please check your inputs.";
       case 401:
+        if (isAuthRequest) return backendMessage || defaultMessage;
         return "Session expired. Please login again.";
       case 403:
         return (

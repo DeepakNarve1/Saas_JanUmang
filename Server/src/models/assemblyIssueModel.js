@@ -202,7 +202,6 @@ const assemblyIssueSchema = mongoose.Schema(
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tenant",
-      required: true,
       index: true,
     },
   },
@@ -232,6 +231,8 @@ assemblyIssueSchema.pre("save", async function () {
   }
 });
 
+assemblyIssueSchema.index({ createdAt: -1 });
+assemblyIssueSchema.index({ tenantId: 1, createdAt: -1 });
 assemblyIssueSchema.index({ uniqueId: 1, tenantId: 1 }, { unique: true });
 
 module.exports = mongoose.model("AssemblyIssue", assemblyIssueSchema);

@@ -41,10 +41,17 @@ const boothSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Assembly",
     },
+
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: [true, "Tenant ID is required"],
+      index: true,
+    },
   },
   { timestamps: true },
 );
 
-boothSchema.index({ block: 1, code: 1 }, { unique: true, sparse: true });
+boothSchema.index({ code: 1, block: 1, tenantId: 1 }, { unique: true });
 
 module.exports = mongoose.model("Booth", boothSchema);

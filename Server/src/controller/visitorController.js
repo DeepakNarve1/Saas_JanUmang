@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Visitor = require("../models/visitorModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // @desc    Get all visitors
 // @route   GET /api/visitors
@@ -101,10 +102,9 @@ exports.getVisitorById = asyncHandler(async (req, res) => {
 // @desc    Create a visitor
 // @route   POST /api/visitors
 exports.createVisitor = asyncHandler(async (req, res) => {
-  // SaaS: Link to organization
   const visitorData = {
     ...req.body,
-    tenantId: req.tenantId,
+    tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
   };
   const visitor = await Visitor.create(visitorData);
 

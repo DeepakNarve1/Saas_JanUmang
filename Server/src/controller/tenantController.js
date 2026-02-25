@@ -1,7 +1,16 @@
+const mongoose = require("mongoose");
 const Tenant = require("../models/tenantModel");
 const User = require("../models/userModel");
+const Role = require("../models/roleModel");
+const Permission = require("../models/permissionModel");
 const asyncHandler = require("express-async-handler");
 const AppError = require("../utils/AppError");
+const {
+  MODULES,
+  PLANS,
+  getPlanConfig,
+  getCoreModuleIds,
+} = require("../config/modules");
 
 // @desc    Get all tenants (with userCount for usage display)
 // @route   GET /api/tenants
@@ -11,9 +20,15 @@ const getTenants = asyncHandler(async (req, res) => {
   const tenantsWithCount = await Promise.all(
     tenants.map(async (t) => {
       const userCount = await User.countDocuments({ tenantId: t._id });
-      return { ...t, userCount };
+      return {
+        ...t,
+        status: t.status || "active",
+        subscriptionStatus: t.subscriptionStatus || "active",
+        userCount,
+      };
     }),
   );
+
   res.status(200).json({
     status: "success",
     results: tenantsWithCount.length,
@@ -119,17 +134,261 @@ const getTenantUsers = asyncHandler(async (req, res) => {
   });
 });
 
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Get all permissions for given module IDs
+ * Robust version: Creates permissions if they don't exist in DB
+ */
+const getPermissionsForModules = async (moduleIds) => {
+  const allPermissionIds = [];
+
+  for (const moduleId of moduleIds) {
+    const moduleConfig = MODULES[moduleId.toUpperCase()];
+    if (!moduleConfig) continue;
+
+    const permissions = moduleConfig.permissions || [];
+    for (const permName of permissions) {
+      // Find or create permission to ensure we have an ID
+      const permissionDoc = await Permission.findOneAndUpdate(
+        { name: permName },
+        {
+          $setOnInsert: {
+            name: permName,
+            displayName: permName
+              .split("_")
+              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(" "),
+            module: moduleId,
+            category: permName.split("_")[0] || "other",
+            description: `Permission for ${moduleConfig.name}`,
+            isActive: true,
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+      if (permissionDoc) {
+        allPermissionIds.push(permissionDoc._id);
+      }
+    }
+  }
+
+  // Remove duplicates
+  return [...new Set(allPermissionIds.map((id) => id.toString()))];
+};
+
+/**
+ * Synchronize tenant role permissions with enabled modules
+ * Robust version: Adds missing permissions and removes invalid ones
+ */
+const syncTenantPermissions = async (tenantId, enabledModules) => {
+  // Get all potential permission IDs for currently enabled modules
+  // Use getPermissionsForModules to ensure they exist
+  const enabledModuleIds = [...enabledModules]; // Create copy
+  const expectedPermissionIds =
+    await getPermissionsForModules(enabledModuleIds);
+
+  // Update ALL roles for this tenant, but especially target tenant_admin
+  const roles = await Role.find({ tenantId });
+
+  for (const role of roles) {
+    if (role.level === "tenant_admin" || role.name === "tenant_admin") {
+      // Tenant Admins should have EVERYTHING for enabled modules
+      role.permissions = expectedPermissionIds;
+      role.modules = enabledModules;
+    } else {
+      // Other roles should only keep permissions for modules that are still enabled
+      const currentPermissions = await Permission.find({
+        _id: { $in: role.permissions },
+      });
+
+      const validPermissions = currentPermissions.filter((p) =>
+        enabledModules.includes(p.module),
+      );
+
+      role.permissions = validPermissions.map((p) => p._id);
+      role.modules = [...new Set(validPermissions.map((p) => p.module))];
+    }
+
+    await role.save();
+  }
+
+  console.log(
+    `[Tenant] Synchronized permissions for ${roles.length} roles in tenant ${tenantId}`,
+  );
+};
+
+/**
+ * Create default tenant admin role
+ */
+const createDefaultTenantAdminRole = async (
+  tenantId,
+  enabledModules,
+  session = null,
+) => {
+  // Check if tenant_admin role already exists for this tenant
+  // Don't use session for the check - we want to see if it exists outside the transaction too
+  const existingRole = await Role.findOne({
+    name: "tenant_admin",
+    tenantId,
+    isDeleted: { $ne: true },
+  });
+
+  if (existingRole) {
+    // Role already exists, return it instead of creating a new one
+    console.log(
+      `[Tenant] tenant_admin role already exists for tenant ${tenantId}, reusing it`,
+    );
+    return existingRole;
+  }
+
+  // SAFETY CHECK: Look for any orphaned tenant_admin roles with this exact tenantId
+  // This can happen if a previous transaction was aborted
+  const orphanedRoles = await Role.find({
+    name: "tenant_admin",
+    tenantId,
+  });
+
+  if (orphanedRoles.length > 0) {
+    console.warn(
+      `[Tenant] Found ${orphanedRoles.length} orphaned tenant_admin role(s) for tenant ${tenantId}. Cleaning up...`,
+    );
+
+    // Delete orphaned roles (not using session - these are outside the transaction)
+    await Role.deleteMany({
+      name: "tenant_admin",
+      tenantId,
+    });
+
+    console.log(`[Tenant] Cleaned up ${orphanedRoles.length} orphaned role(s)`);
+  }
+
+  // Get all permissions for enabled modules
+  const permissionIds = await getPermissionsForModules(enabledModules);
+
+  try {
+    // Create role with or without session
+    const roleData = {
+      name: "tenant_admin",
+      displayName: "Organization Admin",
+      description: "Full access to all enabled modules in the organization",
+      tenantId,
+      level: "tenant_admin",
+      permissions: permissionIds,
+      modules: enabledModules,
+      isSystem: true,
+      isDefault: true, // Mark as default role for the tenant
+    };
+
+    console.log(
+      `[Tenant] About to create tenant_admin role for tenant ${tenantId}`,
+    );
+    console.log(`[Tenant] Using session: ${session ? "YES" : "NO"}`);
+    console.log(`[Tenant] Role data:`, {
+      name: roleData.name,
+      tenantId: roleData.tenantId,
+    });
+    console.log(`[Tenant] Timestamp: ${new Date().toISOString()}`);
+
+    let adminRole;
+    if (session) {
+      // DEBUG: Check if role exists in session before creation
+      const existingInSession = await Role.findOne({
+        name: "tenant_admin",
+        tenantId,
+      }).session(session);
+
+      if (existingInSession) {
+        console.warn(
+          `[Tenant] WARNING: Role ALREADY exists in session! ID: ${existingInSession._id}`,
+        );
+        // If it exists in session, return it to avoid duplicate error
+        return existingInSession;
+      }
+
+      // Create within transaction using save()
+      console.log(
+        `[Tenant] Instantiating new Role() with session at ${new Date().toISOString()}`,
+      );
+      const role = new Role(roleData);
+      adminRole = await role.save({ session });
+      console.log(
+        `[Tenant] Role.save() completed at ${new Date().toISOString()}`,
+      );
+    } else {
+      // Create without transaction (for backward compatibility)
+      console.log(
+        `[Tenant] Calling Role.create() without session at ${new Date().toISOString()}`,
+      );
+      adminRole = await Role.create(roleData);
+      console.log(
+        `[Tenant] Role.create() completed at ${new Date().toISOString()}`,
+      );
+    }
+
+    console.log(`[Tenant] Created tenant_admin role for tenant ${tenantId}`);
+    return adminRole;
+  } catch (error) {
+    // Handle duplicate key error
+    if (error.code === 11000 && error.message.includes("tenant_admin")) {
+      // If we're in a transaction, the duplicate means something went wrong
+      // Let the transaction abort and report the error
+      if (session) {
+        console.error(
+          `[Tenant] Duplicate tenant_admin role detected within transaction for tenant ${tenantId}`,
+        );
+        throw new Error(
+          `A tenant_admin role already exists for this tenant. This should not happen. Please contact support.`,
+        );
+      }
+
+      // If NOT in a transaction, try to recover by fetching existing role
+      console.warn(
+        `[Tenant] Duplicate tenant_admin role detected. Fetching existing role...`,
+      );
+
+      const existingRole = await Role.findOne({
+        name: "tenant_admin",
+        tenantId,
+        isDeleted: { $ne: true },
+      });
+
+      if (existingRole) {
+        console.log(`[Tenant] Successfully recovered - using existing role`);
+        return existingRole;
+      }
+
+      throw new Error(
+        `Failed to create or find tenant_admin role for tenant ${tenantId}.`,
+      );
+    }
+
+    // Re-throw other errors
+    throw error;
+  }
+};
+
+// ============================================
+// CONTROLLER FUNCTIONS
+// ============================================
+
 const createTenant = asyncHandler(async (req, res) => {
   const {
     name,
     slug,
     plan,
+    enabledModules,
     maxUsers,
-    status,
+    contactEmail,
+    contactPhone,
+    address,
     settings,
     owner: ownerPayload,
   } = req.body;
 
+  // Validate slug uniqueness
   if (slug) {
     const tenantExists = await Tenant.findOne({ slug });
     if (tenantExists) {
@@ -137,86 +396,169 @@ const createTenant = asyncHandler(async (req, res) => {
     }
   }
 
-  const tenant = await Tenant.create({
-    name,
-    slug,
-    plan,
-    maxUsers,
-    status,
-    settings,
-  });
+  // Get plan configuration
+  const planConfig = getPlanConfig(plan || "basic");
 
-  // Optional: create tenant admin (first user) and set as owner
-  if (
-    ownerPayload &&
-    typeof ownerPayload === "object" &&
-    ownerPayload.email &&
-    ownerPayload.name &&
-    ownerPayload.password
-  ) {
-    const existingUser = await User.findOne({ email: ownerPayload.email });
-    if (existingUser) {
-      await Tenant.findByIdAndDelete(tenant._id);
-      throw new AppError(
-        `A user with email ${ownerPayload.email} already exists. Use a different email for the organization admin.`,
-        400,
-      );
-    }
+  // Determine enabled modules
+  let modules = enabledModules || planConfig.enabledModules;
 
-    const Role = require("../models/roleModel");
-    let roleId = ownerPayload.roleId || null;
-    if (!roleId) {
-      const adminRole = await Role.findOne({
-        name: { $in: ["admin", "tenant_admin", "organization admin"] },
-        $or: [{ tenantId: null }, { tenantId: tenant._id }],
-      }).sort({ tenantId: 1 });
-      if (adminRole) roleId = adminRole._id;
-    }
-    if (!roleId) {
-      const anyRole = await Role.findOne({}).sort({ createdAt: 1 });
-      if (anyRole) roleId = anyRole._id;
-    }
-    if (!roleId) {
-      await Tenant.findByIdAndDelete(tenant._id);
-      throw new AppError(
-        "No role found in the system. Please create at least one role (e.g. Admin) first.",
-        400,
-      );
-    }
+  // Ensure core modules are always included
+  const coreModules = getCoreModuleIds();
+  modules = [...new Set([...coreModules, ...modules])];
 
-    const ownerUser = await User.create({
-      name: ownerPayload.name,
-      email: ownerPayload.email,
-      password: ownerPayload.password,
-      role: roleId,
-      mobile: ownerPayload.mobile || "",
-      userType: ownerPayload.userType || "tenant_admin",
-      level: "tenant_admin",
-      tenantId: tenant._id,
-      permissions: {},
-    });
+  // Handle maxUsers and maxStorage for custom plans
+  let finalMaxUsers = maxUsers;
+  let finalMaxStorage = planConfig.maxStorage;
 
-    tenant.owner = ownerUser._id;
-    await tenant.save();
+  // For custom plan, use provided values or defaults
+  if (planConfig.id === "custom") {
+    finalMaxUsers = maxUsers || 50; // Default to 50 if not provided
+    finalMaxStorage = planConfig.maxStorage || 5120; // Default to 5GB if not provided
+  } else {
+    // For predefined plans, use plan config (can be overridden by maxUsers param)
+    finalMaxUsers = maxUsers || planConfig.maxUsers;
+    finalMaxStorage = planConfig.maxStorage;
   }
 
-  const populated = await Tenant.findById(tenant._id).populate(
-    "owner",
-    "name email",
-  );
+  // Start a MongoDB session for transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  res.status(201).json({
-    status: "success",
-    data: populated,
-  });
+  try {
+    // Create tenant within transaction
+    const [tenant] = await Tenant.create(
+      [
+        {
+          name,
+          slug,
+          plan: planConfig.id,
+          enabledModules: modules,
+          maxUsers: finalMaxUsers,
+          maxStorage: finalMaxStorage,
+          contactEmail,
+          contactPhone,
+          address,
+          subscriptionStatus: "trial",
+          status: "trialing", // Default status for new tenants
+          subscriptionStartDate: new Date(),
+          trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          settings,
+          createdBy: req.user?._id,
+        },
+      ],
+      { session },
+    );
+
+    console.log(`[Tenant] Created tenant: ${tenant.name} (${tenant._id})`);
+
+    // Create default tenant admin role within transaction
+    const tenantAdminRole = await createDefaultTenantAdminRole(
+      tenant._id,
+      modules,
+      session, // Pass session to helper function
+    );
+
+    console.log(
+      `[Tenant] Created/retrieved tenant_admin role: ${tenantAdminRole._id}`,
+    );
+
+    // Create tenant admin user if provided
+    let ownerUser = null;
+    if (
+      ownerPayload &&
+      typeof ownerPayload === "object" &&
+      ownerPayload.email &&
+      ownerPayload.name &&
+      ownerPayload.password
+    ) {
+      // Check if user with this email already exists
+      const existingUser = await User.findOne({ email: ownerPayload.email });
+      if (existingUser) {
+        throw new AppError(
+          `A user with email ${ownerPayload.email} already exists. Use a different email for the organization admin.`,
+          400,
+        );
+      }
+
+      // Create owner user within transaction
+      [ownerUser] = await User.create(
+        [
+          {
+            name: ownerPayload.name,
+            email: ownerPayload.email,
+            password: ownerPayload.password,
+            role: tenantAdminRole._id,
+            mobile: ownerPayload.mobile || "",
+            userType: "tenant_admin",
+            level: "tenant_admin",
+            tenantId: tenant._id,
+            permissions: {},
+          },
+        ],
+        { session },
+      );
+
+      console.log(`[Tenant] Created owner user: ${ownerUser.email}`);
+
+      // Update tenant with owner reference
+      tenant.owner = ownerUser._id;
+      await tenant.save({ session });
+    }
+
+    // Commit the transaction
+    await session.commitTransaction();
+    console.log(
+      `[Tenant] Transaction committed successfully for ${tenant.name}`,
+    );
+
+    // Fetch populated tenant data
+    const populated = await Tenant.findById(tenant._id)
+      .populate("owner", "name email")
+      .lean();
+
+    res.status(201).json({
+      status: "success",
+      data: {
+        ...populated,
+        defaultRole: tenantAdminRole,
+      },
+    });
+  } catch (error) {
+    // Rollback transaction on error
+    await session.abortTransaction();
+    console.error(`[Tenant] Transaction aborted:`, error.message);
+
+    // Re-throw the error to be handled by asyncHandler
+    throw error;
+  } finally {
+    // End the session
+    session.endSession();
+  }
 });
 
 // @desc    Update tenant
 // @route   PUT /api/tenants/:id
 // @access  Private/SystemAdmin
 const updateTenant = asyncHandler(async (req, res) => {
-  const { owner: ownerId, ...rest } = req.body;
+  let { owner: ownerInput, ownerUser, ...rest } = req.body;
   const update = { ...rest };
+  const tenantId = req.params.id;
+
+  let ownerId = undefined;
+
+  // Polymorphic 'owner' field handling:
+  // 1. If 'ownerUser' is explicitly provided, use it.
+  // 2. If 'owner' is an object (and not null), treat it as new user details (ownerUser).
+  // 3. If 'owner' is a string or null, treat it as an existing user ID (ownerId).
+
+  if (ownerInput && typeof ownerInput === "object") {
+    ownerUser = ownerInput;
+    ownerId = undefined; // Ensure we don't treat the object as an ID
+  } else {
+    ownerId = ownerInput;
+  }
+
+  // Handle Owner Assignment (Existing User ID)
   if (ownerId !== undefined) {
     if (ownerId === null || ownerId === "") {
       update.$unset = update.$unset || {};
@@ -224,7 +566,7 @@ const updateTenant = asyncHandler(async (req, res) => {
     } else {
       const userBelongsToTenant = await User.findOne({
         _id: ownerId,
-        tenantId: req.params.id,
+        tenantId: tenantId,
       });
       if (!userBelongsToTenant) {
         throw new AppError(
@@ -236,7 +578,62 @@ const updateTenant = asyncHandler(async (req, res) => {
     }
   }
 
-  const tenant = await Tenant.findByIdAndUpdate(req.params.id, update, {
+  // Handle New Owner Creation (In Edit Mode)
+  if (
+    ownerUser &&
+    typeof ownerUser === "object" &&
+    ownerUser.email &&
+    ownerUser.name &&
+    ownerUser.password
+  ) {
+    // 1. Check if user exists
+    const existingUser = await User.findOne({ email: ownerUser.email });
+    if (existingUser) {
+      throw new AppError(
+        `A user with email ${ownerUser.email} already exists.`,
+        400,
+      );
+    }
+
+    // 2. Find/Create Tenant Admin Role
+    let tenantAdminRole = await Role.findOne({
+      name: "tenant_admin",
+      tenantId: tenantId,
+    });
+
+    if (!tenantAdminRole) {
+      // Fallback: Create default role if missing
+      tenantAdminRole = await createDefaultTenantAdminRole(
+        tenantId,
+        update.enabledModules || [], // Might need to fetch existing if not in update
+      );
+    }
+
+    // 3. Create User
+    const [newUser] = await User.create([
+      {
+        name: ownerUser.name,
+        email: ownerUser.email,
+        password: ownerUser.password,
+        mobile: ownerUser.mobile || "",
+        role: tenantAdminRole._id,
+        userType: "tenant_admin",
+        level: "tenant_admin",
+        tenantId: tenantId,
+        permissions: new Map(),
+        status: "active",
+      },
+    ]);
+
+    console.log(
+      `[Tenant] Created new admin user during update: ${newUser.email}`,
+    );
+
+    // 4. Set as owner
+    update.owner = newUser._id;
+  }
+
+  const tenant = await Tenant.findByIdAndUpdate(tenantId, update, {
     new: true,
     runValidators: true,
   }).populate("owner", "name email");
@@ -244,6 +641,9 @@ const updateTenant = asyncHandler(async (req, res) => {
   if (!tenant) {
     throw new AppError("No tenant found with that ID", 404);
   }
+
+  // The tenant is already populated with the new owner details due to {new: true}
+  // and populate("owner"). No additional fetching needed.
 
   res.status(200).json({
     status: "success",
@@ -255,19 +655,53 @@ const updateTenant = asyncHandler(async (req, res) => {
 // @route   DELETE /api/tenants/:id
 // @access  Private/SystemAdmin
 const deleteTenant = asyncHandler(async (req, res) => {
-  const tenant = await Tenant.findByIdAndDelete(req.params.id);
+  const tenantId = req.params.id;
 
+  // Verify tenant exists
+  const tenant = await Tenant.findById(tenantId);
   if (!tenant) {
     throw new AppError("No tenant found with that ID", 404);
   }
 
-  // Optionally delete all users associated with this tenant
-  // await User.deleteMany({ tenantId: req.params.id });
+  // Start a transaction for cascade delete
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  res.status(204).json({
-    status: "success",
-    data: null,
-  });
+  try {
+    console.log(`[Tenant] Deleting tenant: ${tenant.name} (${tenantId})`);
+
+    // 1. Delete all roles associated with this tenant
+    const rolesResult = await Role.deleteMany({ tenantId }, { session });
+    console.log(`[Tenant] Deleted ${rolesResult.deletedCount} roles`);
+
+    // 2. Delete all users associated with this tenant
+    const usersResult = await User.deleteMany({ tenantId }, { session });
+    console.log(`[Tenant] Deleted ${usersResult.deletedCount} users`);
+
+    // 3. Delete the tenant itself
+    await Tenant.findByIdAndDelete(tenantId, { session });
+    console.log(`[Tenant] Deleted tenant: ${tenant.name}`);
+
+    // Commit the transaction
+    await session.commitTransaction();
+    console.log(`[Tenant] Cascade delete completed successfully`);
+
+    res.status(200).json({
+      status: "success",
+      message: `Tenant '${tenant.name}' and all associated data deleted successfully`,
+      data: {
+        deletedRoles: rolesResult.deletedCount,
+        deletedUsers: usersResult.deletedCount,
+      },
+    });
+  } catch (error) {
+    // Rollback transaction on error
+    await session.abortTransaction();
+    console.error(`[Tenant] Cascade delete failed:`, error.message);
+    throw error;
+  } finally {
+    session.endSession();
+  }
 });
 
 // @desc    Create a new admin for a tenant
@@ -296,7 +730,7 @@ const createTenantAdmin = asyncHandler(async (req, res) => {
   const currentUserCount = await User.countDocuments({ tenantId });
   if (tenant.maxUsers && currentUserCount >= tenant.maxUsers) {
     throw new AppError(
-      `This organization has reached its maximum user limit (${tenant.maxUsers})`,
+      `Something went very wrong! Your organization has reached the limit of ${tenant.maxUsers} users. Please upgrade your plan. and contact to the provider or something for that`,
       400,
     );
   }
@@ -400,6 +834,154 @@ const deleteTenantAdmin = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get available modules
+// @route   GET /api/tenants/modules
+// @access  Private/SystemAdmin
+const getAvailableModules = asyncHandler(async (req, res) => {
+  const modules = Object.values(MODULES).map((m) => ({
+    id: m.id,
+    name: m.name,
+    description: m.description,
+    category: m.category,
+    alwaysEnabled: m.alwaysEnabled || false,
+    permissions: m.permissions,
+  }));
+
+  res.status(200).json({
+    status: "success",
+    data: modules,
+  });
+});
+
+// @desc    Get available plans
+// @route   GET /api/tenants/plans
+// @access  Private/SystemAdmin
+const getAvailablePlans = asyncHandler(async (req, res) => {
+  const plans = Object.values(PLANS).map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    maxUsers: p.maxUsers,
+    maxStorage: p.maxStorage,
+    enabledModules: p.enabledModules,
+  }));
+
+  res.status(200).json({
+    status: "success",
+    data: plans,
+  });
+});
+
+// @desc    Update tenant modules
+// @route   PUT /api/tenants/:id/modules
+// @access  Private/SystemAdmin
+const updateTenantModules = asyncHandler(async (req, res) => {
+  const { enabledModules, plan } = req.body;
+  const tenantId = req.params.id;
+
+  const tenant = await Tenant.findById(tenantId);
+  if (!tenant) {
+    throw new AppError("Tenant not found", 404);
+  }
+
+  // Update modules
+  if (enabledModules) {
+    // Ensure core modules are included
+    const coreModules = getCoreModuleIds();
+    tenant.enabledModules = [...new Set([...coreModules, ...enabledModules])];
+  }
+
+  // Update plan
+  if (plan) {
+    const planConfig = getPlanConfig(plan);
+    if (planConfig) {
+      tenant.plan = planConfig.id;
+      tenant.maxUsers = planConfig.maxUsers;
+      tenant.maxStorage = planConfig.maxStorage;
+
+      // If not custom plan, use plan's default modules
+      if (plan !== "custom") {
+        const coreModules = getCoreModuleIds();
+        tenant.enabledModules = [
+          ...new Set([...coreModules, ...planConfig.enabledModules]),
+        ];
+      }
+    }
+  }
+
+  await tenant.save();
+
+  // Sync role permissions (Robust: Adds new modules, removes disabled ones)
+  await syncTenantPermissions(tenantId, tenant.enabledModules);
+
+  res.status(200).json({
+    status: "success",
+    data: tenant,
+  });
+});
+
+// @desc    Get tenant's enabled modules
+// @route   GET /api/tenants/:id/modules
+// @access  Private/SystemAdmin or TenantAdmin
+const getTenantModules = asyncHandler(async (req, res) => {
+  const tenantId = req.params.id;
+
+  const tenant = await Tenant.findById(tenantId).select("enabledModules plan");
+  if (!tenant) {
+    throw new AppError("Tenant not found", 404);
+  }
+
+  const enabledModuleDetails = tenant.enabledModules
+    .map((moduleId) => {
+      const module = Object.values(MODULES).find((m) => m.id === moduleId);
+      return module
+        ? {
+            id: module.id,
+            name: module.name,
+            description: module.description,
+            category: module.category,
+          }
+        : null;
+    })
+    .filter(Boolean);
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      plan: tenant.plan,
+      enabledModules: tenant.enabledModules,
+      moduleDetails: enabledModuleDetails,
+    },
+  });
+});
+
+// @desc    Get current user's tenant details
+// @route   GET /api/tenants/me
+// @access  Private
+const getMyTenant = asyncHandler(async (req, res) => {
+  if (!req.tenantId) {
+    throw new AppError("No organization associated with this account", 404);
+  }
+
+  const tenant = await Tenant.findById(req.tenantId).populate(
+    "owner",
+    "name email",
+  );
+  if (!tenant) {
+    throw new AppError("Organization not found", 404);
+  }
+
+  const userCount = await User.countDocuments({ tenantId: req.tenantId });
+  const tenantObj = tenant.toObject ? tenant.toObject() : tenant;
+  tenantObj.userCount = userCount;
+
+  res.status(200).json({
+    status: "success",
+    data: tenantObj,
+  });
+});
+
 module.exports = {
   getTenants,
   getTenant,
@@ -410,4 +992,9 @@ module.exports = {
   deleteTenant,
   createTenantAdmin,
   deleteTenantAdmin,
+  getAvailableModules,
+  getAvailablePlans,
+  updateTenantModules,
+  getTenantModules,
+  getMyTenant,
 };

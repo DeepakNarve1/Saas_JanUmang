@@ -23,9 +23,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@app/components/ui/select";
-import { Loader2 } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@app/components/ui/card";
+import { Badge } from "@app/components/ui/badge";
+import { Skeleton } from "@app/components/ui/skeleton";
+import { Loader2, Shield, Package, AlertCircle, Building2 } from "lucide-react";
 import { roleSchema, roleInitialValues, IRoleFormValues } from "./role.schema";
 import { IPermission } from "@app/types/role";
+import { useAppSelector } from "@app/store/store";
+import { ITenant } from "@app/types/tenant";
 
 interface RoleFormProps {
   initialValues?: IRoleFormValues;
@@ -33,40 +44,44 @@ interface RoleFormProps {
   loading?: boolean;
 }
 
+interface ModulePermissions {
+  module: string;
+  moduleName: string;
+  moduleDescription: string;
+  permissions: IPermission[];
+}
+
 const moduleIcons: Record<string, string> = {
   dashboard: "fas fa-tachometer-alt",
   users: "fas fa-wrench",
   roles: "fas fa-user-shield",
-  user_count: "fas fa-user",
-  members: "fas fa-users",
+  user_count: "fas fa-chart-pie",
+  activity_management: "fas fa-history",
   mp_public_problems: "fas fa-exclamation-circle",
   assembly_issues: "fas fa-university",
-  "vidhasabha-samiti": "fas fa-building",
   projects: "fas fa-user-friends",
   visitors: "fas fa-id-badge",
   events: "fas fa-calendar-alt",
-  voter: "fas fa-vote-yea",
-  samiti: "fas fa-handshake",
-  districts: "fas fa-map-marker-alt",
-  vidhan_sabha: "fas fa-gavel",
+  members: "fas fa-users",
+  voters: "fas fa-id-card",
+  phone_directory: "fas fa-address-book",
+  departments: "fas fa-building",
   blocks: "fas fa-cubes",
   booths: "fas fa-person-booth",
-  panchayat: "fas fa-users",
+  panchayats: "fas fa-users",
   villages: "fas fa-home",
-  party: "fas fa-flag",
-  department: "fas fa-building",
-  worktype: "fas fa-briefcase",
-  sub_type_of_work: "fas fa-tasks",
-  states: "fas fa-map",
-  divisions: "fas fa-layer-group",
+  states: "fas fa-map-marker-alt",
+  divisions: "fas fa-map-signs",
+  districts: "fas fa-map",
   parliaments: "fas fa-landmark",
-  assemblies: "fas fa-columns",
-  phone_directory: "fas fa-address-book",
-  in_docs: "fas fa-file-alt",
-  inward_register: "fas fa-file-invoice",
-  dispatch_register: "fas fa-paper-plane",
-  call_management: "fas fa-phone",
-  activity_management: "fas fa-history",
+  assemblies: "fas fa-university",
+  samiti: "fas fa-users-cog",
+  parties: "fas fa-flag",
+  work_types: "fas fa-briefcase",
+  sub_work_types: "fas fa-tasks",
+  call_management: "fas fa-phone-volume",
+  inward_register: "fas fa-file-import",
+  dispatch_register: "fas fa-file-export",
 };
 
 const RoleForm = ({
@@ -74,21 +89,13 @@ const RoleForm = ({
   onSubmit,
   loading = false,
 }: RoleFormProps) => {
-  const [permissions, setPermissions] = useState<IPermission[]>([]);
-
-  useEffect(() => {
-    const fetchPermissions = async () => {
-      try {
-        const res = await axios.get("/rbac/permissions", {
-          params: { limit: -1 },
-        });
-        setPermissions(res.data.data || []);
-      } catch (err) {
-        console.error("Failed to load permissions", err);
-      }
-    };
-    fetchPermissions();
-  }, []);
+  const [permissionsData, setPermissionsData] = useState<{
+    enabledModules: string[];
+    permissions: ModulePermissions[];
+  } | null>(null);
+  const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
+  const [tenants, setTenants] = useState<ITenant[]>([]);
+  const currentUser = useAppSelector((state: any) => state.auth.currentUser);
 
   const formik = useFormik<IRoleFormValues>({
     initialValues,
@@ -99,33 +106,110 @@ const RoleForm = ({
     },
   });
 
-  const categories = Array.from(new Set(permissions.map((p) => p.category)));
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      try {
+        setIsLoadingPermissions(true);
+        const res = await axios.get("/rbac/permissions/available", {
+          headers: formik.values.tenantId
+            ? { "x-tenant-id": formik.values.tenantId }
+            : {},
+        });
+        setPermissionsData(
+          res.data.data || { enabledModules: [], permissions: [] },
+        );
+      } catch (err) {
+        console.error("Failed to load permissions", err);
+        toast.error("Failed to load available permissions");
+      } finally {
+        setIsLoadingPermissions(false);
+      }
+    };
+    fetchPermissions();
+  }, [formik.values.tenantId]);
 
-  const togglePermission = (
-    category: string,
-    type: "view" | "create" | "edit" | "delete",
-  ) => {
-    let toToggle: IPermission[] = [];
-    if (type === "view") {
-      toToggle = permissions.filter(
-        (p) =>
-          p.category === category &&
-          (p.name.includes("view") || p.name.includes("list")),
+  // Only true platform admins (no tenantId + system-level) can assign roles to specific orgs
+  const isCurrentUserGlobalAdmin =
+    !currentUser?.tenantId &&
+    (currentUser?.level === "system_admin" ||
+      currentUser?.level === "superadmin");
+
+  useEffect(() => {
+    if (isCurrentUserGlobalAdmin) {
+      const fetchTenants = async () => {
+        try {
+          const res = await axios.get("/tenants?limit=-1");
+          if (res.data?.data) {
+            setTenants(res.data.data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch tenants:", error);
+        }
+      };
+      fetchTenants();
+    }
+  }, [currentUser]);
+
+  const allPermissions =
+    permissionsData?.permissions.flatMap((mp) => mp.permissions) || [];
+
+  const toggleModulePermissions = (moduleId: string) => {
+    const modulePerms = permissionsData?.permissions.find(
+      (mp) => mp.module === moduleId,
+    );
+    if (!modulePerms) return;
+
+    const permIds = modulePerms.permissions.map((p) => p._id);
+    const currentPermissions = [...formik.values.permissions];
+    const allPresent = permIds.every((id) => currentPermissions.includes(id));
+
+    if (allPresent) {
+      formik.setFieldValue(
+        "permissions",
+        currentPermissions.filter((id) => !permIds.includes(id)),
       );
     } else {
-      toToggle = permissions.filter(
-        (p) => p.category === category && p.name.includes(type),
-      );
-      if (toToggle.length === 0) {
-        toToggle = permissions.filter(
-          (p) => p.category === category && p.name.includes("manage"),
+      formik.setFieldValue("permissions", [
+        ...new Set([...currentPermissions, ...permIds]),
+      ]);
+    }
+  };
+
+  const isModuleFullySelected = (moduleId: string) => {
+    const modulePerms = permissionsData?.permissions.find(
+      (mp) => mp.module === moduleId,
+    );
+    if (!modulePerms || modulePerms.permissions.length === 0) return false;
+    return modulePerms.permissions.every((p) =>
+      formik.values.permissions.includes(p._id),
+    );
+  };
+
+  const togglePermissionByType = (moduleId: string, type: string) => {
+    const modulePerms = permissionsData?.permissions.find(
+      (mp) => mp.module === moduleId,
+    );
+    if (!modulePerms) return;
+
+    const permsToToggle = modulePerms.permissions.filter((p) => {
+      if (type === "view")
+        return p.name.includes("view") || p.name.includes("list");
+      if (type === "other") {
+        const name = p.name.toLowerCase();
+        return (
+          !name.includes("view") &&
+          !name.includes("list") &&
+          !name.includes("create") &&
+          !name.includes("edit") &&
+          !name.includes("delete")
         );
       }
-    }
+      return p.name.includes(type);
+    });
 
-    if (toToggle.length === 0) return;
+    if (permsToToggle.length === 0) return;
 
-    const ids = toToggle.map((p) => p._id);
+    const ids = permsToToggle.map((p) => p._id);
     const currentPermissions = [...formik.values.permissions];
     const allPresent = ids.every((id) => currentPermissions.includes(id));
 
@@ -141,306 +225,341 @@ const RoleForm = ({
     }
   };
 
-  const isChecked = (
-    category: string,
-    type: "view" | "create" | "edit" | "delete",
-  ) => {
-    let permsToCheck = [];
-    if (type === "view") {
-      permsToCheck = permissions.filter(
-        (p) =>
-          p.category === category &&
-          (p.name.includes("view") || p.name.includes("list")),
-      );
-    } else {
-      permsToCheck = permissions.filter(
-        (p) => p.category === category && p.name.includes(type),
-      );
-      if (permsToCheck.length === 0) {
-        permsToCheck = permissions.filter(
-          (p) => p.category === category && p.name.includes("manage"),
+  const isPermissionTypeSelected = (moduleId: string, type: string) => {
+    const modulePerms = permissionsData?.permissions.find(
+      (mp) => mp.module === moduleId,
+    );
+    if (!modulePerms) return false;
+
+    const permsToCheck = modulePerms.permissions.filter((p) => {
+      if (type === "view")
+        return p.name.includes("view") || p.name.includes("list");
+      if (type === "other") {
+        const name = p.name.toLowerCase();
+        return (
+          !name.includes("view") &&
+          !name.includes("list") &&
+          !name.includes("create") &&
+          !name.includes("edit") &&
+          !name.includes("delete")
         );
       }
-    }
+      return p.name.includes(type);
+    });
 
     if (permsToCheck.length === 0) return false;
     return permsToCheck.every((p) => formik.values.permissions.includes(p._id));
   };
 
-  const isTotalChecked = (category: string) => {
-    const categoryPermissions = permissions.filter(
-      (p) => p.category === category,
+  const hasPermissionType = (moduleId: string, type: string) => {
+    const modulePerms = permissionsData?.permissions.find(
+      (mp) => mp.module === moduleId,
     );
-    if (categoryPermissions.length === 0) return false;
-    return categoryPermissions.every((p) =>
-      formik.values.permissions.includes(p._id),
-    );
-  };
+    if (!modulePerms) return false;
 
-  const toggleTotal = (category: string) => {
-    const categoryPermissions = permissions.filter(
-      (p) => p.category === category,
-    );
-    if (categoryPermissions.length === 0) return;
-
-    const ids = categoryPermissions.map((p) => p._id);
-    const currentPermissions = [...formik.values.permissions];
-    const allPresent = ids.every((id) => currentPermissions.includes(id));
-
-    if (allPresent) {
-      formik.setFieldValue(
-        "permissions",
-        currentPermissions.filter((id) => !ids.includes(id)),
-      );
-    } else {
-      formik.setFieldValue("permissions", [
-        ...new Set([...currentPermissions, ...ids]),
-      ]);
-    }
-  };
-
-  const isDisabled = (
-    category: string,
-    type: "view" | "create" | "edit" | "delete",
-  ) => {
-    let permsToCheck = [];
-    if (type === "view") {
-      permsToCheck = permissions.filter(
-        (p) =>
-          p.category === category &&
-          (p.name.includes("view") || p.name.includes("list")),
-      );
-    } else {
-      permsToCheck = permissions.filter(
-        (p) => p.category === category && p.name.includes(type),
-      );
-      if (permsToCheck.length === 0) {
-        permsToCheck = permissions.filter(
-          (p) => p.category === category && p.name.includes("manage"),
+    return modulePerms.permissions.some((p) => {
+      if (type === "view")
+        return p.name.includes("view") || p.name.includes("list");
+      if (type === "other") {
+        const name = p.name.toLowerCase();
+        return (
+          !name.includes("view") &&
+          !name.includes("list") &&
+          !name.includes("create") &&
+          !name.includes("edit") &&
+          !name.includes("delete")
         );
       }
-    }
-    return permsToCheck.length === 0;
+      return p.name.includes(type);
+    });
   };
 
-  const isAllTotalChecked = () => {
-    if (permissions.length === 0) return false;
-    return permissions.every((p) => formik.values.permissions.includes(p._id));
-  };
-
-  const toggleAllTotal = () => {
-    const allIds = permissions.map((p) => p._id);
+  const toggleAllPermissions = () => {
+    const allIds = allPermissions.map((p) => p._id);
     const allPresent = allIds.every((id) =>
       formik.values.permissions.includes(id),
     );
     formik.setFieldValue("permissions", allPresent ? [] : allIds);
   };
 
+  const isAllSelected = () => {
+    if (allPermissions.length === 0) return false;
+    return allPermissions.every((p) =>
+      formik.values.permissions.includes(p._id),
+    );
+  };
+
+  if (isLoadingPermissions) {
+    return (
+      <div className="p-5 space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (!permissionsData || permissionsData.permissions.length === 0) {
+    return (
+      <div className="p-5">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-col items-center justify-center text-center space-y-3">
+              <AlertCircle className="h-12 w-12 text-yellow-500" />
+              <h3 className="text-lg font-semibold">No Modules Available</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                No modules are enabled for your organization. Please contact
+                your administrator.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={formik.handleSubmit} className="p-5">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">
-            Role Name (System) <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="name"
-            value={formik.values.name}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            placeholder="e.g. manager"
-            className={
-              formik.touched.name && formik.errors.name ? "border-red-500" : ""
-            }
-          />
-          {formik.touched.name && formik.errors.name && (
-            <p className="text-sm text-red-500">{formik.errors.name}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="displayName">
-            Display Name <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="displayName"
-            value={formik.values.displayName}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            placeholder="e.g. Manager"
-            className={
-              formik.touched.displayName && formik.errors.displayName
-                ? "border-red-500"
-                : ""
-            }
-          />
-          {formik.touched.displayName && formik.errors.displayName && (
-            <p className="text-sm text-red-500">{formik.errors.displayName}</p>
-          )}
-        </div>
-
-        <div className="md:col-span-2 space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Input
-            id="description"
-            value={formik.values.description}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            placeholder="Role description"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="status">
-            Status <span className="text-red-500">*</span>
-          </Label>
-          <Select
-            value={formik.values.status}
-            onValueChange={(value) => formik.setFieldValue("status", value)}
-          >
-            <SelectTrigger
-              id="status"
-              className={
-                formik.touched.status && formik.errors.status
-                  ? "border-red-500"
-                  : ""
-              }
-            >
-              <SelectValue placeholder="Select Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-          {formik.touched.status && formik.errors.status && (
-            <p className="text-sm text-red-500">{formik.errors.status}</p>
-          )}
-        </div>
-      </div>
-
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-2 flex items-center justify-between dark:text-white">
-          Permissions
-          <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-            {formik.values.permissions.length} assigned
-          </span>
-        </h3>
-        <div className="border rounded-lg overflow-hidden shadow-sm overflow-x-auto custom-scrollbar bg-white dark:bg-gray-900 dark:border-gray-700">
-          <Table className="w-full border-collapse">
-            {/* Sticky Header with improved background */}
-            <TableHeader className="bg-[#00563B] dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="font-bold text-white dark:text-gray-200 h-9 pl-6 w-1/4 lg:w-[20%]">
-                  Module
-                </TableHead>
-                <TableHead className="font-bold text-white dark:text-gray-200 text-center h-9">
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-[10px] uppercase tracking-wider font-bold">
-                      Total
-                    </span>
-                    <Checkbox
-                      checked={isAllTotalChecked()}
-                      onCheckedChange={() => toggleAllTotal()}
-                      className="w-4 h- border-gray-300 data-[state=checked]:bg-[#00563B] data-[state=checked]:border-[#00563B]"
-                    />
-                  </div>
-                </TableHead>
-                <TableHead className="font-bold text-white dark:text-gray-200 text-center h-9">
-                  View
-                </TableHead>
-                <TableHead className="font-bold text-white dark:text-gray-200 text-center h-9">
-                  Create
-                </TableHead>
-                <TableHead className="font-bold text-white dark:text-gray-200 text-center h-9">
-                  Edit
-                </TableHead>
-                <TableHead className="font-bold text-white dark:text-gray-200 text-center h-9">
-                  Delete
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categories.map((category) => (
-                <TableRow
-                  key={category}
-                  className="bg-white dark:bg-transparent border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+    <form onSubmit={formik.handleSubmit} className="p-5 space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Role Information
+          </CardTitle>
+          <CardDescription>
+            Define the basic details for this role
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Role Name (System) *</Label>
+              <Input
+                id="name"
+                value={formik.values.name}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                className={
+                  formik.touched.name && formik.errors.name
+                    ? "border-red-500"
+                    : ""
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Display Name *</Label>
+              <Input
+                id="displayName"
+                value={formik.values.displayName}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                className={
+                  formik.touched.displayName && formik.errors.displayName
+                    ? "border-red-500"
+                    : ""
+                }
+              />
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                value={formik.values.description}
+                onChange={formik.handleChange}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status *</Label>
+              <Select
+                value={formik.values.status}
+                onValueChange={(val) => formik.setFieldValue("status", val)}
+              >
+                <SelectTrigger
+                  className={
+                    formik.touched.status && formik.errors.status
+                      ? "border-red-500"
+                      : ""
+                  }
                 >
-                  <TableCell className="font-semibold text-gray-800 dark:text-gray-200 capitalize py-1 pl-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400">
-                        {moduleIcons[category] ? (
-                          <i className={`${moduleIcons[category]}`} />
-                        ) : (
-                          <i className="fas fa-layer-group" />
-                        )}
-                      </div>
-                      <span className="truncate block flex-1">
-                        {category.replace(/_/g, " ")}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center py-1">
-                    <Checkbox
-                      checked={isTotalChecked(category)}
-                      onCheckedChange={() => toggleTotal(category)}
-                      className="w-4 h-4 border-gray-300 data-[state=checked]:bg-[#00563B] data-[state=checked]:border-[#00563B]"
-                    />
-                  </TableCell>
-                  <TableCell className="text-center py-3">
-                    <Checkbox
-                      checked={isChecked(category, "view")}
-                      disabled={isDisabled(category, "view")}
-                      onCheckedChange={() => togglePermission(category, "view")}
-                      className="w-4 h-4 data-[state=checked]:bg-[#2e7a76] data-[state=checked]:border-[#2e7a76] border-gray-300"
-                    />
-                  </TableCell>
-                  <TableCell className="text-center py-1">
-                    <Checkbox
-                      checked={isChecked(category, "create")}
-                      disabled={isDisabled(category, "create")}
-                      onCheckedChange={() =>
-                        togglePermission(category, "create")
-                      }
-                      className="w-4 h-4 data-[state=checked]:bg-[#2e7a76] data-[state=checked]:border-[#2e7a76] border-gray-300"
-                    />
-                  </TableCell>
-                  <TableCell className="text-center py-1">
-                    <Checkbox
-                      checked={isChecked(category, "edit")}
-                      disabled={isDisabled(category, "edit")}
-                      onCheckedChange={() => togglePermission(category, "edit")}
-                      className="w-4 h-4 data-[state=checked]:bg-[#2e7a76] data-[state=checked]:border-[#2e7a76] border-gray-300"
-                    />
-                  </TableCell>
-                  <TableCell className="text-center py-1">
-                    <Checkbox
-                      checked={isChecked(category, "delete")}
-                      disabled={isDisabled(category, "delete")}
-                      onCheckedChange={() =>
-                        togglePermission(category, "delete")
-                      }
-                      className="w-4 h-4 data-[state=checked]:bg-[#2e7a76] data-[state=checked]:border-[#2e7a76] border-gray-300"
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+                  <SelectValue placeholder="Select Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {isCurrentUserGlobalAdmin && (
+              <div className="space-y-2">
+                <Label htmlFor="tenantId" className="flex items-center gap-2">
+                  <Building2 size={16} className="text-[#00563B]" />
+                  Target Organization
+                </Label>
+                <Select
+                  value={formik.values.tenantId}
+                  onValueChange={(val) => formik.setFieldValue("tenantId", val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select organization" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tenants.map((t) => (
+                      <SelectItem key={t._id} value={t._id}>
+                        {t.name} ({t.slug})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Permissions
+              </CardTitle>
+              <CardDescription>
+                Select permissions from enabled modules
+              </CardDescription>
+            </div>
+            <Badge variant="secondary">
+              {formik.values.permissions.length} selected
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="border rounded-lg overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-[#00563B] text-white">
+                <TableRow>
+                  <TableHead className="text-white">Module</TableHead>
+                  <TableHead className="text-center text-white">
+                    <Checkbox
+                      checked={isAllSelected()}
+                      onCheckedChange={toggleAllPermissions}
+                    />
+                  </TableHead>
+                  <TableHead className="text-center text-white">View</TableHead>
+                  <TableHead className="text-center text-white">
+                    Create
+                  </TableHead>
+                  <TableHead className="text-center text-white">Edit</TableHead>
+                  <TableHead className="text-center text-white">
+                    Delete
+                  </TableHead>
+                  <TableHead className="text-center text-white">
+                    Others
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {permissionsData.permissions.map((modulePerms) => (
+                  <TableRow key={modulePerms.module}>
+                    <TableCell>
+                      <div className="flex items-center gap-2 font-semibold capitalize">
+                        {modulePerms.moduleName}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={isModuleFullySelected(modulePerms.module)}
+                        onCheckedChange={() =>
+                          toggleModulePermissions(modulePerms.module)
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={isPermissionTypeSelected(
+                          modulePerms.module,
+                          "view",
+                        )}
+                        disabled={
+                          !hasPermissionType(modulePerms.module, "view")
+                        }
+                        onCheckedChange={() =>
+                          togglePermissionByType(modulePerms.module, "view")
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={isPermissionTypeSelected(
+                          modulePerms.module,
+                          "create",
+                        )}
+                        disabled={
+                          !hasPermissionType(modulePerms.module, "create")
+                        }
+                        onCheckedChange={() =>
+                          togglePermissionByType(modulePerms.module, "create")
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={isPermissionTypeSelected(
+                          modulePerms.module,
+                          "edit",
+                        )}
+                        disabled={
+                          !hasPermissionType(modulePerms.module, "edit")
+                        }
+                        onCheckedChange={() =>
+                          togglePermissionByType(modulePerms.module, "edit")
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={isPermissionTypeSelected(
+                          modulePerms.module,
+                          "delete",
+                        )}
+                        disabled={
+                          !hasPermissionType(modulePerms.module, "delete")
+                        }
+                        onCheckedChange={() =>
+                          togglePermissionByType(modulePerms.module, "delete")
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={isPermissionTypeSelected(
+                          modulePerms.module,
+                          "other",
+                        )}
+                        disabled={
+                          !hasPermissionType(modulePerms.module, "other")
+                        }
+                        onCheckedChange={() =>
+                          togglePermissionByType(modulePerms.module, "other")
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex items-center gap-4 pt-4 border-t">
         <Button
           type="submit"
           disabled={loading}
           className="bg-[#00563B] hover:bg-[#2e7a76] min-w-[120px] text-white"
         >
           {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             "Save Role"
           )}
@@ -449,7 +568,6 @@ const RoleForm = ({
           type="button"
           variant="outline"
           onClick={() => formik.resetForm()}
-          disabled={loading}
         >
           Reset
         </Button>
@@ -457,7 +575,6 @@ const RoleForm = ({
           type="button"
           variant="ghost"
           onClick={() => window.history.back()}
-          disabled={loading}
         >
           Cancel
         </Button>

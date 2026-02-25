@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const tenantSchema = new mongoose.Schema(
   {
+    // Basic Information
     name: {
       type: String,
       required: [true, "Please add an organization name"],
@@ -16,28 +17,121 @@ const tenantSchema = new mongoose.Schema(
       lowercase: true,
       index: true,
     },
+
+    // Contact Information
+    contactEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    contactPhone: {
+      type: String,
+      trim: true,
+    },
+    address: {
+      type: String,
+      trim: true,
+    },
+
+    // ============================================
+    // MODULE ACCESS CONTROL (NEW)
+    // ============================================
     plan: {
       type: String,
-      enum: ["Basic", "Pro", "Enterprise"],
-      default: "Basic",
+      enum: ["basic", "professional", "enterprise", "custom"],
+      default: "basic",
+      lowercase: true,
     },
+
+    // List of enabled module IDs
+    enabledModules: [
+      {
+        type: String,
+        lowercase: true,
+      },
+    ],
+
+    // Module-specific settings (optional)
+    moduleSettings: {
+      type: Map,
+      of: {
+        enabled: { type: Boolean, default: true },
+        maxRecords: { type: Number }, // Optional record limits per module
+        features: [String], // Sub-features within module
+      },
+      default: new Map(),
+    },
+
+    // ============================================
+    // SUBSCRIPTION & BILLING
+    // ============================================
+    subscriptionStatus: {
+      type: String,
+      enum: ["trial", "active", "suspended", "cancelled", "expired"],
+      default: "trial",
+    },
+    subscriptionStartDate: {
+      type: Date,
+      default: Date.now,
+    },
+    subscriptionEndDate: {
+      type: Date,
+    },
+    trialEndsAt: {
+      type: Date,
+      default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+    },
+
+    // ============================================
+    // RESOURCE LIMITS
+    // ============================================
     maxUsers: {
       type: Number,
-      default: 5, // Default limit for Basic plan
+      default: 10,
+    },
+    maxStorage: {
+      type: Number, // in MB
+      default: 1024, // 1 GB
+    },
+    currentStorage: {
+      type: Number,
+      default: 0,
+    },
+
+    // ============================================
+    // STATUS & OWNERSHIP
+    // ============================================
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
     },
     status: {
       type: String,
-      enum: ["active", "suspended", "trialing"],
-      default: "trialing",
+      enum: ["active", "inactive", "suspended", "trialing"],
+      default: "active",
+      index: true,
     },
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    // ============================================
+    // CUSTOMIZATION
+    // ============================================
     settings: {
       theme: {
-        primaryColor: { type: String, default: "#008080" }, // Default Teal
+        primaryColor: { type: String, default: "#008080" },
         logoUrl: { type: String, default: "" },
+      },
+      features: {
+        allowUserRegistration: { type: Boolean, default: false },
+        requireEmailVerification: { type: Boolean, default: true },
       },
     },
   },

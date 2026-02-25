@@ -3,7 +3,7 @@ import CreateVoter from "@app/views/voter/CreateVoter";
 
 export default function CreateVoterPage() {
   return (
-    <RouteGuard requiredPermissions={["create_voter"]}>
+    <RouteGuard requiredPermissions={["create_voters"]}>
       <CreateVoter />
     </RouteGuard>
   );

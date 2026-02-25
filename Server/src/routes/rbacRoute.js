@@ -1,56 +1,87 @@
 const express = require("express");
 const {
   getAllPermissions,
+  getAvailablePermissions,
   createPermission,
   getAllRoles,
   getRoleById,
   createRole,
   updateRole,
   deleteRole,
-  getSidebarAccess,
-  upsertSidebarAccess,
+  fixRoleIndex,
+  debugRoles,
 } = require("../controller/rbacController");
 const protect = require("../middleware/authMiddleware");
 const {
   checkPermission,
   checkAnyPermission,
 } = require("../middleware/permissionMiddleware");
+const { scopeQuery } = require("../middleware/scopeMiddleware");
 
 const router = express.Router();
 
 // Permission routes
+// router.get(
+//   "/permissions",
+//   protect,
+//   checkAnyPermission(["view_roles", "create_roles", "edit_roles"]),
+//   getAllPermissions,
+// );
+
+// Get available permissions (filtered by tenant's enabled modules)
 router.get(
-  "/permissions",
+  "/permissions/available",
   protect,
   checkAnyPermission(["view_roles", "create_roles", "edit_roles"]),
-  getAllPermissions
+  getAvailablePermissions,
 );
+
 router.post(
   "/permissions",
   protect,
   checkPermission("create_roles"), // Typically admin level, or separate manage_permissions if desired
-  createPermission
+  createPermission,
 );
 
 // Role routes
-router.get("/roles", protect, checkPermission("view_roles"), getAllRoles);
-router.get("/roles/:id", protect, checkPermission("view_roles"), getRoleById);
-router.post("/roles", protect, checkPermission("create_roles"), createRole);
-router.put("/roles/:id", protect, checkPermission("edit_roles"), updateRole);
+router.get(
+  "/roles",
+  protect,
+  checkAnyPermission(["view_roles", "view_user_count"]),
+  scopeQuery({}, false),
+  getAllRoles,
+);
+router.get(
+  "/roles/:id",
+  protect,
+  checkPermission("view_roles"),
+  scopeQuery({}, false),
+  getRoleById,
+);
+router.post(
+  "/roles",
+  protect,
+  checkPermission("create_roles"),
+  scopeQuery({}, false),
+  createRole,
+);
+router.put(
+  "/roles/:id",
+  protect,
+  checkPermission("edit_roles"),
+  scopeQuery({}, false),
+  updateRole,
+);
 router.delete(
   "/roles/:id",
   protect,
   checkPermission("delete_roles"),
-  deleteRole
+  scopeQuery({}, false),
+  deleteRole,
 );
 
-// Sidebar RBAC routes
-router.get("/sidebar-permissions", protect, getSidebarAccess);
-router.put(
-  "/sidebar-permissions",
-  protect,
-  checkPermission("manage_roles"),
-  upsertSidebarAccess
-);
+// Admin maintenance routes
+router.get("/admin/fix-role-index", protect, fixRoleIndex);
+router.get("/admin/debug-roles", protect, debugRoles);
 
 module.exports = router;

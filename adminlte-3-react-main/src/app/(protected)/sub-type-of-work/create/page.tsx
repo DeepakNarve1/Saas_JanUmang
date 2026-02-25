@@ -5,7 +5,7 @@ import CreateSubTypeOfWork from "@app/views/subtypeOfWork/CreateSubTypeOfWork";
 
 export default function CreateSubTypeOfWorkPage() {
   return (
-    <RouteGuard requiredPermission="create_sub_type_of_work">
+    <RouteGuard requiredPermission="create_sub_work_types">
       <CreateSubTypeOfWork />
     </RouteGuard>
   );

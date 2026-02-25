@@ -57,8 +57,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: [
         "system_admin",
-        "superadmin", // Existing global admin
-        "tenant_admin", // Client-level admin
+        "superadmin", // Platform-wide global admin
+        "tenant_admin", // Organisation admin
+        "regularUser", // Standard org employee (no geographic scope)
         "state",
         "division",
         "district",
@@ -68,7 +69,7 @@ const userSchema = new mongoose.Schema(
         "village",
         "booth",
       ],
-      default: "tenant_admin",
+      default: "regularUser",
     },
     state: { type: mongoose.Schema.Types.ObjectId, ref: "State" },
     division: { type: mongoose.Schema.Types.ObjectId, ref: "Division" },
@@ -76,7 +77,7 @@ const userSchema = new mongoose.Schema(
     assembly: { type: mongoose.Schema.Types.ObjectId, ref: "Assembly" },
     block: { type: mongoose.Schema.Types.ObjectId, ref: "Block" },
     panchayat: { type: mongoose.Schema.Types.ObjectId, ref: "Panchayat" },
-    village: { type: mongoose.Schema.Types.ObjectId, ref: "Village" },
+    village: { type: String, trim: true },
     booth: { type: mongoose.Schema.Types.ObjectId, ref: "Booth" },
     permissions: {
       type: Map, // Use Map instead of Object for better Mongoose handling

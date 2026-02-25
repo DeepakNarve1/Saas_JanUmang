@@ -18,9 +18,11 @@ const TenantSwitcher = () => {
   const currentUser = useAppSelector((state) => state.auth.currentUser);
   const [selectedTenant, setSelectedTenant] = useState<string>("default");
 
+  // SECURITY: Only true platform admins (no tenantId + system-level) can switch tenants
   const isGlobalAdmin =
-    currentUser?.level === "system_admin" ||
-    currentUser?.level === "superadmin";
+    !currentUser?.tenantId &&
+    (currentUser?.level === "system_admin" ||
+      currentUser?.level === "superadmin");
 
   useEffect(() => {
     const saved = localStorage.getItem("overrideTenantId");

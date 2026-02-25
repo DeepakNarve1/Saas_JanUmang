@@ -10,9 +10,11 @@ const {
 const { checkPermission } = require("../middleware/permissionMiddleware");
 const protect = require("../middleware/authMiddleware");
 const { scopeQuery } = require("../middleware/scopeMiddleware");
+const { checkModuleAccess } = require("../middleware/moduleAccessMiddleware");
 
 // All routes are protected
 router.use(protect);
+router.use(checkModuleAccess("visitors"));
 
 router
   .route("/")

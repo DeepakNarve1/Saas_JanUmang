@@ -8,8 +8,14 @@ export interface DashboardStats {
   totalRoles: number;
   totalPublicProblems: number;
   pendingProblems: number;
+  resolvedProblems: number;
+  inProgressProblems: number;
   totalProjects: number;
   completedProjects: number;
+  totalAssemblyIssues: number;
+  totalEvents: number;
+  totalDepartments: number;
+  totalBlocks: number;
   totalMembers: number;
   todayMembers: number;
   totalVisitors: number;
@@ -20,195 +26,41 @@ export interface DashboardStats {
   totalBooths: number;
 }
 
+export interface DepartmentSummary {
+  name: string;
+  total: number;
+  complete: number;
+  incomplete: number;
+  inProgress: number;
+}
+
+export interface BlockSummary {
+  name: string;
+  total: number;
+  today: number;
+  complete: number;
+  incomplete: number;
+  inProgress: number;
+}
+
+export interface MemberBlockSummary {
+  name: string;
+  bc: number;
+  pp: number;
+  ip: number;
+  fh: number;
+  smm: number;
+  ms: number;
+  fp: number;
+  er: number;
+  ak: number;
+  fm: number;
+  varist: number;
+  yuva: number;
+}
+
 export const useDashboardData = () => {
   const { hasPermission } = usePermissions();
-
-  // --- Data Fetching ---
-
-  const { data: usersRaw = [], isLoading: usersLoading } = useQuery({
-    queryKey: ["dashboard-users"],
-    queryFn: async () => {
-      const res = await axios.get("/auth/users?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_users"),
-  });
-
-  const { data: rolesRaw = [], isLoading: rolesLoading } = useQuery({
-    queryKey: ["dashboard-roles"],
-    queryFn: async () => {
-      const res = await axios.get("/rbac/roles?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_roles"),
-  });
-
-  const { data: problemsRaw = [], isLoading: problemsLoading } = useQuery({
-    queryKey: ["dashboard-problems"],
-    queryFn: async () => {
-      const res = await axios.get("/public-problems?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_mp_public_problems"),
-  });
-
-  const { data: projectsRaw = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ["dashboard-projects"],
-    queryFn: async () => {
-      const res = await axios.get("/projects?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_projects"),
-  });
-
-  const { data: assemblyRaw = [], isLoading: assemblyLoading } = useQuery({
-    queryKey: ["dashboard-assembly"],
-    queryFn: async () => {
-      const res = await axios.get("/assembly-issues?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_assembly_issues"),
-  });
-
-  const { data: eventsRaw = [], isLoading: eventsLoading } = useQuery({
-    queryKey: ["dashboard-events"],
-    queryFn: async () => {
-      const res = await axios.get("/events?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_events"),
-  });
-
-  const { data: departmentsRaw = [], isLoading: departmentsLoading } = useQuery(
-    {
-      queryKey: ["dashboard-departments"],
-      queryFn: async () => {
-        const res = await axios.get("/departments?limit=-1");
-        return res.data?.data || [];
-      },
-      enabled: hasPermission("view_department"),
-    },
-  );
-
-  const { data: blocksRaw = [], isLoading: blocksLoading } = useQuery({
-    queryKey: ["dashboard-blocks"],
-    queryFn: async () => {
-      const res = await axios.get("/blocks?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_blocks"),
-  });
-
-  const { data: visitorsRaw = [], isLoading: visitorsLoading } = useQuery({
-    queryKey: ["dashboard-visitors"],
-    queryFn: async () => {
-      const res = await axios.get("/visitors?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_visitors"),
-  });
-
-  const { data: membersRaw = [], isLoading: membersLoading } = useQuery({
-    queryKey: ["dashboard-members"],
-    queryFn: async () => {
-      const res = await axios.get("/members?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_members"),
-  });
-
-  const { data: inDocsRaw = [], isLoading: inDocsLoading } = useQuery({
-    queryKey: ["dashboard-indocs"],
-    queryFn: async () => {
-      const res = await axios.get("/in-docs?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_in_docs"),
-  });
-
-  const { data: samitisRaw = [], isLoading: samitisLoading } = useQuery({
-    queryKey: ["dashboard-samitis"],
-    queryFn: async () => {
-      const res = await axios.get("/samiti?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_samitis"),
-  });
-
-  const { data: villagesRaw = [], isLoading: villagesLoading } = useQuery({
-    queryKey: ["dashboard-villages"],
-    queryFn: async () => {
-      const res = await axios.get("/village?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_villages"),
-  });
-
-  const { data: panchayatsRaw = [], isLoading: panchayatsLoading } = useQuery({
-    queryKey: ["dashboard-panchayats"],
-    queryFn: async () => {
-      const res = await axios.get("/panchayat?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_panchayats"),
-  });
-
-  const { data: boothsRaw = [], isLoading: boothsLoading } = useQuery({
-    queryKey: ["dashboard-booths"],
-    queryFn: async () => {
-      const res = await axios.get("/booth?limit=-1");
-      return res.data?.data || [];
-    },
-    enabled: hasPermission("view_booths"),
-  });
-
-  const loadingCharts =
-    departmentsLoading ||
-    blocksLoading ||
-    visitorsLoading ||
-    membersLoading ||
-    inDocsLoading ||
-    samitisLoading ||
-    villagesLoading ||
-    panchayatsLoading ||
-    boothsLoading;
-
-  const rawData = useMemo(
-    () => ({
-      publicProblems: problemsRaw,
-      projects: projectsRaw,
-      assemblyIssues: assemblyRaw,
-      events: eventsRaw,
-      departments: departmentsRaw,
-      blocks: blocksRaw,
-      visitors: visitorsRaw,
-      members: membersRaw,
-      inDocs: inDocsRaw,
-      samitis: samitisRaw,
-      villages: villagesRaw,
-      panchayats: panchayatsRaw,
-      booths: boothsRaw,
-      users: usersRaw,
-      roles: rolesRaw,
-    }),
-    [
-      problemsRaw,
-      projectsRaw,
-      assemblyRaw,
-      eventsRaw,
-      departmentsRaw,
-      blocksRaw,
-      visitorsRaw,
-      membersRaw,
-      inDocsRaw,
-      samitisRaw,
-      villagesRaw,
-      panchayatsRaw,
-      boothsRaw,
-      usersRaw,
-      rolesRaw,
-    ],
-  );
 
   // --- Filter State ---
   const [dateFilter, setDateFilter] = useState({ start: "", end: "" });
@@ -218,431 +70,206 @@ export const useDashboardData = () => {
     end: "",
   });
 
-  // --- Filtering Logic ---
+  // --- OPTIMIZED: Single API call for all statistics ---
+  const { data: statsData, isLoading: statsLoading } = useQuery({
+    queryKey: ["dashboard-stats"],
+    queryFn: async () => {
+      const res = await axios.get("/dashboard/stats");
+      return res.data?.data || {};
+    },
+    enabled: hasPermission("view_dashboard"),
+    staleTime: 30000, // Cache for 30 seconds
+  });
 
-  const filteredProblems = useMemo(() => {
-    return rawData.publicProblems.filter((p: any) => {
-      if (
-        dateFilter.start &&
-        p.submissionDate &&
-        new Date(p.submissionDate) < new Date(dateFilter.start)
-      )
-        return false;
-      if (
-        dateFilter.end &&
-        p.submissionDate &&
-        new Date(p.submissionDate) > new Date(dateFilter.end)
-      )
-        return false;
-      return true;
-    });
-  }, [rawData.publicProblems, dateFilter]);
+  // --- OPTIMIZED: Department summary with optional filters ---
+  const { data: departmentData, isLoading: departmentLoading } = useQuery({
+    queryKey: ["dashboard-department-summary", deptFilter.block],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (deptFilter.block) params.append("block", deptFilter.block);
+      const res = await axios.get(`/dashboard/department-summary?${params}`);
+      return res.data?.data || [];
+    },
+    enabled: hasPermission("view_dashboard"),
+    staleTime: 30000,
+  });
 
-  const filteredProjects = useMemo(() => {
-    return rawData.projects.filter((p: any) => {
-      const dateStr = p.createdAt || p.updatedAt;
-      if (!dateStr) return true;
-      if (dateFilter.start && new Date(dateStr) < new Date(dateFilter.start))
-        return false;
-      if (dateFilter.end && new Date(dateStr) > new Date(dateFilter.end))
-        return false;
-      return true;
-    });
-  }, [rawData.projects, dateFilter]);
+  // --- OPTIMIZED: Block summary ---
+  const { data: blockData, isLoading: blockLoading } = useQuery({
+    queryKey: ["dashboard-block-summary"],
+    queryFn: async () => {
+      const res = await axios.get("/dashboard/block-summary");
+      return res.data?.data || [];
+    },
+    enabled: hasPermission("view_dashboard"),
+    staleTime: 30000,
+  });
 
-  const filteredDeptProblems = useMemo(() => {
-    return rawData.publicProblems.filter((p: any) => {
-      if (deptFilter.block && p.block !== deptFilter.block) return false;
-      if (
-        deptFilter.start &&
-        p.submissionDate &&
-        new Date(p.submissionDate) < new Date(deptFilter.start)
-      )
-        return false;
-      if (
-        deptFilter.end &&
-        p.submissionDate &&
-        new Date(p.submissionDate) > new Date(deptFilter.end)
-      )
-        return false;
-      return true;
-    });
-  }, [rawData.publicProblems, deptFilter]);
+  // --- OPTIMIZED: Member block summary ---
+  const { data: memberBlockData, isLoading: memberBlockLoading } = useQuery({
+    queryKey: ["dashboard-member-block-summary"],
+    queryFn: async () => {
+      const res = await axios.get("/dashboard/member-block-summary");
+      return res.data?.data || [];
+    },
+    enabled: hasPermission("view_dashboard"), // Could also check module access
+    staleTime: 30000,
+  });
 
-  const stats = useMemo(
+  // --- OPTIMIZED: Chart data with date filters ---
+  const { data: chartData, isLoading: chartLoading } = useQuery({
+    queryKey: ["dashboard-charts", dateFilter.start, dateFilter.end],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (dateFilter.start) params.append("startDate", dateFilter.start);
+      if (dateFilter.end) params.append("endDate", dateFilter.end);
+      const res = await axios.get(`/dashboard/charts?${params}`);
+      return res.data?.data || {};
+    },
+    enabled: hasPermission("view_dashboard"),
+    staleTime: 30000,
+  });
+
+  // --- Fetch blocks for dropdown (lightweight) ---
+  const { data: blocksData = [] } = useQuery({
+    queryKey: ["dashboard-blocks"],
+    queryFn: async () => {
+      const res = await axios.get("/blocks?limit=100");
+      return res.data?.data || [];
+    },
+    enabled: hasPermission("view_blocks"),
+    staleTime: 60000, // Cache for 1 minute
+  });
+
+  // --- Loading states ---
+  const loadingCharts =
+    statsLoading ||
+    departmentLoading ||
+    blockLoading ||
+    memberBlockLoading ||
+    chartLoading;
+
+  // --- Stats object ---
+  const stats: DashboardStats = useMemo(
     () => ({
-      totalUsers: usersRaw.length,
-      totalRoles: rolesRaw.length,
-      totalPublicProblems: problemsRaw.length,
-      pendingProblems: problemsRaw.filter((p: any) => p.status === "Pending")
-        .length,
-      totalProjects: projectsRaw.length,
-      completedProjects: projectsRaw.filter(
-        (p: any) => p.status === "Completed",
-      ).length,
-      totalMembers: membersRaw.length,
-      todayMembers: membersRaw.filter(
-        (m: any) =>
-          m.createdAt &&
-          new Date(m.createdAt).toDateString() === new Date().toDateString(),
-      ).length,
-      totalVisitors: visitorsRaw.length,
-      totalInDocs: inDocsRaw.length,
-      totalSamitis: samitisRaw.length,
-      totalVillages: villagesRaw.length,
-      totalPanchayats: panchayatsRaw.length,
-      totalBooths: boothsRaw.length,
+      totalUsers: statsData?.totalUsers || 0,
+      totalRoles: statsData?.totalRoles || 0,
+      totalPublicProblems: statsData?.totalPublicProblems || 0,
+      pendingProblems: statsData?.pendingProblems || 0,
+      resolvedProblems: statsData?.resolvedProblems || 0,
+      inProgressProblems: statsData?.inProgressProblems || 0,
+      totalProjects: statsData?.totalProjects || 0,
+      completedProjects: statsData?.completedProjects || 0,
+      totalAssemblyIssues: statsData?.totalAssemblyIssues || 0,
+      totalEvents: statsData?.totalEvents || 0,
+      totalDepartments: statsData?.totalDepartments || 0,
+      totalBlocks: statsData?.totalBlocks || 0,
+      totalMembers: statsData?.totalMembers || 0,
+      todayMembers: statsData?.todayMembers || 0,
+      totalVisitors: statsData?.totalVisitors || 0,
+      totalInDocs: statsData?.totalInDocs || 0,
+      totalSamitis: statsData?.totalSamitis || 0,
+      totalVillages: statsData?.totalVillages || 0,
+      totalPanchayats: statsData?.totalPanchayats || 0,
+      totalBooths: statsData?.totalBooths || 0,
     }),
-    [
-      usersRaw,
-      rolesRaw,
-      problemsRaw,
-      projectsRaw,
-      membersRaw,
-      visitorsRaw,
-      inDocsRaw,
-      samitisRaw,
-      villagesRaw,
-      panchayatsRaw,
-      boothsRaw,
-    ],
+    [statsData],
   );
 
-  const mpProblems = useMemo(
-    () =>
-      filteredProblems.filter(
-        (p: any) => p.recommendedLetterNo && p.recommendedLetterNo !== "N/A",
-      ),
-    [filteredProblems],
-  );
-  const filteredMpDeptProblems = useMemo(
-    () =>
-      filteredDeptProblems.filter(
-        (p: any) => p.recommendedLetterNo && p.recommendedLetterNo !== "N/A",
-      ),
-    [filteredDeptProblems],
-  );
-
-  // --- Stats for Cards ---
+  // --- Card stats for problem cards ---
   const cardStats = useMemo(() => {
-    const countStatus = (list: any[], status: string) =>
-      list.filter((p) => p.status === status).length;
     return {
       public: {
-        total: filteredProblems.length,
-        complete: countStatus(filteredProblems, "Resolved"),
-        incomplete: countStatus(filteredProblems, "Pending"),
-        inProgress: countStatus(filteredProblems, "In Progress"),
+        total: stats.totalPublicProblems,
+        complete: stats.resolvedProblems,
+        incomplete: stats.pendingProblems,
+        inProgress: stats.inProgressProblems,
       },
       mp: {
-        total: mpProblems.length,
-        complete: countStatus(mpProblems, "Resolved"),
-        incomplete: countStatus(mpProblems, "Pending"),
-        inProgress: countStatus(mpProblems, "In Progress"),
+        total: 0, // MP problems need separate endpoint if needed
+        complete: 0,
+        incomplete: 0,
+        inProgress: 0,
       },
     };
-  }, [filteredProblems, mpProblems]);
+  }, [stats]);
 
-  // --- Summary Generation Logic ---
+  // --- Department summary ---
+  const departmentSummary: DepartmentSummary[] = useMemo(
+    () => departmentData || [],
+    [departmentData],
+  );
 
-  const departmentSummary = useMemo(() => {
-    const map: Record<string, any> = {};
-    filteredDeptProblems.forEach((p: any) => {
-      const d = p.department || "Unassigned";
-      if (!map[d])
-        map[d] = {
-          name: d,
-          total: 0,
-          complete: 0,
-          incomplete: 0,
-          inProgress: 0,
-        };
-      map[d].total++;
-      const status = p.status || "Pending";
-      if (["Resolved", "Closed", "Completed"].includes(status))
-        map[d].complete++;
-      else if (["In Progress", "Processing"].includes(status))
-        map[d].inProgress++;
-      else map[d].incomplete++;
-    });
-    return Object.values(map);
-  }, [filteredDeptProblems]);
+  // --- Block summary ---
+  const blockSummary: BlockSummary[] = useMemo(
+    () => blockData || [],
+    [blockData],
+  );
 
-  const mpDepartmentSummary = useMemo(() => {
-    const map: Record<string, any> = {};
-    filteredMpDeptProblems.forEach((p: any) => {
-      const d = p.department || "Unassigned";
-      if (!map[d])
-        map[d] = {
-          name: d,
-          total: 0,
-          complete: 0,
-          incomplete: 0,
-          inProgress: 0,
-        };
-      map[d].total++;
-      const status = p.status || "Pending";
-      if (["Resolved", "Closed", "Completed"].includes(status))
-        map[d].complete++;
-      else if (["In Progress", "Processing"].includes(status))
-        map[d].inProgress++;
-      else map[d].incomplete++;
-    });
-    return Object.values(map);
-  }, [filteredMpDeptProblems]);
+  // --- Member Block Summary ---
+  const memberBlockSummary: MemberBlockSummary[] = useMemo(
+    () => memberBlockData || [],
+    [memberBlockData],
+  );
 
-  const blockSummary = useMemo(() => {
-    const map: Record<string, any> = {};
-    const todayStr = new Date().toDateString();
-    rawData.publicProblems.forEach((p: any) => {
-      const block = p.block || "Unassigned";
-      if (!map[block]) {
-        map[block] = {
-          name: block,
-          total: 0,
-          today: 0,
-          complete: 0,
-          incomplete: 0,
-          inProgress: 0,
-          stage1Incomplete: 0,
-          stage1Complete: 0,
-          stage1InProgress: 0,
-          stage2Incomplete: 0,
-          stage2Complete: 0,
-        };
-      }
-      const entry = map[block];
-      entry.total++;
-      if (
-        p.submissionDate &&
-        new Date(p.submissionDate).toDateString() === todayStr
-      )
-        entry.today++;
-      const status = p.status || "Pending";
-      const isComplete = ["Resolved", "Closed", "Completed"].includes(status);
-      const isInProgress = ["In Progress", "Processing"].includes(status);
-      if (isComplete) entry.complete++;
-      else if (isInProgress) entry.inProgress++;
-      else entry.incomplete++;
-      const stage = p.stage || 1;
-      if (stage == 1) {
-        if (isComplete) entry.stage1Complete++;
-        else if (isInProgress) entry.stage1InProgress++;
-        else entry.stage1Incomplete++;
-      } else if (stage == 2) {
-        if (isComplete) entry.stage2Complete++;
-        else entry.stage2Incomplete++;
-      }
-    });
-    return Object.values(map);
-  }, [rawData.publicProblems]);
+  // --- Chart data ---
+  const problemsByDepartment = useMemo(
+    () => chartData?.problemsByDepartment || [],
+    [chartData],
+  );
 
-  const mpBlockSummary = useMemo(() => {
-    const map: Record<string, any> = {};
-    const todayStr = new Date().toDateString();
-    mpProblems.forEach((p: any) => {
-      const block = p.block || "Unassigned";
-      if (!map[block]) {
-        map[block] = {
-          name: block,
-          total: 0,
-          today: 0,
-          complete: 0,
-          incomplete: 0,
-          inProgress: 0,
-        };
-      }
-      const entry = map[block];
-      entry.total++;
-      if (
-        p.submissionDate &&
-        new Date(p.submissionDate).toDateString() === todayStr
-      )
-        entry.today++;
-      const status = p.status || "Pending";
-      if (["Resolved", "Closed", "Completed"].includes(status))
-        entry.complete++;
-      else if (["In Progress", "Processing"].includes(status))
-        entry.inProgress++;
-      else entry.incomplete++;
-    });
-    return Object.values(map);
-  }, [mpProblems]);
+  const problemsByStatus = useMemo(
+    () => chartData?.problemsByStatus || [],
+    [chartData],
+  );
 
-  const memberBlockSummary = useMemo(() => {
-    const map: Record<string, any> = {};
-    const getRoleName = (userRole: any) => {
-      if (!userRole) return "";
-      if (typeof userRole === "string") {
-        const r = rolesRaw.find((rv: any) => rv._id === userRole);
-        return r ? r.name : "";
-      }
-      return userRole.name || "";
-    };
-    const isDateInRange = (dateStr: string) => {
-      if (!dateStr) return false;
-      const date = new Date(dateStr);
-      if (dateFilter.start && date < new Date(dateFilter.start)) return false;
-      if (dateFilter.end && date > new Date(dateFilter.end)) return false;
-      return true;
-    };
-    rawData.users.forEach((u: any) => {
-      if (u.createdAt && !isDateInRange(u.createdAt)) return;
-      let blockName = "Unassigned";
-      if (u.block) {
-        if (typeof u.block === "string") {
-          const b = (rawData.blocks as any[]).find(
-            (bk: any) => bk._id === u.block,
-          );
-          blockName = b ? b.name : "Unknown Block ID";
-        } else {
-          blockName = u.block.name || "Unknown Block";
-        }
-      }
-      if (!map[blockName]) {
-        map[blockName] = {
-          name: blockName,
-          bc: 0,
-          pp: 0,
-          ip: 0,
-          fh: 0,
-          smm: 0,
-          ms: 0,
-          fp: 0,
-          er: 0,
-          ak: 0,
-          fm: 0,
-          varist: 0,
-          yuva: 0,
-        };
-      }
-      const roleName = getRoleName(u.role).toLowerCase();
-      const entry = map[blockName];
-      if (
-        roleName.includes("bc") ||
-        roleName.includes("booth") ||
-        roleName.includes("block coord")
-      )
-        entry.bc++;
-      if (
-        roleName.includes("pp") ||
-        roleName.includes("panchayat") ||
-        roleName.includes("polling")
-      )
-        entry.pp++;
-      if (
-        roleName.includes("ip") ||
-        roleName.includes("it cell") ||
-        roleName.includes("in charge")
-      )
-        entry.ip++;
-      if (roleName.includes("fh")) entry.fh++;
-      if (roleName.includes("smm") || roleName.includes("social media"))
-        entry.smm++;
-      if (roleName.includes("ms") || roleName.includes("mandal")) entry.ms++;
-      if (roleName.includes("fp")) entry.fp++;
-      if (roleName.includes("er")) entry.er++;
-      if (roleName.includes("ak")) entry.ak++;
-      if (roleName.includes("fm")) entry.fm++;
-      if (roleName.includes("varist") || roleName.includes("sen"))
-        entry.varist++;
-      if (roleName.includes("yuva") || roleName.includes("youth")) entry.yuva++;
-    });
-    return Object.values(map);
-  }, [rawData.users, rawData.roles, rawData.blocks, dateFilter]);
-
-  const memberDistrictSummary = useMemo(() => {
-    const map: Record<string, any> = {};
-    const getRoleName = (userRole: any) => {
-      if (!userRole) return "";
-      if (typeof userRole === "string") {
-        const r = rolesRaw.find((rv: any) => rv._id === userRole);
-        return r ? r.name : "";
-      }
-      return userRole.name || "";
-    };
-    const isDateInRange = (dateStr: string) => {
-      if (!dateStr) return false;
-      const date = new Date(dateStr);
-      if (dateFilter.start && date < new Date(dateFilter.start)) return false;
-      if (dateFilter.end && date > new Date(dateFilter.end)) return false;
-      return true;
-    };
-    rawData.users.forEach((u: any) => {
-      if (u.createdAt && !isDateInRange(u.createdAt)) return;
-      let districtName = "Unassigned";
-      if (u.district) {
-        if (typeof u.district === "string") districtName = u.district;
-        else districtName = u.district.name || "Unknown District";
-      }
-      if (!map[districtName]) {
-        map[districtName] = {
-          name: districtName,
-          bc: 0,
-          pp: 0,
-          ip: 0,
-          fh: 0,
-          smm: 0,
-          ms: 0,
-          fp: 0,
-          er: 0,
-          ak: 0,
-          fm: 0,
-          varist: 0,
-          yuva: 0,
-        };
-      }
-      const roleName = getRoleName(u.role).toLowerCase();
-      const entry = map[districtName];
-      if (
-        roleName.includes("bc") ||
-        roleName.includes("booth") ||
-        roleName.includes("block coord")
-      )
-        entry.bc++;
-      if (
-        roleName.includes("pp") ||
-        roleName.includes("panchayat") ||
-        roleName.includes("polling")
-      )
-        entry.pp++;
-      if (
-        roleName.includes("ip") ||
-        roleName.includes("it cell") ||
-        roleName.includes("in charge")
-      )
-        entry.ip++;
-      if (roleName.includes("fh")) entry.fh++;
-      if (roleName.includes("smm") || roleName.includes("social media"))
-        entry.smm++;
-      if (roleName.includes("ms") || roleName.includes("mandal")) entry.ms++;
-      if (roleName.includes("fp")) entry.fp++;
-      if (roleName.includes("er")) entry.er++;
-      if (roleName.includes("ak")) entry.ak++;
-      if (roleName.includes("fm")) entry.fm++;
-      if (roleName.includes("varist") || roleName.includes("sen"))
-        entry.varist++;
-      if (roleName.includes("yuva") || roleName.includes("youth")) entry.yuva++;
-    });
-    return Object.values(map);
-  }, [rawData.users, rawData.roles, dateFilter]);
+  // --- Legacy compatibility: Empty arrays for unused data ---
+  const rawData = useMemo(
+    () => ({
+      publicProblems: [],
+      projects: [],
+      assemblyIssues: [],
+      events: [],
+      departments: [],
+      blocks: blocksData, // ✅ Include blocks for dropdown
+      visitors: [],
+      members: [],
+      inDocs: [],
+      samitis: [],
+      villages: [],
+      panchayats: [],
+      booths: [],
+      users: [],
+      roles: [],
+    }),
+    [blocksData],
+  );
 
   return {
-    rawData,
+    // Core data
+    stats,
+    cardStats,
+    departmentSummary,
+    blockSummary,
+    memberBlockSummary, // ✅ Exposed here
+    problemsByDepartment,
+    problemsByStatus,
+
+    // Loading states
     loadingCharts,
+
+    // Filters
     dateFilter,
     setDateFilter,
     deptFilter,
     setDeptFilter,
-    filteredProblems,
-    filteredProjects,
-    stats,
-    cardStats,
-    departmentSummary,
-    mpDepartmentSummary,
-    blockSummary,
-    mpBlockSummary,
-    memberBlockSummary,
-    memberDistrictSummary,
+
+    // Legacy compatibility (empty for now)
+    rawData,
+    filteredProblems: [],
+    filteredProjects: [],
+    mpDepartmentSummary: [],
+    mpBlockSummary: [],
+    memberDistrictSummary: [],
   };
 };

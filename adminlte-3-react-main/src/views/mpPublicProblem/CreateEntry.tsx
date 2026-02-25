@@ -333,6 +333,12 @@ const CreateEntryContent = () => {
       type: "select",
       optionsSource: "departments",
     },
+    {
+      name: "status",
+      label: "Status",
+      type: "select",
+      optionsSource: "statuses",
+    },
     { name: "priority", label: "Priority", type: "text" },
     { name: "typeOfWork", label: "Type of Work", type: "text" },
 
@@ -424,6 +430,13 @@ const CreateEntryContent = () => {
           value: d.name,
           id: d._id,
         }));
+      case "statuses":
+        return [
+          { label: "Pending", value: "Pending", id: "pending" },
+          { label: "In Progress", value: "In Progress", id: "in-progress" },
+          { label: "Resolved", value: "Resolved", id: "resolved" },
+          { label: "Rejected", value: "Rejected", id: "rejected" },
+        ];
       default:
         return [];
     }

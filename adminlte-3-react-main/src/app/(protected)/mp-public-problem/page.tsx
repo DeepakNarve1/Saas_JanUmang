@@ -3,6 +3,9 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
 
+import ModuleGuard from "@app/modules/ModuleGuard";
+import { MODULE_IDS } from "@app/config/modules";
+
 const MPPublicProblem = dynamic(
   () => import("@app/views/mpPublicProblem/index"),
   {
@@ -13,9 +16,13 @@ const MPPublicProblem = dynamic(
         <Skeleton className="h-[401px] w-full" />
       </div>
     ),
-  }
+  },
 );
 
 export default function MPPublicProblemPage() {
-  return <MPPublicProblem />;
+  return (
+    <ModuleGuard moduleId={MODULE_IDS.MP_PUBLIC_PROBLEMS}>
+      <MPPublicProblem />
+    </ModuleGuard>
+  );
 }

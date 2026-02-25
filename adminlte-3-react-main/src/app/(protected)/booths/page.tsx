@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
 
+import { RouteGuard } from "@app/components/RouteGuard";
+
 const Booth = dynamic(() => import("@app/views/booth"), {
   ssr: false,
   loading: () => (
@@ -13,6 +15,10 @@ const Booth = dynamic(() => import("@app/views/booth"), {
   ),
 });
 
-export default function BoothsPage() {
-  return <Booth />;
+export default function BoothPage() {
+  return (
+    <RouteGuard requiredPermission="view_booths">
+      <Booth />
+    </RouteGuard>
+  );
 }

@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const CallManagement = require("../models/callManagementModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // Get all Call Records
 exports.getCalls = asyncHandler(async (req, res) => {
@@ -73,7 +74,7 @@ exports.createCall = asyncHandler(async (req, res) => {
     const call = await CallManagement.create({
       ...req.body,
       addedBy: req.user._id,
-      tenantId: req.tenantId, // SaaS: Link to organization
+      tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
     });
 
     await logActivity(

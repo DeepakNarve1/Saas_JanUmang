@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const DispatchRegister = require("../models/dispatchRegisterModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // Get all Dispatch Registers
 exports.getDispatchRegisters = asyncHandler(async (req, res) => {
@@ -25,34 +26,39 @@ exports.getDispatchRegisters = asyncHandler(async (req, res) => {
     query.month = month;
   }
 
-  let paginationLimit = parseInt(limit);
-  if (paginationLimit === -1) {
-    paginationLimit = 0;
-  }
+  const paginationLimit = parseInt(limit) === -1 ? 0 : parseInt(limit);
+  const skip = (page - 1) * paginationLimit;
 
-  const count = await DispatchRegister.countDocuments({ ...req.scopeFilter });
-  const filteredCount = await DispatchRegister.countDocuments(query);
-
-  let queryBuilder = DispatchRegister.find(query)
-    .populate("addedBy", "name")
-    .populate("department", "name")
-    .populate("district", "name")
-    .populate("block", "name")
-    .populate("panchayat", "name")
-    .populate("village", "name")
-    .sort({ createdAt: -1 });
-
-  if (paginationLimit > 0) {
-    queryBuilder = queryBuilder
-      .limit(paginationLimit)
-      .skip((page - 1) * paginationLimit);
-  }
-
-  const data = await queryBuilder;
+  // Run queries in parallel for better performance
+  const [data, filteredCount, total] = await Promise.all([
+    paginationLimit > 0
+      ? DispatchRegister.find(query)
+          .populate("addedBy", "name")
+          .populate("department", "name")
+          .populate("district", "name")
+          .populate("block", "name")
+          .populate("panchayat", "name")
+          .populate("village", "name")
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(paginationLimit)
+          .lean()
+      : DispatchRegister.find(query)
+          .populate("addedBy", "name")
+          .populate("department", "name")
+          .populate("district", "name")
+          .populate("block", "name")
+          .populate("panchayat", "name")
+          .populate("village", "name")
+          .sort({ createdAt: -1 })
+          .lean(),
+    DispatchRegister.countDocuments(query),
+    DispatchRegister.countDocuments({ ...req.scopeFilter }),
+  ]);
 
   res.status(200).json({
     success: true,
-    total: count,
+    total: total,
     count: filteredCount,
     data,
   });
@@ -88,7 +94,7 @@ exports.createDispatchRegister = asyncHandler(async (req, res) => {
     const dispatchRegister = await DispatchRegister.create({
       ...req.body,
       addedBy: req.user._id,
-      tenantId: req.tenantId, // SaaS: Link to organization
+      tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
     });
 
     await logActivity(

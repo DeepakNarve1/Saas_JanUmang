@@ -367,7 +367,7 @@ const Panchayat = () => {
                       onChange={handleImport}
                       className="hidden"
                     />
-                    {hasPermission("create_panchayat") && (
+                    {hasPermission("create_panchayats") && (
                       <Button
                         size="sm"
                         onClick={() => router.push("/panchayat/create")}
@@ -600,7 +600,7 @@ const Panchayat = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {hasPermission("view_panchayat") && (
+                                {hasPermission("view_panchayats") && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/panchayat/${panchayat._id}`)
@@ -609,7 +609,7 @@ const Panchayat = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_panchayat") && (
+                                {hasPermission("edit_panchayats") && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -620,7 +620,7 @@ const Panchayat = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_panchayat") && (
+                                {hasPermission("delete_panchayats") && (
                                   <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => handleDelete(panchayat._id)}

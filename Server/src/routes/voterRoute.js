@@ -14,13 +14,13 @@ const router = express.Router();
 
 router
   .route("/")
-  .get(protect, checkPermission("view_voter"), scopeQuery(), getVoters)
-  .post(protect, checkPermission("create_voter"), createVoter);
+  .get(protect, checkPermission("view_voters"), scopeQuery(), getVoters)
+  .post(protect, checkPermission("create_voters"), createVoter);
 
 router
   .route("/:id")
-  .get(protect, checkPermission("view_voter"), getVoterById)
-  .put(protect, checkPermission("edit_voter"), updateVoter)
-  .delete(protect, checkPermission("delete_voter"), deleteVoter);
+  .get(protect, checkPermission("view_voters"), getVoterById)
+  .put(protect, checkPermission("edit_voters"), updateVoter)
+  .delete(protect, checkPermission("delete_voters"), deleteVoter);
 
 module.exports = router;

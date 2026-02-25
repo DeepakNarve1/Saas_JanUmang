@@ -5,7 +5,7 @@ import WorktypeList from "@app/views/worktype";
 
 export default function WorktypePage() {
   return (
-    <RouteGuard requiredPermission="view_worktype">
+    <RouteGuard requiredPermission="view_work_types">
       <WorktypeList />
     </RouteGuard>
   );

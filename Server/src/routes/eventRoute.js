@@ -11,6 +11,7 @@ const {
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
 const { scopeQuery } = require("../middleware/scopeMiddleware");
+const { checkModuleAccess } = require("../middleware/moduleAccessMiddleware");
 
 const router = express.Router();
 console.log("Event routes initialized");
@@ -22,19 +23,47 @@ router.post(
     next();
   },
   protect,
+  checkModuleAccess("events"),
   checkPermission("edit_events"),
   syncAllEvents,
 );
 
 router
   .route("/")
-  .get(protect, checkPermission("view_events"), scopeQuery(), getEvents)
-  .post(protect, checkPermission("create_events"), createEvent);
+  .get(
+    protect,
+    checkModuleAccess("events"),
+    checkPermission("view_events"),
+    scopeQuery(),
+    getEvents,
+  )
+  .post(
+    protect,
+    checkModuleAccess("events"),
+    checkPermission("create_events"),
+    createEvent,
+  );
 
 router
   .route("/:id")
-  .get(protect, checkPermission("view_events"), scopeQuery(), getEventById)
-  .put(protect, checkPermission("edit_events"), updateEvent)
-  .delete(protect, checkPermission("delete_events"), deleteEvent);
+  .get(
+    protect,
+    checkModuleAccess("events"),
+    checkPermission("view_events"),
+    scopeQuery(),
+    getEventById,
+  )
+  .put(
+    protect,
+    checkModuleAccess("events"),
+    checkPermission("edit_events"),
+    updateEvent,
+  )
+  .delete(
+    protect,
+    checkModuleAccess("events"),
+    checkPermission("delete_events"),
+    deleteEvent,
+  );
 
 module.exports = router;

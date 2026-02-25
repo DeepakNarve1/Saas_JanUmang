@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const Panchayat = require("../models/panchayatModel");
 const Booth = require("../models/boothModel");
 const { logActivity } = require("./activityLogController");
+const { isGlobalAdmin } = require("../utils/authHelpers");
 
 // @desc    Get all panchayats
 // @route   GET /api/panchayat
@@ -17,9 +18,18 @@ exports.getPanchayats = asyncHandler(async (req, res) => {
     block,
     blockName,
     booth,
+    boothName,
   } = req.query;
 
   const query = {};
+
+  // SaaS: Enforce tenant isolation
+  if (!isGlobalAdmin(req.user)) {
+    query.tenantId = req.tenantId;
+  } else if (req.tenantId) {
+    // If Global Admin has selected a specific tenant context
+    query.tenantId = req.tenantId;
+  }
 
   if (search) {
     query.name = { $regex: search, $options: "i" };
@@ -76,14 +86,55 @@ exports.getPanchayats = asyncHandler(async (req, res) => {
     }
   }
 
-  if (booth) query.booth = booth;
+  // Handle booth filter (by name or ID)
+  if (boothName) {
+    const Booth = require("../models/boothModel");
+    const boothDoc = await Booth.findOne({
+      name: { $regex: `^${boothName}$`, $options: "i" },
+    });
+    if (boothDoc) {
+      query.booth = boothDoc._id;
+    } else {
+      return res.json({
+        success: true,
+        data: [],
+        count: 0,
+        filteredCount: 0,
+      });
+    }
+  } else if (booth) {
+    const mongoose = require("mongoose");
+    if (
+      mongoose.Types.ObjectId.isValid(booth) &&
+      /^[0-9a-fA-F]{24}$/.test(booth)
+    ) {
+      query.booth = booth;
+    } else {
+      const Booth = require("../models/boothModel");
+      const boothDoc = await Booth.findOne({
+        name: { $regex: `^${booth}$`, $options: "i" },
+      });
+      if (boothDoc) query.booth = boothDoc._id;
+      else
+        return res.json({
+          success: true,
+          data: [],
+          count: 0,
+          filteredCount: 0,
+        });
+    }
+  }
 
   const pageNum = Number(page);
   const limitNum = Number(limit);
 
   let panchayats;
   let filteredCount;
-  let totalCount = await Panchayat.countDocuments({});
+
+  // Total count restricted by tenant
+  const countQuery =
+    isGlobalAdmin(req.user) && !req.tenantId ? {} : { tenantId: req.tenantId };
+  let totalCount = await Panchayat.countDocuments(countQuery);
 
   if (limitNum === -1) {
     panchayats = await Panchayat.find(query)
@@ -136,6 +187,18 @@ exports.getPanchayatById = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Panchayat not found");
   }
+
+  // Enforce Tenant Access
+  if (!isGlobalAdmin(req.user)) {
+    if (
+      panchayat.tenantId &&
+      panchayat.tenantId.toString() !== req.tenantId.toString()
+    ) {
+      res.status(403);
+      throw new Error("Not authorized to view this panchayat");
+    }
+  }
+
   res.json({ success: true, data: panchayat });
 });
 
@@ -154,28 +217,128 @@ exports.createPanchayat = asyncHandler(async (req, res) => {
     year,
   } = req.body;
 
-  if (booth) {
-    const boothData = await Booth.findById(booth);
-    if (boothData) {
-      if (!state) state = boothData.state;
-      if (!division) division = boothData.division;
-      if (!district) district = boothData.district;
-      if (!parliament) parliament = boothData.parliament;
-      if (!assembly) assembly = boothData.assembly;
-      if (!block) block = boothData.block;
-    }
+  if (!req.tenantId && !isGlobalAdmin(req.user)) {
+    res.status(400);
+    throw new Error("Tenant ID is missing. Cannot create record.");
   }
 
+  // Use tenant from request context (set by auth middleware)
+  const tenantId = req.tenantId || req.user.tenantId;
+
+  // --- Start Hierarchy Resolution ---
+  const resolveHierarchy = async (data) => {
+    const State = require("../models/stateModel");
+    const Division = require("../models/divisionModel");
+    const District = require("../models/districtModel");
+    const Parliament = require("../models/parliamentModel");
+    const Assembly = require("../models/assemblyModel");
+    const Block = require("../models/blockModel");
+    const Booth = require("../models/boothModel");
+
+    const isId = (val) =>
+      mongoose.Types.ObjectId.isValid(val) && /^[0-9a-fA-F]{24}$/.test(val);
+
+    // Resolve Booth (Commonly used in imports)
+    if (data.booth && !isId(data.booth)) {
+      const b = await Booth.findOne({
+        $or: [
+          { name: { $regex: `^${data.booth}$`, $options: "i" } },
+          { code: { $regex: `^${data.booth}$`, $options: "i" } },
+        ],
+      });
+      if (b) {
+        data.booth = b._id;
+        // Inherit from booth
+        if (!data.block) data.block = b.block;
+        if (!data.assembly) data.assembly = b.assembly;
+        if (!data.parliament) data.parliament = b.parliament;
+        if (!data.district) data.district = b.district;
+        if (!data.division) data.division = b.division;
+        if (!data.state) data.state = b.state;
+      }
+    }
+
+    // Resolve Block
+    if (data.block && !isId(data.block)) {
+      const bl = await Block.findOne({
+        name: { $regex: `^${data.block}$`, $options: "i" },
+      });
+      if (bl) data.block = bl._id;
+      // Inherit from block if booth didn't provide it
+      if (bl) {
+        if (!data.assembly) data.assembly = bl.assembly;
+        if (!data.parliament) data.parliament = bl.parliament;
+        if (!data.district) data.district = bl.district;
+        if (!data.division) data.division = bl.division;
+        if (!data.state) data.state = bl.state;
+      }
+    }
+
+    // Resolve Assembly
+    if (data.assembly && !isId(data.assembly)) {
+      const asm = await Assembly.findOne({
+        name: { $regex: `^${data.assembly}$`, $options: "i" },
+      });
+      if (asm) data.assembly = asm._id;
+    }
+
+    // Resolve District
+    if (data.district && !isId(data.district)) {
+      const d = await District.findOne({
+        name: { $regex: `^${data.district}$`, $options: "i" },
+      });
+      if (d) data.district = d._id;
+    }
+
+    // Resolve Division
+    if (data.division && !isId(data.division)) {
+      const dv = await Division.findOne({
+        name: { $regex: `^${data.division}$`, $options: "i" },
+      });
+      if (dv) data.division = dv._id;
+    }
+
+    // Resolve State
+    if (data.state && !isId(data.state)) {
+      const s = await State.findOne({
+        name: { $regex: `^${data.state}$`, $options: "i" },
+      });
+      if (s) data.state = s._id;
+    }
+  };
+
+  const panchayatData = { ...req.body };
+  const mongoose = require("mongoose");
+  await resolveHierarchy(panchayatData);
+  // --- End Hierarchy Resolution ---
+
+  // Clean empty strings for ObjectId fields to prevent Mongoose CastErrors
+  const objectIdFields = [
+    "state",
+    "division",
+    "district",
+    "parliament",
+    "assembly",
+    "block",
+    "booth",
+  ];
+  objectIdFields.forEach((field) => {
+    if (panchayatData[field] === "") {
+      delete panchayatData[field];
+    }
+  });
+
   const panchayat = await Panchayat.create({
-    name,
-    state,
-    division,
-    ...(district && { district }),
-    parliament,
-    assembly,
-    block,
-    booth,
-    year,
+    name: panchayatData.name,
+    tenantId: tenantId, // Enforce Tenant
+    state: panchayatData.state,
+    division: panchayatData.division,
+    district: panchayatData.district,
+    parliament: panchayatData.parliament,
+    assembly: panchayatData.assembly,
+    block: panchayatData.block,
+    booth: panchayatData.booth,
+    year: panchayatData.year,
   });
 
   await logActivity(
@@ -197,7 +360,39 @@ exports.updatePanchayat = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Panchayat not found");
   }
+
+  // Enforce Tenant Access
+  if (!isGlobalAdmin(req.user)) {
+    if (
+      panchayat.tenantId &&
+      panchayat.tenantId.toString() !== req.tenantId.toString()
+    ) {
+      res.status(403);
+      throw new Error("Not authorized to update this panchayat");
+    }
+  }
+
   let updateData = { ...req.body };
+
+  // Prevent changing tenantId via update
+  delete updateData.tenantId;
+
+  // Clean empty strings for ObjectId fields to prevent Mongoose CastErrors
+  const objectIdFields = [
+    "state",
+    "division",
+    "district",
+    "parliament",
+    "assembly",
+    "block",
+    "booth",
+  ];
+  objectIdFields.forEach((field) => {
+    if (updateData[field] === "") {
+      delete updateData[field];
+    }
+  });
+
   if (updateData.booth) {
     const boothData = await Booth.findById(updateData.booth);
     if (boothData) {
@@ -237,6 +432,18 @@ exports.deletePanchayat = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Panchayat not found");
   }
+
+  // Enforce Tenant Access
+  if (!isGlobalAdmin(req.user)) {
+    if (
+      panchayat.tenantId &&
+      panchayat.tenantId.toString() !== req.tenantId.toString()
+    ) {
+      res.status(403);
+      throw new Error("Not authorized to delete this panchayat");
+    }
+  }
+
   await panchayat.deleteOne();
 
   await logActivity(

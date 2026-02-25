@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
 
+import { RouteGuard } from "@app/components/RouteGuard";
+
 const Block = dynamic(() => import("@app/views/block"), {
   ssr: false,
   loading: () => (
@@ -13,6 +15,10 @@ const Block = dynamic(() => import("@app/views/block"), {
   ),
 });
 
-export default function BlocksPage() {
-  return <Block />;
+export default function BlockPage() {
+  return (
+    <RouteGuard requiredPermission="view_blocks">
+      <Block />
+    </RouteGuard>
+  );
 }

@@ -9,6 +9,14 @@ const panchayatSchema = new mongoose.Schema(
       index: true,
     },
 
+    // SaaS Multi-tenancy
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: [true, "Tenant ID is required"],
+      index: true,
+    },
+
     state: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "State",
@@ -49,5 +57,8 @@ const panchayatSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+// Compound index for uniqueness within a tenant
+panchayatSchema.index({ name: 1, tenantId: 1 }, { unique: true });
 
 module.exports = mongoose.model("Panchayat", panchayatSchema);

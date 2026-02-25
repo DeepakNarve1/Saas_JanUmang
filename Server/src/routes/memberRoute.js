@@ -9,18 +9,46 @@ const {
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
 const { scopeQuery } = require("../middleware/scopeMiddleware");
+const { checkModuleAccess } = require("../middleware/moduleAccessMiddleware");
 
 const router = express.Router();
 
 router
   .route("/")
-  .get(protect, checkPermission("view_members"), scopeQuery(), getMembers)
-  .post(protect, checkPermission("create_members"), createMember);
+  .get(
+    protect,
+    checkModuleAccess("members"),
+    checkPermission("view_members"),
+    scopeQuery(),
+    getMembers,
+  )
+  .post(
+    protect,
+    checkModuleAccess("members"),
+    checkPermission("create_members"),
+    createMember,
+  );
 
 router
   .route("/:id")
-  .get(protect, checkPermission("view_members"), scopeQuery(), getMemberById)
-  .put(protect, checkPermission("edit_members"), updateMember)
-  .delete(protect, checkPermission("delete_members"), deleteMember);
+  .get(
+    protect,
+    checkModuleAccess("members"),
+    checkPermission("view_members"),
+    scopeQuery(),
+    getMemberById,
+  )
+  .put(
+    protect,
+    checkModuleAccess("members"),
+    checkPermission("edit_members"),
+    updateMember,
+  )
+  .delete(
+    protect,
+    checkModuleAccess("members"),
+    checkPermission("delete_members"),
+    deleteMember,
+  );
 
 module.exports = router;

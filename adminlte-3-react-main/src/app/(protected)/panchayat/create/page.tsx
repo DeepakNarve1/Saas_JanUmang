@@ -5,7 +5,7 @@ import CreatePanchayat from "@app/views/Panchayat/CreatePanchayat";
 
 const CreatePanchayatPage = () => {
   return (
-    <RouteGuard requiredPermission="create_panchayat">
+    <RouteGuard requiredPermission="create_panchayats">
       <CreatePanchayat />
     </RouteGuard>
   );

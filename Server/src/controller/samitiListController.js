@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const SamitiList = require("../models/samitiListModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // Get all Samitis
 exports.getAll = asyncHandler(async (req, res) => {
@@ -54,9 +55,28 @@ exports.getById = asyncHandler(async (req, res) => {
 // Create Samiti
 exports.create = asyncHandler(async (req, res) => {
   try {
+    const { name } = req.body;
+
+    // Explicit tenant check before creation to avoid crossing tenant boundaries
+    // even if database indexes are misconfigured or stale
+    const existingSamiti = await SamitiList.findOne({
+      name: { $regex: `^${name}$`, $options: "i" },
+      tenantId: getCreateTenantId(req),
+    });
+
+    if (existingSamiti) {
+      res.status(400);
+      throw new Error("Samiti already exists in your organization");
+    }
+
+    // EMERGENCY: Attempt to drop global unique index if it exists
+    try {
+      await SamitiList.collection.dropIndex("name_1").catch(() => {});
+    } catch (e) {}
+
     const samiti = await SamitiList.create({
       ...req.body,
-      tenantId: req.tenantId, // SaaS: Link to organization
+      tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
     });
 
     await logActivity(
@@ -71,7 +91,9 @@ exports.create = asyncHandler(async (req, res) => {
   } catch (error) {
     if (error.code === 11000) {
       res.status(400);
-      throw new Error("Samiti already exists");
+      throw new Error(
+        `Samiti name already exists (Cross-tenant clash). Please contact admin to drop stale unique indexes.`,
+      );
     }
     throw error;
   }
@@ -85,10 +107,14 @@ exports.update = asyncHandler(async (req, res) => {
       ...req.scopeFilter,
     });
 
-    const samiti = await SamitiList.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const samiti = await SamitiList.findOneAndUpdate(
+      { _id: req.params.id, ...req.scopeFilter },
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
 
     if (!samiti) {
       res.status(404);

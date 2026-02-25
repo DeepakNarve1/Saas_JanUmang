@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Member = require("../models/memberModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // @desc    Get members
 // @route   GET /api/members
@@ -130,7 +131,7 @@ exports.createMember = asyncHandler(async (req, res) => {
     addedBy: req.user ? req.user.name : "System",
     startDate: req.body.startDate || new Date(),
     endDate: req.body.endDate || new Date(),
-    tenantId: req.tenantId, // SaaS: Link to organization
+    tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
   };
 
   const member = await Member.create(memberData);

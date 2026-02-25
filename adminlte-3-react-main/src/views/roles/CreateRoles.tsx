@@ -31,6 +31,7 @@ const CreateRoleContent = () => {
         description: values.description ? values.description.trim() : undefined,
         permissions: values.permissions,
         status: values.status,
+        tenantId: values.tenantId,
         sidebarAccess: [], // Maintained for backend compatibility
       };
 

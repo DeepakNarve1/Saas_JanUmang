@@ -5,7 +5,7 @@ import EditVidhanSabha from "@app/views/vidhanSabha/EditVidhanSabha";
 
 export default function EditVidhanSabhaPage() {
   return (
-    <RouteGuard requiredPermission="edit_vidhan_sabha">
+    <RouteGuard requiredPermission="edit_assemblies">
       <EditVidhanSabha />
     </RouteGuard>
   );

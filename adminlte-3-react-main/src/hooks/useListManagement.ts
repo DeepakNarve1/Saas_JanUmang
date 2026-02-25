@@ -8,6 +8,7 @@ import {
 import { useDebounce } from "@app/hooks/useDebounce";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { getErrorMessage } from "@app/utils/errorHandler";
 
 interface ListManagementOptions<TData, TResponse> {
   queryKey: string;
@@ -86,7 +87,8 @@ export const useListManagement = <
       queryClient.invalidateQueries({ queryKey: [queryKey] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete");
+      const errorMessage = getErrorMessage(error, "Failed to delete");
+      toast.error(errorMessage);
     },
   });
 
@@ -295,7 +297,7 @@ export const useListManagement = <
             failureCount++;
             console.error(`Import: Failed to add row ${index + 1}`, {
               row,
-              error: error.response?.data?.message || error.message,
+              error: getErrorMessage(error, "Import failed"),
             });
           }
         }

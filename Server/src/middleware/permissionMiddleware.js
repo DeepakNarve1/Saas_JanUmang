@@ -1,5 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const AppError = require("../utils/AppError");
+const { isGlobalAdmin, getUserRoleName } = require("../utils/authHelpers");
 
 // @desc    Check if user has a specific permission
 const checkPermission = (permissionName) => {
@@ -9,17 +10,16 @@ const checkPermission = (permissionName) => {
     }
 
     // Global Admins (Superadmin/SystemAdmin) have all permissions
-    const isGlobalAdmin =
-      req.user.role === "superadmin" ||
-      (req.user.role && req.user.role.name === "superadmin") ||
-      req.user.level === "system_admin" ||
-      req.user.level === "superadmin";
+    if (isGlobalAdmin(req.user)) {
+      return next();
+    }
 
-    /* console.log(`[RBAC] Checking permission: ${permissionName}`);
-    console.log(`[RBAC] User Role: ${JSON.stringify(req.user.role)}`);
-    console.log(`[RBAC] Is GlobalAdmin: ${isGlobalAdmin}`); */
-
-    if (isGlobalAdmin) {
+    // Tenant Admins get default access to core views
+    if (
+      req.user.level === "tenant_admin" &&
+      (permissionName === "view_user_count" ||
+        permissionName === "view_dashboard")
+    ) {
       return next();
     }
 
@@ -29,14 +29,14 @@ const checkPermission = (permissionName) => {
       ? permissions.map((p) => p.name)
       : [];
 
-    console.log(`[RBAC] User Permissions: ${userPermNames.join(", ")}`);
-    console.log(`[RBAC] Checking for: ${permissionName}`);
+    // Debug logging only in development
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[RBAC] User Permissions: ${userPermNames.join(", ")}`);
+      console.log(`[RBAC] Checking for: ${permissionName}`);
+    }
 
     if (!userPermNames.includes(permissionName)) {
-      const roleName =
-        req.user.role && req.user.role.name
-          ? req.user.role.name
-          : JSON.stringify(req.user.role);
+      const roleName = getUserRoleName(req.user);
 
       return next(
         new AppError(
@@ -57,12 +57,16 @@ const checkAnyPermission = (permissionNames) => {
       return next(new AppError("User or role not found", 403));
     }
 
-    // Unified Global Admin check
+    // Global Admins have all permissions
+    if (isGlobalAdmin(req.user)) {
+      return next();
+    }
+
+    // Tenant Admins get default access to core views
     if (
-      req.user.role === "superadmin" ||
-      (req.user.role && req.user.role.name === "superadmin") ||
-      req.user.level === "system_admin" ||
-      req.user.level === "superadmin"
+      req.user.level === "tenant_admin" &&
+      (permissionNames.includes("view_user_count") ||
+        permissionNames.includes("view_dashboard"))
     ) {
       return next();
     }
@@ -99,13 +103,8 @@ const checkAllPermissions = (permissionNames) => {
       return next(new AppError("User or role not found", 403));
     }
 
-    // Unified Global Admin check
-    if (
-      req.user.role === "superadmin" ||
-      (req.user.role && req.user.role.name === "superadmin") ||
-      req.user.level === "system_admin" ||
-      req.user.level === "superadmin"
-    ) {
+    // Global Admins have all permissions
+    if (isGlobalAdmin(req.user)) {
       return next();
     }
 

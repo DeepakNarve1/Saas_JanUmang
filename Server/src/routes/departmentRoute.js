@@ -10,27 +10,45 @@ const {
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
 const { scopeQuery } = require("../middleware/scopeMiddleware");
+const { checkModuleAccess } = require("../middleware/moduleAccessMiddleware");
 
 // Routes for Department
 router
   .route("/")
   .get(
     protect,
-    checkPermission("view_department"),
-    scopeQuery(),
+    checkModuleAccess("departments"),
+    checkPermission("view_departments"),
+    scopeQuery({}, false),
     getDepartments,
   )
-  .post(protect, checkPermission("create_department"), createDepartment);
+  .post(
+    protect,
+    checkModuleAccess("departments"),
+    checkPermission("create_departments"),
+    createDepartment,
+  );
 
 router
   .route("/:id")
   .get(
     protect,
-    checkPermission("view_department"),
-    scopeQuery(),
+    checkModuleAccess("departments"),
+    checkPermission("view_departments"),
+    scopeQuery({}, false),
     getDepartmentById,
   )
-  .put(protect, checkPermission("edit_department"), updateDepartment)
-  .delete(protect, checkPermission("delete_department"), deleteDepartment);
+  .put(
+    protect,
+    checkModuleAccess("departments"),
+    checkPermission("edit_departments"),
+    updateDepartment,
+  )
+  .delete(
+    protect,
+    checkModuleAccess("departments"),
+    checkPermission("delete_departments"),
+    deleteDepartment,
+  );
 
 module.exports = router;

@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
 
+import { RouteGuard } from "@app/components/RouteGuard";
+
 const Panchayat = dynamic(() => import("@app/views/Panchayat"), {
   ssr: false,
   loading: () => (
@@ -14,5 +16,9 @@ const Panchayat = dynamic(() => import("@app/views/Panchayat"), {
 });
 
 export default function PanchayatPage() {
-  return <Panchayat />;
+  return (
+    <RouteGuard requiredPermission="view_panchayats">
+      <Panchayat />
+    </RouteGuard>
+  );
 }

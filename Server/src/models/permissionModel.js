@@ -8,6 +8,7 @@ const permissionSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
+      index: true,
     },
     displayName: {
       type: String,
@@ -19,55 +20,39 @@ const permissionSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+
+    // ============================================
+    // MODULE ASSOCIATION (NEW - CRITICAL)
+    // ============================================
+    module: {
+      type: String,
+      required: [true, "Module is required"],
+      lowercase: true,
+      index: true,
+      description:
+        "Module this permission belongs to (e.g., 'mp_public_problems', 'projects')",
+    },
+
+    // ============================================
+    // PERMISSION CATEGORY
+    // ============================================
     category: {
       type: String,
-      enum: [
-        "dashboard",
-        "users",
-        "roles",
-        "user_count",
-        "projects",
-        "mp_public_problems",
-        "assembly_issue",
-        "events",
-        "voter",
-        "ganesh_samiti",
-        "tenkar_samiti",
-        "dp_samiti",
-        "mandir_samiti",
-        "bhagoria_samiti",
-        "nirman_samiti",
-        "booth_samiti",
-        "block_samiti",
-        "vidhansabha_samiti",
-        "districts",
-        "divisions",
-        "states",
-        "members",
-        "parliaments",
-        "assemblies",
-        "blocks",
-        "booths",
-        "panchayat",
-        "villages",
-        "visitors",
-        "party",
-        "vidhan_sabha",
-        "sub_type_of_work",
-        "department",
-        "phone_directory",
-        "worktype",
-        "in_docs",
-        "inward_register",
-        "dispatch_register",
-        "call_management",
-        "activity_management",
-        "other",
-      ],
+      enum: ["view", "create", "edit", "delete", "export", "manage", "other"],
       default: "other",
+      description: "Type of action this permission grants",
+    },
+
+    // ============================================
+    // STATUS
+    // ============================================
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Permission", permissionSchema);

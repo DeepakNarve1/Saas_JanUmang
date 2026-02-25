@@ -16,13 +16,13 @@ router.use(protect);
 
 router
   .route("/")
-  .get(checkPermission("view_activity_logs"), scopeQuery(), getLogs);
+  .get(checkPermission("view_activity_logs"), scopeQuery({}, false), getLogs);
 
 router
   .route("/report")
   .get(
     checkPermission("view_user_activity_report"),
-    scopeQuery(),
+    scopeQuery({}, false),
     getActivityReport,
   );
 
@@ -30,6 +30,10 @@ router.route("/filters").get(checkPermission("view_activity_logs"), getFilters);
 
 router
   .route("/:id")
-  .get(checkPermission("view_activity_logs"), scopeQuery(), getLogById);
+  .get(
+    checkPermission("view_activity_logs"),
+    scopeQuery({}, false),
+    getLogById,
+  );
 
 module.exports = router;

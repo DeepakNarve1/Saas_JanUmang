@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const getSamitiModel = require("../models/samitiModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // Get all items (with pagination, search, etc.)
 exports.getAll = asyncHandler(async (req, res) => {
@@ -72,12 +73,17 @@ exports.create = asyncHandler(async (req, res) => {
   const SamitiModel = getSamitiModel(samitiType);
 
   try {
+    // EMERGENCY: Attempt to drop global unique index if it exists
+    try {
+      await SamitiModel.collection.dropIndex("uniqueId_1").catch(() => {});
+    } catch (e) {}
+
     // req.body should contain the fields. We append samitiType and addedBy
     const newItem = await SamitiModel.create({
       ...req.body,
-      samitiType, // Still saving it for reference, though implicit by collection
+      samitiType,
       addedBy: req.user ? req.user._id : undefined,
-      tenantId: req.tenantId, // SaaS: Link to organization
+      tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
     });
 
     await logActivity(
@@ -92,7 +98,9 @@ exports.create = asyncHandler(async (req, res) => {
   } catch (error) {
     if (error.code === 11000) {
       res.status(400);
-      throw new Error("Unique ID already exists for this Samiti");
+      throw new Error(
+        "This Unique ID (or Serial No) already exists for this type of Samiti. If you are seeing this across different organizations, please restart the server to trigger the database cleanup.",
+      );
     }
     throw error;
   }

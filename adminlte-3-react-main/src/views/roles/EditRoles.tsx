@@ -41,6 +41,7 @@ const EditRoleContent = () => {
               roleData.permissions?.map((p: any) =>
                 typeof p === "string" ? p : p._id,
               ) || [],
+            tenantId: roleData.tenantId || "",
           });
         }
       } catch (err) {

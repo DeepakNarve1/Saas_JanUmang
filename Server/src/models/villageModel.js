@@ -59,11 +59,18 @@ const villageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: [true, "Tenant ID is required"],
+      index: true,
+    },
   },
   { timestamps: true },
 );
 
 // Prevent duplicate villages in same block
-villageSchema.index({ name: 1, block: 1 }, { unique: true });
+villageSchema.index({ name: 1, block: 1, tenantId: 1 }, { unique: true });
 
 module.exports = mongoose.model("Village", villageSchema);

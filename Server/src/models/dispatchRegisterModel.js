@@ -72,11 +72,15 @@ const dispatchRegisterSchema = new mongoose.Schema(
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tenant",
-      required: true,
       index: true,
+      default: null,
     },
   },
   { timestamps: true },
 );
+
+dispatchRegisterSchema.index({ createdAt: -1 });
+dispatchRegisterSchema.index({ tenantId: 1, createdAt: -1 });
+dispatchRegisterSchema.index({ date: -1 });
 
 module.exports = mongoose.model("DispatchRegister", dispatchRegisterSchema);

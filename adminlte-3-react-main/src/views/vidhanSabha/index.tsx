@@ -106,7 +106,7 @@ const VidhanSabhaList = () => {
                 />
               </div>
               <div className="flex items-center gap-3">
-                {hasPermission("export_vidhan_sabha") && (
+                {hasPermission("export_assemblies") && (
                   <Button
                     variant="outline"
                     onClick={handleExport}
@@ -115,7 +115,7 @@ const VidhanSabhaList = () => {
                     <Download className="w-4 h-4 mr-2 text-blue-500" /> Export
                   </Button>
                 )}
-                {hasPermission("create_vidhan_sabha") && (
+                {hasPermission("create_assemblies") && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white dark:bg-[#368F8B] dark:hover:bg-[#2d7a76] rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
                     onClick={() => router.push("/vidhansabha/create")}
@@ -299,7 +299,7 @@ const VidhanSabhaList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_vidhan_sabha") && (
+                                {hasPermission("view_assemblies") && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -310,7 +310,7 @@ const VidhanSabhaList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_vidhan_sabha") && (
+                                {hasPermission("edit_assemblies") && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -321,7 +321,7 @@ const VidhanSabhaList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_vidhan_sabha") && (
+                                {hasPermission("delete_assemblies") && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600"
                                     onClick={() =>

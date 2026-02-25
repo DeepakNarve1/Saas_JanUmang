@@ -31,13 +31,20 @@ const MenuItem = ({ menuItem }: { menuItem: IMenuItem }) => {
   const calculateIsActive = (path: string) => {
     setIsMainActive(false);
     setIsOneOfChildrenActive(false);
-    if (isExpandable && menuItem && menuItem.children) {
-      menuItem.children.forEach((item) => {
-        if (item.path === path) {
-          setIsOneOfChildrenActive(true);
-          setIsMenuExtended(true);
-        }
+
+    const checkChildren = (items: IMenuItem[]): boolean => {
+      return items.some((item) => {
+        if (item.path === path) return true;
+        if (item.children) return checkChildren(item.children);
+        return false;
       });
+    };
+
+    if (isExpandable && menuItem && menuItem.children) {
+      if (checkChildren(menuItem.children)) {
+        setIsOneOfChildrenActive(true);
+        setIsMenuExtended(true);
+      }
     } else if (menuItem.path === path) {
       setIsMainActive(true);
     }
@@ -142,28 +149,9 @@ const MenuItem = ({ menuItem }: { menuItem: IMenuItem }) => {
               !darkMode ? "border-gray-100" : "border-gray-800"
             } ${isMenuExtended ? "mt-1 " : ""}`}
           >
-            {menuItem.children?.map((item) => {
-              const isActive = pathname === item.path;
-              const fullLinkClass = `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 ${
-                isActive
-                  ? !darkMode
-                    ? "bg-[#368F8B]/10 text-[#368F8B] font-medium"
-                    : "bg-[#368F8B] text-white font-medium shadow-md shadow-[#368F8B]/20"
-                  : !darkMode
-                    ? "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800/50"
-              }`;
-              return (
-                <li key={item.name} className="relative w-full">
-                  <Link className={fullLinkClass} href={item.path || "#"}>
-                    <i
-                      className={`${item.icon} w-4 text-center text-xs opacity-70`}
-                    />
-                    <p className="flex-1 truncate">{t(item.name)}</p>
-                  </Link>
-                </li>
-              );
-            })}
+            {menuItem.children?.map((item) => (
+              <MenuItem key={item.name + item.path} menuItem={item} />
+            ))}
           </ul>
         </div>
       )}

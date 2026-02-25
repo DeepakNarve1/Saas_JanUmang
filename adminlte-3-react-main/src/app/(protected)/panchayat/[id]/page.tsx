@@ -5,7 +5,7 @@ import ViewPanchayat from "@app/views/Panchayat/ViewPanchayat";
 
 const ViewPanchayatPage = () => {
   return (
-    <RouteGuard requiredPermission="view_panchayat">
+    <RouteGuard requiredPermission="view_panchayats">
       <ViewPanchayat />
     </RouteGuard>
   );

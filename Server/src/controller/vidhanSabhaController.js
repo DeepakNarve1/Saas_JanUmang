@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const VidhanSabha = require("../models/vidhanSabhaModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // Get all VidhanSabhas
 exports.getAll = asyncHandler(async (req, res) => {
@@ -63,7 +64,7 @@ exports.create = asyncHandler(async (req, res) => {
       ...req.body,
       createdBy,
       addedBy,
-      tenantId: req.tenantId, // SaaS: Link to organization
+      tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
     });
 
     await logActivity(

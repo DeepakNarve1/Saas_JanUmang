@@ -40,6 +40,7 @@ interface GenericSamitiFormProps {
   initialValues?: IGenericSamitiFormValues;
   isEdit?: boolean;
   id?: string;
+  isReadOnly?: boolean;
 }
 
 const GenericSamitiForm = ({
@@ -48,10 +49,13 @@ const GenericSamitiForm = ({
   initialValues = genericSamitiInitialValues,
   isEdit = false,
   id,
+  isReadOnly = false,
 }: GenericSamitiFormProps) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [pageLoading, setPageLoading] = useState(isEdit && !!id);
+  const [pageLoading, setPageLoading] = useState(
+    (isEdit || isReadOnly) && !!id,
+  );
   const [selectedPanchayatId, setSelectedPanchayatId] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -104,9 +108,9 @@ const GenericSamitiForm = ({
   const { data: panchayats = [] } = usePanchayats(blockId || "");
   const { data: villages = [] } = useVillages(selectedPanchayatId || "");
 
-  // Fetch Data for Edit
+  // Fetch Data for Edit or View
   useEffect(() => {
-    if (isEdit && id) {
+    if ((isEdit || isReadOnly) && id) {
       const fetchData = async () => {
         try {
           setPageLoading(true);
@@ -141,7 +145,7 @@ const GenericSamitiForm = ({
       };
       fetchData();
     }
-  }, [id, isEdit, apiEndpoint]);
+  }, [id, isEdit, isReadOnly, apiEndpoint]);
 
   // Sync selectedPanchayatId
   useEffect(() => {
@@ -183,7 +187,9 @@ const GenericSamitiForm = ({
 
   return (
     <>
-      <ContentHeader title={`${isEdit ? "Edit" : "Add New"} ${title}`} />
+      <ContentHeader
+        title={`${isReadOnly ? "View" : isEdit ? "Edit" : "Add New"} ${title}`}
+      />
       <section className="content">
         <div className="container-fluid px-4">
           <div className="bg-white dark:bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 mt-6 p-6">
@@ -206,9 +212,11 @@ const GenericSamitiForm = ({
                     placeholder={
                       isEdit ? "Enter Unique ID" : "Auto-generated on save"
                     }
-                    readOnly={!isEdit}
+                    readOnly={isReadOnly || !isEdit}
                     className={`dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 ${
-                      !isEdit ? "bg-gray-50 opacity-80 cursor-not-allowed" : ""
+                      isReadOnly || !isEdit
+                        ? "bg-gray-50 opacity-80 cursor-not-allowed"
+                        : ""
                     } ${
                       formik.touched.uniqueId && formik.errors.uniqueId
                         ? "border-red-500"
@@ -238,11 +246,12 @@ const GenericSamitiForm = ({
                     onValueChange={(val) => formik.setFieldValue("year", val)}
                   >
                     <SelectTrigger
+                      disabled={isReadOnly}
                       className={`dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 ${
                         formik.touched.year && formik.errors.year
                           ? "border-red-500"
                           : ""
-                      }`}
+                      } ${isReadOnly ? "opacity-80 cursor-not-allowed" : ""}`}
                     >
                       <SelectValue placeholder="Select Year" />
                     </SelectTrigger>
@@ -280,8 +289,12 @@ const GenericSamitiForm = ({
                     value={formik.values.acMpNo}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    placeholder="Enter AC/MP No."
-                    className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"
+                    readOnly={isReadOnly}
+                    className={`dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 ${
+                      isReadOnly
+                        ? "bg-gray-50 opacity-80 cursor-not-allowed"
+                        : ""
+                    }`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -296,11 +309,12 @@ const GenericSamitiForm = ({
                     onValueChange={(val) => formik.setFieldValue("block", val)}
                   >
                     <SelectTrigger
+                      disabled={isReadOnly}
                       className={`dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 ${
                         formik.touched.block && formik.errors.block
                           ? "border-red-500"
                           : ""
-                      }`}
+                      } ${isReadOnly ? "opacity-80 cursor-not-allowed" : ""}`}
                     >
                       <SelectValue placeholder="Select Block" />
                     </SelectTrigger>
@@ -334,8 +348,12 @@ const GenericSamitiForm = ({
                     value={formik.values.sector}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    placeholder="Enter Sector"
-                    className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"
+                    readOnly={isReadOnly}
+                    className={`dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 ${
+                      isReadOnly
+                        ? "bg-gray-50 opacity-80 cursor-not-allowed"
+                        : ""
+                    }`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -351,8 +369,12 @@ const GenericSamitiForm = ({
                     value={formik.values.microSectorNo}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    placeholder="Enter Micro Sector No"
-                    className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"
+                    readOnly={isReadOnly}
+                    className={`dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 ${
+                      isReadOnly
+                        ? "bg-gray-50 opacity-80 cursor-not-allowed"
+                        : ""
+                    }`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -368,8 +390,12 @@ const GenericSamitiForm = ({
                     value={formik.values.microSectorName}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    placeholder="Enter Micro Sector Name"
-                    className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"
+                    readOnly={isReadOnly}
+                    className={`dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 ${
+                      isReadOnly
+                        ? "bg-gray-50 opacity-80 cursor-not-allowed"
+                        : ""
+                    }`}
                   />
                 </div>
               </div>
@@ -394,11 +420,12 @@ const GenericSamitiForm = ({
                     onValueChange={handleBoothChange}
                   >
                     <SelectTrigger
+                      disabled={isReadOnly}
                       className={`dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 ${
                         formik.touched.boothName && formik.errors.boothName
                           ? "border-red-500"
                           : ""
-                      }`}
+                      } ${isReadOnly ? "opacity-80 cursor-not-allowed" : ""}`}
                     >
                       <SelectValue placeholder="Select Booth" />
                     </SelectTrigger>
@@ -437,7 +464,7 @@ const GenericSamitiForm = ({
                     onBlur={formik.handleBlur}
                     placeholder="Booth No"
                     readOnly
-                    className="bg-gray-50 dark:bg-gray-800/30 dark:border-gray-700 dark:text-gray-300"
+                    className="bg-gray-50 dark:bg-gray-800/30 dark:border-gray-700 dark:text-gray-300 cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -456,7 +483,10 @@ const GenericSamitiForm = ({
                       formik.setFieldValue("gramPanchayat", val)
                     }
                   >
-                    <SelectTrigger className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200">
+                    <SelectTrigger
+                      disabled={isReadOnly}
+                      className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"
+                    >
                       <SelectValue placeholder="Select Gram Panchayat" />
                     </SelectTrigger>
                     <SelectContent>
@@ -487,7 +517,10 @@ const GenericSamitiForm = ({
                       formik.setFieldValue("village", val)
                     }
                   >
-                    <SelectTrigger className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200">
+                    <SelectTrigger
+                      disabled={isReadOnly}
+                      className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"
+                    >
                       <SelectValue placeholder="Select Village" />
                     </SelectTrigger>
                     <SelectContent>
@@ -518,8 +551,12 @@ const GenericSamitiForm = ({
                     value={formik.values.faliya}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    placeholder="Enter Faliya"
-                    className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"
+                    readOnly={isReadOnly}
+                    className={`dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 ${
+                      isReadOnly
+                        ? "bg-gray-50 opacity-80 cursor-not-allowed"
+                        : ""
+                    }`}
                   />
                 </div>
               </div>
@@ -538,7 +575,11 @@ const GenericSamitiForm = ({
                     value={formik.values.fileName || ""}
                     placeholder="No file chosen"
                     readOnly
-                    className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-300"
+                    className={`dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-300 ${
+                      isReadOnly
+                        ? "bg-gray-50 opacity-80 cursor-not-allowed"
+                        : ""
+                    }`}
                   />
                   <input
                     type="file"
@@ -551,6 +592,7 @@ const GenericSamitiForm = ({
                     type="button"
                     variant="outline"
                     size="sm"
+                    disabled={isReadOnly}
                     className="w-fit dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
                     onClick={() => fileInputRef.current?.click()}
                   >
@@ -560,37 +602,43 @@ const GenericSamitiForm = ({
               </div>
 
               <div className="flex items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all min-w-[120px]"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save"
-                  )}
-                </Button>
+                {!isReadOnly && (
+                  <>
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all min-w-[120px]"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save"
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => formik.resetForm()}
+                      disabled={loading}
+                      className="rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      Reset
+                    </Button>
+                  </>
+                )}
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => router.back()}
                   disabled={loading}
-                  className="rounded-lg border-gray-200 dark:border-gray-700 dark:bg-[#202123] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm"
+                  className={`rounded-lg border-gray-200 dark:border-gray-700 dark:bg-[#202123] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm ${
+                    isReadOnly ? "w-full md:w-auto px-8" : ""
+                  }`}
                 >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => formik.resetForm()}
-                  disabled={loading}
-                  className="rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  Reset
+                  {isReadOnly ? "Back" : "Cancel"}
                 </Button>
               </div>
             </form>

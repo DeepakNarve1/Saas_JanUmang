@@ -10,13 +10,13 @@ router
   .route("/")
   .get(
     protect,
-    checkPermission("view_vidhan_sabha"),
-    scopeQuery(),
+    checkPermission("view_assemblies"),
+    scopeQuery({}, false),
     vidhanSabhaController.getAll,
   )
   .post(
     protect,
-    checkPermission("create_vidhan_sabha"),
+    checkPermission("create_assemblies"),
     vidhanSabhaController.create,
   );
 
@@ -24,18 +24,18 @@ router
   .route("/:id")
   .get(
     protect,
-    checkPermission("view_vidhan_sabha"),
-    scopeQuery(),
+    checkPermission("view_assemblies"),
+    scopeQuery({}, false),
     vidhanSabhaController.getById,
   )
   .put(
     protect,
-    checkPermission("edit_vidhan_sabha"),
+    checkPermission("edit_assemblies"),
     vidhanSabhaController.update,
   )
   .delete(
     protect,
-    checkPermission("delete_vidhan_sabha"),
+    checkPermission("delete_assemblies"),
     vidhanSabhaController.delete,
   );
 

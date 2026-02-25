@@ -88,7 +88,7 @@ const ViewSubTypeOfWork = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_sub_type_of_work") && (
+                {hasPermission("edit_sub_work_types") && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
                     onClick={() => router.push(`/sub-type-of-work/${id}/edit`)}

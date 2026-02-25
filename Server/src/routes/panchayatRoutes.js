@@ -8,18 +8,19 @@ const {
 } = require("../controller/panchayatController");
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
+const { checkModuleAccess } = require("../middleware/moduleAccessMiddleware");
 
 const router = express.Router();
 
 router
   .route("/")
-  .get(protect, checkPermission("view_panchayat"), getPanchayats)
-  .post(protect, checkPermission("create_panchayat"), createPanchayat);
+  .get(protect, checkPermission("view_panchayats"), getPanchayats)
+  .post(protect, checkPermission("create_panchayats"), createPanchayat);
 
 router
   .route("/:id")
-  .get(protect, checkPermission("view_panchayat"), getPanchayatById)
-  .put(protect, checkPermission("edit_panchayat"), updatePanchayat)
-  .delete(protect, checkPermission("delete_panchayat"), deletePanchayat);
+  .get(protect, checkPermission("view_panchayats"), getPanchayatById)
+  .put(protect, checkPermission("edit_panchayats"), updatePanchayat)
+  .delete(protect, checkPermission("delete_panchayats"), deletePanchayat);
 
 module.exports = router;

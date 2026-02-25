@@ -138,7 +138,7 @@ const WorktypeList = () => {
                 />
               </div>
               <div className="flex gap-2">
-                {hasPermission("create_worktype") && (
+                {hasPermission("create_work_types") && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all"
                     onClick={() => router.push("/worktype/create")}
@@ -292,7 +292,7 @@ const WorktypeList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_worktype") && (
+                                {hasPermission("view_work_types") && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/worktype/${item._id}/view`)
@@ -301,7 +301,7 @@ const WorktypeList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_worktype") && (
+                                {hasPermission("edit_work_types") && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/worktype/${item._id}/edit`)
@@ -310,7 +310,7 @@ const WorktypeList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_worktype") && (
+                                {hasPermission("delete_work_types") && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600 focus:bg-red-50"
                                     onClick={() => handleDelete(item._id)}

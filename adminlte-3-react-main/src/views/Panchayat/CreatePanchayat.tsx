@@ -43,7 +43,7 @@ const CreatePanchayat = () => {
               <PanchayatForm
                 onSubmit={handleSubmit}
                 loading={loading}
-                isEdit={true}
+                isEdit={false}
               />
             </div>
           </div>

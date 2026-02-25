@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
 
+import { RouteGuard } from "@app/components/RouteGuard";
+
 const Village = dynamic(() => import("@app/views/village"), {
   ssr: false,
   loading: () => (
@@ -14,5 +16,9 @@ const Village = dynamic(() => import("@app/views/village"), {
 });
 
 export default function VillagesPage() {
-  return <Village />;
+  return (
+    <RouteGuard requiredPermission="view_villages">
+      <Village />
+    </RouteGuard>
+  );
 }

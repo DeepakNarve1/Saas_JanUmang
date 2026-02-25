@@ -3,6 +3,9 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
 
+import ModuleGuard from "@app/modules/ModuleGuard";
+import { MODULE_IDS } from "@app/config/modules";
+
 const MemberList = dynamic(() => import("@app/views/memberList"), {
   ssr: false,
   loading: () => (
@@ -14,5 +17,9 @@ const MemberList = dynamic(() => import("@app/views/memberList"), {
 });
 
 export default function MemberListPage() {
-  return <MemberList />;
+  return (
+    <ModuleGuard moduleId={MODULE_IDS.MEMBERS}>
+      <MemberList />
+    </ModuleGuard>
+  );
 }

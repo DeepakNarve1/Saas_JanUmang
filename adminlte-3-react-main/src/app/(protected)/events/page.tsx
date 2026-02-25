@@ -3,6 +3,9 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
 
+import ModuleGuard from "@app/modules/ModuleGuard";
+import { MODULE_IDS } from "@app/config/modules";
+
 const EventList = dynamic(() => import("@app/views/events"), {
   ssr: false,
   loading: () => (
@@ -14,5 +17,9 @@ const EventList = dynamic(() => import("@app/views/events"), {
 });
 
 export default function EventsPage() {
-  return <EventList />;
+  return (
+    <ModuleGuard moduleId={MODULE_IDS.EVENTS}>
+      <EventList />
+    </ModuleGuard>
+  );
 }

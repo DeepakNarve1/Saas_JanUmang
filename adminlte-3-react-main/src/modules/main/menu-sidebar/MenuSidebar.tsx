@@ -3,7 +3,7 @@ import Link from "next/link";
 import { MenuItem } from "@components";
 import Image from "@app/components/Image";
 import { useAppSelector } from "@app/store/store";
-import { MENU, IMenuItem, SUPER_ADMIN_MENU_PATHS } from "@app/utils/menu";
+import { MENU, IMenuItem } from "@app/utils/menu";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { Avatar, AvatarFallback, AvatarImage } from "@app/components/ui/avatar";
 import { Users } from "lucide-react";
@@ -21,18 +21,22 @@ const MenuSidebar = () => {
   // Use our permission hook
   const { hasPermission, user } = usePermissions();
 
-  // Check if user is superadmin (Global platform access)
+  // Check if user is superadmin (Global platform access — NO tenantId allowed)
   const isSuperadmin = useMemo(() => {
     if (!user) return false;
 
-    // SaaS Level check
+    // CRITICAL: Any user belonging to an organisation is NEVER a platform admin.
+    // This mirrors the backend isGlobalAdmin() security check.
+    if (user.tenantId) return false;
+
+    // Only users without a tenantId and with platform-level roles are superadmins
     if (user.level === "system_admin" || user.level === "superadmin") {
       return true;
     }
 
     if (!user.role) return false;
 
-    // Legacy/Role check
+    // Legacy/Role check (only valid for platform users, i.e. no tenantId already checked above)
     if (typeof user.role === "string") {
       return user.role === "superadmin" || user.role === "system_admin";
     }
@@ -40,65 +44,149 @@ const MenuSidebar = () => {
   }, [user]);
 
   const canAccess = (item: IMenuItem) => {
-    // Super admin sees only Dashboard + Organizations
-    if (isSuperadmin) {
-      const path = item.path ?? item.children?.[0]?.path;
-      return path ? SUPER_ADMIN_MENU_PATHS.includes(path) : false;
-    }
-
-    // For tenant admins and other users:
-    // Block access to Organizations module
-    if (item.path === "/tenants" || item.resource === "tenants") {
+    // 1. Basic SaaS isolation — hide /tenants from non-platform-admins
+    if (
+      !isSuperadmin &&
+      (item.path === "/tenants" || item.resource === "tenants")
+    ) {
       return false;
     }
 
-    // 1. Check role-based access if allowedRoles is defined
+    // 2. Subscription is strictly tenant_admin only.
+    //    Only an org admin (level=tenant_admin WITH a tenantId) can see it.
+    //    Platform admins, employees, and custom-role users cannot.
+    if (item.path === "/subscription") {
+      return !!(user as any)?.tenantId && user?.level === "tenant_admin";
+    }
+
+    // 3. Check allowedRoles if defined — match on level only (NOT role name)
+    //    Matching on role.name is a security risk: a tenant could create a role
+    //    named "tenant_admin" and get access to restricted menu items.
     if (item.allowedRoles && item.allowedRoles.length > 0) {
-      // Check if user's level matches any allowed role
       const userLevel = user?.level || "";
-      const hasRoleAccess = item.allowedRoles.includes(userLevel);
-      if (hasRoleAccess) return true;
-
-      // Also check user's role name
-      if (user?.role) {
-        const roleName =
-          typeof user.role === "string" ? user.role : user.role.name;
-        if (item.allowedRoles.includes(roleName)) return true;
-      }
+      const hasRoleMatch = item.allowedRoles.includes(userLevel);
+      if (!hasRoleMatch) return false;
     }
 
-    // 2. Check strict permissions if defined (e.g. manage_roles)
+    // 4. Check specific permissions if defined
     if (item.allowedPermissions && item.allowedPermissions.length > 0) {
-      const hasAccess = item.allowedPermissions.some((p) => hasPermission(p));
-      if (hasAccess) return true;
+      const hasPerm = item.allowedPermissions.some((p) => hasPermission(p));
+      if (!hasPerm) return false;
     }
 
-    // 3. If item has a resource, check view permission for that resource
+    // 4. Check resource-based view permission if defined
     if (item.resource) {
-      const viewPermission = `view_${item.resource}`;
-      const canView = hasPermission(viewPermission);
-      if (canView) return true;
+      // List of all module IDs to check against for tenant isolation
+      const MODULE_KEYS = [
+        "mp_public_problems",
+        "projects",
+        "assembly_issues",
+        "departments",
+        "blocks",
+        "villages",
+        "panchayats",
+        "booths",
+        "members",
+        "events",
+        "visitors",
+        "states",
+        "divisions",
+        "districts",
+        "parliaments",
+        "assemblies",
+        "samiti",
+        "parties",
+        "work_types",
+        "sub_work_types",
+        "voters",
+        "phone_directory",
+        "call_management",
+        "inward_register",
+        "dispatch_register",
+        "ganesh_samiti",
+        "tenkar_samiti",
+        "dp_samiti",
+        "mandir_samiti",
+        "bhagoria_samiti",
+        "nirman_samiti",
+        "booth_samiti",
+        "block_samiti",
+        "user_count",
+      ];
+
+      // Check module access for tenant users
+      if (!isSuperadmin) {
+        const tenantModules = (user as any)?.tenant?.enabledModules || [];
+        if (
+          MODULE_KEYS.includes(item.resource) &&
+          !tenantModules.includes(item.resource)
+        ) {
+          return false;
+        }
+      }
+
+      // Check view permission for the resource
+      // Handle legacy singular resource names in permissions
+      const resourceMap: Record<string, string> = {
+        panchayats: "panchayat",
+        parties: "party",
+        work_types: "worktype",
+        sub_work_types: "sub_type_of_work",
+        departments: "department",
+        voters: "voter",
+        inward_register: "inward_register",
+        dispatch_register: "dispatch_register",
+        call_management: "call_management",
+        booths: "booth",
+      };
+
+      const permissionResource = resourceMap[item.resource] || item.resource;
+      const viewPermission = `view_${permissionResource}`;
+
+      // Check both mapped (singular/legacy) and original (plural/standard) permissions
+      if (
+        !hasPermission(viewPermission) &&
+        !hasPermission(`view_${item.resource}`)
+      )
+        return false;
     }
 
-    // 4. Allow items without specific restrictions (like headers)
-    // But only if they don't have allowedRoles or allowedPermissions defined
-    if (!item.allowedRoles && !item.allowedPermissions && !item.resource) {
-      return true;
-    }
-
-    return false;
+    return true;
   };
 
   const filteredMenu = useMemo(() => {
-    let items = MENU;
-    // Super admin: only show Dashboard and Organizations (no nested children for others)
+    // 1. Super Admin Logic: Dashboard & Tenants + Modules Dropdown
     if (isSuperadmin) {
-      items = MENU.filter((item) => {
+      const superAdminPaths = ["/dashboard", "/tenants"];
+      // Core items (Dashboard, Organizations)
+      const mainItems = MENU.filter((item) => {
         const path = item.path ?? item.children?.[0]?.path;
-        return path && SUPER_ADMIN_MENU_PATHS.includes(path);
+        return path && superAdminPaths.includes(path);
       });
+
+      // All other items go into "Modules" dropdown
+      // Exclude paths that only make sense for tenant users (e.g. subscription)
+      const tenantOnlyPaths = ["/subscription"];
+      const moduleItems = MENU.filter((item) => {
+        const path = item.path ?? item.children?.[0]?.path;
+        // Exclude core admin items
+        if (path && superAdminPaths.includes(path)) return false;
+        // Exclude tenant-only items that platform admins don't need
+        if (path && tenantOnlyPaths.includes(path)) return false;
+        return true;
+      });
+
+      const modulesDropdown: IMenuItem = {
+        name: "Modules",
+        icon: "fas fa-cubes nav-icon",
+        children: moduleItems,
+      };
+
+      return [...mainItems, modulesDropdown];
     }
 
+    // 2. Normal Logic for Tenant Admins / Others
+    // Show flat list (or whatever structure is in MENU), filtered by permissions
     const filterItems = (list: IMenuItem[]): IMenuItem[] =>
       list
         .map((item) => {
@@ -118,8 +206,8 @@ const MenuSidebar = () => {
         })
         .filter(Boolean) as IMenuItem[];
 
-    return filterItems(items);
-  }, [user, isSuperadmin]); // Re-filter when user changes
+    return filterItems(MENU);
+  }, [user, isSuperadmin]);
 
   const darkMode = useAppSelector((state) => state.ui.darkMode);
 
@@ -210,7 +298,19 @@ const MenuSidebar = () => {
                 {(currentUser as any).tenant?.name || "Organization"}
               </span>
               <span className="text-[10px] opacity-60 truncate block uppercase">
-                {currentUser?.level || "Member"}
+                {(() => {
+                  const u = currentUser as any;
+                  // Show role displayName if available (most specific)
+                  if (u?.role?.displayName) return u.role.displayName;
+                  // Translate level to friendly label
+                  const levelMap: Record<string, string> = {
+                    system_admin: "Platform Admin",
+                    superadmin: "Platform Admin",
+                    tenant_admin: "Org Admin",
+                    regularUser: u?.role?.name || "Member",
+                  };
+                  return levelMap[u?.level] || u?.role?.name || "Member";
+                })()}
               </span>
             </div>
           </div>

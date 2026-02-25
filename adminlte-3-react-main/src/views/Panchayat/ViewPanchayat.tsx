@@ -87,7 +87,7 @@ const ViewPanchayat = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back
                 </Button>
-                {hasPermission("edit_panchayat") && (
+                {hasPermission("edit_panchayats") && (
                   <Button
                     onClick={() => router.push(`/panchayat/${id}/edit`)}
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20"

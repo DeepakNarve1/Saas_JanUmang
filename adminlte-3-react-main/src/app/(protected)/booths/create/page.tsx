@@ -1,7 +1,12 @@
 "use client";
 
+import { RouteGuard } from "@app/components/RouteGuard";
 import CreateBooth from "@app/views/booth/CreateBooth";
 
 export default function CreateBoothPage() {
-  return <CreateBooth />;
+  return (
+    <RouteGuard requiredPermission="create_booths">
+      <CreateBooth />
+    </RouteGuard>
+  );
 }

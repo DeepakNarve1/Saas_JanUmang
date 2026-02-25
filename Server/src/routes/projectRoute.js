@@ -10,20 +10,53 @@ const {
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
 const { scopeQuery } = require("../middleware/scopeMiddleware");
+const { checkModuleAccess } = require("../middleware/moduleAccessMiddleware");
 
 const router = express.Router();
 
 router
   .route("/")
-  .get(protect, checkPermission("view_projects"), scopeQuery(), getProjects)
-  .post(protect, checkPermission("create_projects"), createProject);
+  .get(
+    protect,
+    checkModuleAccess("projects"),
+    checkPermission("view_projects"),
+    scopeQuery(),
+    getProjects,
+  )
+  .post(
+    protect,
+    checkModuleAccess("projects"),
+    checkPermission("create_projects"),
+    createProject,
+  );
 router
   .route("/seed")
-  .post(protect, checkPermission("create_projects"), seedProjects);
+  .post(
+    protect,
+    checkModuleAccess("projects"),
+    checkPermission("create_projects"),
+    seedProjects,
+  );
 router
   .route("/:id")
-  .get(protect, checkPermission("view_projects"), scopeQuery(), getProjectById)
-  .put(protect, checkPermission("edit_projects"), updateProject)
-  .delete(protect, checkPermission("delete_projects"), deleteProject);
+  .get(
+    protect,
+    checkModuleAccess("projects"),
+    checkPermission("view_projects"),
+    scopeQuery(),
+    getProjectById,
+  )
+  .put(
+    protect,
+    checkModuleAccess("projects"),
+    checkPermission("edit_projects"),
+    updateProject,
+  )
+  .delete(
+    protect,
+    checkModuleAccess("projects"),
+    checkPermission("delete_projects"),
+    deleteProject,
+  );
 
 module.exports = router;

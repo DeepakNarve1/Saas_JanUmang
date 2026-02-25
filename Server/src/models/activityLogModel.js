@@ -60,6 +60,8 @@ const activityLogSchema = new mongoose.Schema(
 );
 
 // Compound index for filtering
+activityLogSchema.index({ createdAt: -1 });
+activityLogSchema.index({ tenantId: 1, createdAt: -1 });
 activityLogSchema.index({ user: 1, action: 1, module: 1, createdAt: -1 });
 
 module.exports = mongoose.model("ActivityLog", activityLogSchema);

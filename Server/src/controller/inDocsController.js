@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const InDocs = require("../models/inDocsModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // Get all InDocs
 exports.getInDocs = asyncHandler(async (req, res) => {
@@ -62,8 +63,8 @@ exports.createInDocs = asyncHandler(async (req, res) => {
   try {
     const newInDocs = await InDocs.create({
       ...req.body,
-      addedBy: req.user._id, // Assuming req.user is populated by auth middleware
-      tenantId: req.tenantId, // SaaS: Link to organization
+      addedBy: req.user._id,
+      tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
     });
 
     await logActivity(

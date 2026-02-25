@@ -39,27 +39,20 @@ exports.getPublicProblems = asyncHandler(async (req, res) => {
 
   const pageNum = Number(page);
   const limitNum = Number(limit);
+  const skip = (pageNum - 1) * limitNum;
 
-  let problems;
-  let filteredCount;
-  let totalCount;
-
-  // Always get the true total (unfiltered)
-  totalCount = await PublicProblem.countDocuments({ ...req.scopeFilter });
-
-  if (limitNum === -1) {
-    // Return all filtered records (no pagination)
-    problems = await PublicProblem.find(query).sort({ createdAt: -1 });
-    filteredCount = problems.length;
-  } else {
-    const skip = (pageNum - 1) * limitNum;
-    problems = await PublicProblem.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum);
-
-    filteredCount = await PublicProblem.countDocuments(query);
-  }
+  // Run queries in parallel for better performance
+  const [problems, filteredCount, totalCount] = await Promise.all([
+    limitNum === -1
+      ? PublicProblem.find(query).sort({ createdAt: -1 }).lean()
+      : PublicProblem.find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limitNum)
+          .lean(),
+    PublicProblem.countDocuments(query),
+    PublicProblem.countDocuments({ ...req.scopeFilter }),
+  ]);
 
   res.json({
     success: true,
@@ -73,6 +66,11 @@ exports.getPublicProblems = asyncHandler(async (req, res) => {
 // @route   POST /api/public-problems
 exports.createPublicProblem = asyncHandler(async (req, res) => {
   try {
+    console.log("=== CREATE PUBLIC PROBLEM DEBUG ===");
+    console.log("User:", req.user?.email);
+    console.log("TenantId:", req.tenantId);
+    console.log("Body tenantId:", req.body.tenantId);
+
     // Generate regNo if not provided
     if (!req.body.regNo) {
       const lastProblem = await PublicProblem.findOne(
@@ -89,10 +87,12 @@ exports.createPublicProblem = asyncHandler(async (req, res) => {
         }
       }
       req.body.regNo = `MP/${lastNum + 1}`;
+      console.log("Generated regNo:", req.body.regNo);
     }
 
     // SaaS: Link to organization
     req.body.tenantId = req.tenantId;
+    console.log("Final tenantId:", req.body.tenantId);
 
     if (req.user) {
       req.body.addedBy = req.user.name || req.user.email || "System";
@@ -110,6 +110,16 @@ exports.createPublicProblem = asyncHandler(async (req, res) => {
 
     res.status(201).json({ success: true, data: problem });
   } catch (error) {
+    console.error("=== CREATE PUBLIC PROBLEM ERROR ===");
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error code:", error.code);
+    console.error("Error stack:", error.stack);
+    if (error.name === "MongoServerError" && error.code === 11000) {
+      console.error("Duplicate key error:", JSON.stringify(error.keyPattern));
+      console.error("Duplicate value:", JSON.stringify(error.keyValue));
+    }
+    console.error("===================================");
     res.status(400);
     throw new Error(error.message);
   }

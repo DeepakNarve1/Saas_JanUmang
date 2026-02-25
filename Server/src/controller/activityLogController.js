@@ -60,25 +60,31 @@ exports.getLogs = asyncHandler(async (req, res, next) => {
   if (isNaN(paginationLimit)) paginationLimit = 10;
   if (paginationLimit === -1) paginationLimit = 0;
 
-  const total = await ActivityLog.countDocuments({ ...req.scopeFilter });
-  const count = await ActivityLog.countDocuments(query);
+  const pageNum = parseInt(page) || 1;
+  const skip = (pageNum - 1) * paginationLimit;
 
-  let queryBuilder = ActivityLog.find(query)
-    .populate("user", "name role")
-    .populate({
-      path: "user",
-      populate: { path: "role", select: "name displayName" },
-    })
-    .sort({ createdAt: -1 })
-    .allowDiskUse(true); // Allow disk usage for large sorts
-
-  if (paginationLimit > 0) {
-    queryBuilder = queryBuilder
-      .limit(paginationLimit)
-      .skip((page - 1) * paginationLimit);
-  }
-
-  const data = await queryBuilder;
+  // Run queries in parallel for better performance
+  const [data, count, total] = await Promise.all([
+    paginationLimit > 0
+      ? ActivityLog.find(query)
+          .populate({
+            path: "user",
+            populate: { path: "role", select: "name displayName" },
+          })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(paginationLimit)
+          .lean()
+      : ActivityLog.find(query)
+          .populate({
+            path: "user",
+            populate: { path: "role", select: "name displayName" },
+          })
+          .sort({ createdAt: -1 })
+          .lean(),
+    ActivityLog.countDocuments(query),
+    ActivityLog.countDocuments({ ...req.scopeFilter }),
+  ]);
 
   res.status(200).json({
     success: true,

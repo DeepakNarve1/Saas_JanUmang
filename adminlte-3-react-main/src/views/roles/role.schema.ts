@@ -10,6 +10,7 @@ export const roleSchema = Yup.object().shape({
   status: Yup.string()
     .oneOf(["active", "inactive"])
     .required("Status is required"),
+  tenantId: Yup.string().optional(),
 });
 
 export const roleInitialValues: IRoleFormValues = {
@@ -18,4 +19,5 @@ export const roleInitialValues: IRoleFormValues = {
   description: "",
   permissions: [],
   status: "active",
+  tenantId: "",
 };

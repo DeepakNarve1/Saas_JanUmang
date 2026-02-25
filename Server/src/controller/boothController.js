@@ -135,15 +135,42 @@ exports.createBooth = asyncHandler(async (req, res) => {
   } = req.body;
 
   if (block && (!state || !assembly)) {
-    const blockData = await Block.findById(block);
+    const mongoose = require("mongoose");
+    let blockData;
+
+    if (
+      mongoose.Types.ObjectId.isValid(block) &&
+      /^[0-9a-fA-F]{24}$/.test(block)
+    ) {
+      blockData = await Block.findById(block);
+    } else {
+      // If not a valid ID, assume it's a name and search
+      blockData = await Block.findOne({
+        name: { $regex: `^${block}$`, $options: "i" },
+      });
+      if (blockData) {
+        // Update block variable to the found ID for record creation
+        block = blockData._id;
+      }
+    }
+
     if (blockData) {
       state = blockData.state;
       division = blockData.division;
       district = blockData.district;
       parliament = blockData.parliament;
       assembly = blockData.assembly;
+      year = blockData.year || year;
     }
   }
+
+  // Clean empty strings for ObjectId fields to prevent Mongoose CastErrors
+  if (state === "") state = undefined;
+  if (division === "") division = undefined;
+  if (district === "") district = undefined;
+  if (parliament === "") parliament = undefined;
+  if (assembly === "") assembly = undefined;
+  if (block === "") block = undefined;
 
   const booth = await Booth.create({
     name,
@@ -188,6 +215,21 @@ exports.updateBooth = asyncHandler(async (req, res) => {
       updateData.assembly = blockData.assembly;
     }
   }
+
+  // Clean empty strings for ObjectId fields to prevent Mongoose CastErrors
+  const objectIdFields = [
+    "state",
+    "division",
+    "district",
+    "parliament",
+    "assembly",
+    "block",
+  ];
+  objectIdFields.forEach((field) => {
+    if (updateData[field] === "") {
+      delete updateData[field];
+    }
+  });
 
   const updatedBooth = await Booth.findByIdAndUpdate(
     req.params.id,

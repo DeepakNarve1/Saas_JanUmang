@@ -27,7 +27,7 @@ export const USER_TYPE_OPTIONS = [
 ] as const;
 
 export const ADMIN_LEVEL_OPTIONS = [
-  { value: "system_admin", label: "System Admin (Platform)" },
+  { value: "regularUser", label: "Regular Employee" },
   { value: "tenant_admin", label: "Organization Admin" },
   { value: "state", label: "State Level" },
   { value: "division", label: "Division Level" },

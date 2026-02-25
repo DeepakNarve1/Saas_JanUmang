@@ -4,6 +4,7 @@ const asyncHandler = require("express-async-handler");
 const AppError = require("../utils/AppError");
 const User = require("../models/userModel");
 const Role = require("../models/roleModel");
+const { isGlobalAdmin } = require("../utils/authHelpers");
 
 const protect = asyncHandler(async (req, res, next) => {
   let token;
@@ -40,26 +41,48 @@ const protect = asyncHandler(async (req, res, next) => {
         }
       }
 
-      /*
-      console.log("[authMiddleware] User:", req.user.email);
-      // Clean log for role which can be object or string
-      const roleLog = typeof req.user.role === 'object' ? req.user.role?.name : req.user.role;
-      console.log("[authMiddleware] Role:", roleLog);
-      */
-
       // SaaS: Attach tenantId to request
       req.tenantId = req.user.tenantId;
 
       // System Admin / Superadmin can override tenant context via header for management/support
-      const isGlobalAdmin =
-        req.user.level === "system_admin" || req.user.level === "superadmin";
-
       if (
-        isGlobalAdmin &&
+        isGlobalAdmin(req.user) &&
         req.headers["x-tenant-id"] &&
         mongoose.Types.ObjectId.isValid(req.headers["x-tenant-id"])
       ) {
+        const originalTenantId = req.tenantId;
         req.tenantId = new mongoose.Types.ObjectId(req.headers["x-tenant-id"]);
+
+        // Log tenant context switching for audit trail
+        if (process.env.NODE_ENV !== "test") {
+          console.log(
+            `[AUDIT] Tenant Context Switch: User ${req.user.email} (${req.user.level}) switched from ${originalTenantId || "none"} to ${req.tenantId}`,
+          );
+
+          // Optionally log to activity log (import logActivity if needed)
+          // This provides a permanent audit trail
+          try {
+            const {
+              logActivity,
+            } = require("../controller/activityLogController");
+            await logActivity(
+              req,
+              "TENANT_SWITCH",
+              "TenantContext",
+              `Admin switched tenant context to ${req.tenantId}`,
+              {
+                originalTenantId: originalTenantId?.toString(),
+                newTenantId: req.tenantId.toString(),
+              },
+            );
+          } catch (logError) {
+            // Don't fail the request if logging fails
+            console.error(
+              "[AUDIT] Failed to log tenant switch:",
+              logError.message,
+            );
+          }
+        }
       }
 
       next();

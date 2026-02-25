@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Worktype = require("../models/worktypeModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // Get all Worktypes
 exports.getWorktypes = asyncHandler(async (req, res) => {
@@ -53,9 +54,22 @@ exports.getWorktypeById = asyncHandler(async (req, res) => {
 // Create Worktype
 exports.createWorktype = asyncHandler(async (req, res) => {
   try {
+    const { name } = req.body;
+
+    // Explicit tenant check
+    const existingWorktype = await Worktype.findOne({
+      name: { $regex: `^${name}$`, $options: "i" },
+      tenantId: getCreateTenantId(req),
+    });
+
+    if (existingWorktype) {
+      res.status(400);
+      throw new Error("Worktype already exists in your organization");
+    }
+
     const newWorktype = await Worktype.create({
       ...req.body,
-      tenantId: req.tenantId, // SaaS: Link to organization
+      tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
     });
 
     await logActivity(
@@ -84,10 +98,14 @@ exports.updateWorktype = asyncHandler(async (req, res) => {
       ...req.scopeFilter,
     });
 
-    const worktype = await Worktype.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const worktype = await Worktype.findOneAndUpdate(
+      { _id: req.params.id, ...req.scopeFilter },
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
 
     if (!worktype) {
       res.status(404);

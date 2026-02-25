@@ -5,7 +5,7 @@ import ViewParty from "@app/views/party/ViewParty";
 
 export default function ViewPartyPage() {
   return (
-    <RouteGuard requiredPermission="view_party">
+    <RouteGuard requiredPermission="view_parties">
       <ViewParty />
     </RouteGuard>
   );

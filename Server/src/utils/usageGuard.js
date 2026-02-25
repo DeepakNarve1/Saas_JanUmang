@@ -17,10 +17,15 @@ const checkUsageLimit = async (tenantId, resourceType = "users") => {
   }
 
   if (resourceType === "users") {
+    // If maxUsers is -1, it means unlimited
+    if (tenant.maxUsers === -1) {
+      return true;
+    }
+
     const userCount = await User.countDocuments({ tenantId });
     if (userCount >= tenant.maxUsers) {
       throw new AppError(
-        `Your organization has reached the limit of ${tenant.maxUsers} users. Please upgrade your plan.`,
+        `Your organization has reached the limit of ${tenant.maxUsers} users. Please upgrade your plan or contact to the provider for that`,
         403,
       );
     }

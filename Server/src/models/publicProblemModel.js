@@ -37,7 +37,7 @@ const publicProblemSchema = mongoose.Schema(
     beneficialName: { type: String, default: "" }, // Beneficial
     beneficialMobile: { type: String, default: "" }, // Beneficial Mobile / Beneficial Cont No.
 
-    status: { type: String, default: "Pending" },
+    status: { type: String, default: "Pending", index: true },
     remarkGoshana: { type: String, default: "" },
     remarkTipUsd: { type: String, default: "" },
 
@@ -52,6 +52,7 @@ const publicProblemSchema = mongoose.Schema(
     submissionDate: {
       type: Date,
       default: Date.now,
+      index: true,
     },
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -65,6 +66,8 @@ const publicProblemSchema = mongoose.Schema(
   },
 );
 
+publicProblemSchema.index({ createdAt: -1 });
+publicProblemSchema.index({ tenantId: 1, createdAt: -1 });
 publicProblemSchema.index({ regNo: 1, tenantId: 1 }, { unique: true });
 
 module.exports = mongoose.model("PublicProblem", publicProblemSchema);

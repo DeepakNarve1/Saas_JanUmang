@@ -12,6 +12,14 @@ export interface IUser {
   tenantId?: string;
   level?: string;
   metadata?: any;
+  tenant?: ITenantShort;
+}
+
+export interface ITenantShort {
+  _id: string;
+  name: string;
+  enabledModules?: string[];
+  plan?: string;
 }
 
 export interface IPermission {
@@ -36,6 +44,8 @@ export interface IUserRow {
   email: string;
   mobile?: string;
   role?: string | IRole;
+  level?: string;
+  tenantId?: string;
   createdAt?: string;
 }
 

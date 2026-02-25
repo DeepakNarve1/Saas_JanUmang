@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const SubTypeOfWork = require("../models/subTypeOfWorkModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // Get all SubTypeOfWorks
 exports.getSubTypeOfWorks = asyncHandler(async (req, res) => {
@@ -65,20 +66,44 @@ exports.getSubTypeOfWorkById = asyncHandler(async (req, res) => {
 
 // Create SubTypeOfWork
 exports.createSubTypeOfWork = asyncHandler(async (req, res) => {
-  const newSubTypeOfWork = await SubTypeOfWork.create({
-    ...req.body,
-    tenantId: req.tenantId, // SaaS: Link to organization
-  });
+  try {
+    const { subTypeOfWork, typeOfWork } = req.body;
 
-  await logActivity(
-    req,
-    "CREATE",
-    "SubTypeOfWork",
-    `Created sub-type work: ${newSubTypeOfWork.subTypeOfWork}`,
-    { recordId: newSubTypeOfWork._id, newData: newSubTypeOfWork },
-  );
+    // Explicit tenant check
+    const existing = await SubTypeOfWork.findOne({
+      subTypeOfWork: { $regex: `^${subTypeOfWork}$`, $options: "i" },
+      typeOfWork: typeOfWork,
+      tenantId: getCreateTenantId(req),
+    });
 
-  res.status(201).json({ success: true, data: newSubTypeOfWork });
+    if (existing) {
+      res.status(400);
+      throw new Error(
+        "Sub Type of Work already exists for this category in your organization",
+      );
+    }
+
+    const newSubTypeOfWork = await SubTypeOfWork.create({
+      ...req.body,
+      tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
+    });
+
+    await logActivity(
+      req,
+      "CREATE",
+      "SubTypeOfWork",
+      `Created sub-type work: ${newSubTypeOfWork.subTypeOfWork}`,
+      { recordId: newSubTypeOfWork._id, newData: newSubTypeOfWork },
+    );
+
+    res.status(201).json({ success: true, data: newSubTypeOfWork });
+  } catch (error) {
+    if (error.code === 11000) {
+      res.status(400);
+      throw new Error("Sub Type of Work already exists");
+    }
+    throw error;
+  }
 });
 
 // Update SubTypeOfWork

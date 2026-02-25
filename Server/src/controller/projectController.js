@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const Project = require("../models/projectModel");
 const District = require("../models/districtModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // @desc    Get all projects
 // @route   GET /api/projects
@@ -102,7 +103,7 @@ exports.getProjectById = asyncHandler(async (req, res) => {
 exports.createProject = asyncHandler(async (req, res) => {
   const project = await Project.create({
     ...req.body,
-    tenantId: req.tenantId, // SaaS: Link to organization
+    tenantId: getCreateTenantId(req), // SaaS: system admins create orphan records
   });
 
   await logActivity(

@@ -4,6 +4,8 @@ const samitiSchema = mongoose.Schema(
   {
     samitiType: { type: String, required: true }, // informative
     uniqueId: { type: String, index: true },
+    name: { type: String }, // General Name (added for Legislative/Other types)
+    type: { type: String }, // Sub-type (e.g. Financial, Standing)
     year: { type: String },
     acMpNo: { type: String, default: "N/A" },
     block: { type: String },

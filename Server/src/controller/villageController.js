@@ -193,43 +193,133 @@ exports.getVillageById = asyncHandler(async (req, res) => {
 // @desc    Create a village
 // @route   POST /api/villages
 exports.createVillage = asyncHandler(async (req, res) => {
-  let {
-    name,
-    state,
-    division,
-    district,
-    parliament,
-    assembly,
-    block,
-    booth,
-    panchayat,
-    status,
-  } = req.body;
+  // --- Start Hierarchy Resolution ---
+  const resolveHierarchy = async (data) => {
+    const State = require("../models/stateModel");
+    const Division = require("../models/divisionModel");
+    const District = require("../models/districtModel");
+    const Parliament = require("../models/parliamentModel");
+    const Assembly = require("../models/assemblyModel");
+    const Block = require("../models/blockModel");
+    const Booth = require("../models/boothModel");
+    const Panchayat = require("../models/panchayatModel");
 
-  if (panchayat) {
-    const panchayatData = await Panchayat.findById(panchayat);
-    if (panchayatData) {
-      if (!state) state = panchayatData.state;
-      if (!division) division = panchayatData.division;
-      if (!district) district = panchayatData.district;
-      if (!parliament) parliament = panchayatData.parliament;
-      if (!assembly) assembly = panchayatData.assembly;
-      if (!block) block = panchayatData.block;
-      if (!booth) booth = panchayatData.booth;
+    const isId = (val) =>
+      mongoose.Types.ObjectId.isValid(val) && /^[0-9a-fA-F]{24}$/.test(val);
+
+    // Resolve Panchayat
+    if (data.panchayat && !isId(data.panchayat)) {
+      const p = await Panchayat.findOne({
+        name: { $regex: `^${data.panchayat}$`, $options: "i" },
+      });
+      if (p) {
+        data.panchayat = p._id;
+        // Inherit from panchayat
+        if (!data.booth) data.booth = p.booth;
+        if (!data.block) data.block = p.block;
+        if (!data.assembly) data.assembly = p.assembly;
+        if (!data.parliament) data.parliament = p.parliament;
+        if (!data.district) data.district = p.district;
+        if (!data.division) data.division = p.division;
+        if (!data.state) data.state = p.state;
+      }
     }
-  }
+
+    // Resolve Booth
+    if (data.booth && !isId(data.booth)) {
+      const b = await Booth.findOne({
+        $or: [
+          { name: { $regex: `^${data.booth}$`, $options: "i" } },
+          { code: { $regex: `^${data.booth}$`, $options: "i" } },
+        ],
+      });
+      if (b) {
+        data.booth = b._id;
+        if (!data.block) data.block = b.block;
+      }
+    }
+
+    // Resolve Block
+    if (data.block && !isId(data.block)) {
+      const bl = await Block.findOne({
+        name: { $regex: `^${data.block}$`, $options: "i" },
+      });
+      if (bl) data.block = bl._id;
+      if (bl) {
+        if (!data.assembly) data.assembly = bl.assembly;
+        if (!data.parliament) data.parliament = bl.parliament;
+        if (!data.district) data.district = bl.district;
+        if (!data.division) data.division = bl.division;
+        if (!data.state) data.state = bl.state;
+      }
+    }
+
+    // Resolve Assembly
+    if (data.assembly && !isId(data.assembly)) {
+      const asm = await Assembly.findOne({
+        name: { $regex: `^${data.assembly}$`, $options: "i" },
+      });
+      if (asm) data.assembly = asm._id;
+    }
+
+    // Resolve District
+    if (data.district && !isId(data.district)) {
+      const d = await District.findOne({
+        name: { $regex: `^${data.district}$`, $options: "i" },
+      });
+      if (d) data.district = d._id;
+    }
+
+    // Resolve Division
+    if (data.division && !isId(data.division)) {
+      const dv = await Division.findOne({
+        name: { $regex: `^${data.division}$`, $options: "i" },
+      });
+      if (dv) data.division = dv._id;
+    }
+
+    // Resolve State
+    if (data.state && !isId(data.state)) {
+      const s = await State.findOne({
+        name: { $regex: `^${data.state}$`, $options: "i" },
+      });
+      if (s) data.state = s._id;
+    }
+  };
+
+  const villageData = { ...req.body };
+  const mongoose = require("mongoose");
+  await resolveHierarchy(villageData);
+  // --- End Hierarchy Resolution ---
+
+  // Clean empty strings for ObjectId fields to prevent Mongoose CastErrors
+  const objectIdFields = [
+    "state",
+    "division",
+    "district",
+    "parliament",
+    "assembly",
+    "block",
+    "booth",
+    "panchayat",
+  ];
+  objectIdFields.forEach((field) => {
+    if (villageData[field] === "") {
+      delete villageData[field];
+    }
+  });
 
   const village = await Village.create({
-    name,
-    state,
-    division,
-    district,
-    parliament,
-    assembly,
-    block,
-    booth,
-    panchayat,
-    status,
+    name: villageData.name,
+    state: villageData.state,
+    division: villageData.division,
+    district: villageData.district,
+    parliament: villageData.parliament,
+    assembly: villageData.assembly,
+    block: villageData.block,
+    booth: villageData.booth,
+    panchayat: villageData.panchayat,
+    status: villageData.status,
     createdBy: req.user ? req.user._id : undefined,
   });
 
@@ -266,6 +356,23 @@ exports.updateVillage = asyncHandler(async (req, res) => {
       updateData.booth = panchayatData.booth;
     }
   }
+
+  // Clean empty strings for ObjectId fields to prevent Mongoose CastErrors
+  const objectIdFields = [
+    "state",
+    "division",
+    "district",
+    "parliament",
+    "assembly",
+    "block",
+    "booth",
+    "panchayat",
+  ];
+  objectIdFields.forEach((field) => {
+    if (updateData[field] === "") {
+      delete updateData[field];
+    }
+  });
 
   const updatedVillage = await Village.findByIdAndUpdate(
     req.params.id,

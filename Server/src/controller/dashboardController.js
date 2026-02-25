@@ -10,7 +10,7 @@ const Block = require("../models/blockModel");
 const Visitor = require("../models/visitorModel");
 const Member = require("../models/memberModel");
 const InDoc = require("../models/inDocsModel");
-const Samiti = require("../models/samitiModel");
+// Note: Samiti is a factory function, not a direct model - skip for now
 const Village = require("../models/villageModel");
 const Panchayat = require("../models/panchayatModel");
 const Booth = require("../models/boothModel");
@@ -21,7 +21,7 @@ const Booth = require("../models/boothModel");
  * @access  Private
  */
 const getDashboardStats = asyncHandler(async (req, res) => {
-  const tenantId = req.user.tenantId;
+  const tenantId = req.tenantId;
   const tenantFilter = tenantId ? { tenantId } : {};
 
   // Get today's date range
@@ -43,7 +43,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     visitorsCount,
     membersStats,
     inDocsCount,
-    samitisCount,
     villagesCount,
     panchayatsCount,
     boothsCount,
@@ -131,9 +130,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     // In Docs
     InDoc.countDocuments(tenantFilter),
 
-    // Samitis
-    Samiti.countDocuments(tenantFilter),
-
     // Villages
     Village.countDocuments(tenantFilter),
 
@@ -174,7 +170,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       totalMembers: membersData.total,
       todayMembers: membersData.today,
       totalInDocs: inDocsCount,
-      totalSamitis: samitisCount,
       totalVillages: villagesCount,
       totalPanchayats: panchayatsCount,
       totalBooths: boothsCount,
@@ -188,7 +183,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getDepartmentSummary = asyncHandler(async (req, res) => {
-  const tenantId = req.user.tenantId;
+  const tenantId = req.tenantId;
   const tenantFilter = tenantId ? { tenantId } : {};
   const { block } = req.query;
 
@@ -251,7 +246,7 @@ const getDepartmentSummary = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getBlockSummary = asyncHandler(async (req, res) => {
-  const tenantId = req.user.tenantId;
+  const tenantId = req.tenantId;
   const tenantFilter = tenantId ? { tenantId } : {};
 
   const today = new Date();
@@ -326,7 +321,7 @@ const getBlockSummary = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getChartData = asyncHandler(async (req, res) => {
-  const tenantId = req.user.tenantId;
+  const tenantId = req.tenantId;
   const tenantFilter = tenantId ? { tenantId } : {};
   const { startDate, endDate } = req.query;
 
@@ -390,9 +385,173 @@ const getChartData = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Get member block summary based on code field
+ * @route   GET /api/dashboard/member-block-summary
+ * @access  Private
+ */
+const getMemberBlockSummary = asyncHandler(async (req, res) => {
+  const tenantId = req.tenantId;
+  const tenantFilter = tenantId ? { tenantId } : {};
+
+  const summary = await Member.aggregate([
+    { $match: tenantFilter },
+    {
+      $group: {
+        _id: "$block",
+        bc: {
+          $sum: {
+            $cond: [
+              { $regexMatch: { input: "$code", regex: /(^|,\s*)BC(\s*,|$)/i } },
+              1,
+              0,
+            ],
+          },
+        },
+        pp: {
+          $sum: {
+            $cond: [
+              { $regexMatch: { input: "$code", regex: /(^|,\s*)PP(\s*,|$)/i } },
+              1,
+              0,
+            ],
+          },
+        },
+        ip: {
+          $sum: {
+            $cond: [
+              { $regexMatch: { input: "$code", regex: /(^|,\s*)IP(\s*,|$)/i } },
+              1,
+              0,
+            ],
+          },
+        },
+        fh: {
+          $sum: {
+            $cond: [
+              { $regexMatch: { input: "$code", regex: /(^|,\s*)FH(\s*,|$)/i } },
+              1,
+              0,
+            ],
+          },
+        },
+        smm: {
+          $sum: {
+            $cond: [
+              {
+                $regexMatch: { input: "$code", regex: /(^|,\s*)SMM(\s*,|$)/i },
+              },
+              1,
+              0,
+            ],
+          },
+        },
+        ms: {
+          $sum: {
+            $cond: [
+              { $regexMatch: { input: "$code", regex: /(^|,\s*)MS(\s*,|$)/i } },
+              1,
+              0,
+            ],
+          },
+        },
+        fp: {
+          $sum: {
+            $cond: [
+              { $regexMatch: { input: "$code", regex: /(^|,\s*)FP(\s*,|$)/i } },
+              1,
+              0,
+            ],
+          },
+        },
+        er: {
+          $sum: {
+            $cond: [
+              { $regexMatch: { input: "$code", regex: /(^|,\s*)ER(\s*,|$)/i } },
+              1,
+              0,
+            ],
+          },
+        },
+        ak: {
+          $sum: {
+            $cond: [
+              { $regexMatch: { input: "$code", regex: /(^|,\s*)AK(\s*,|$)/i } },
+              1,
+              0,
+            ],
+          },
+        },
+        fm: {
+          $sum: {
+            $cond: [
+              { $regexMatch: { input: "$code", regex: /(^|,\s*)FM(\s*,|$)/i } },
+              1,
+              0,
+            ],
+          },
+        },
+        varist: {
+          $sum: {
+            $cond: [
+              {
+                $regexMatch: {
+                  input: "$code",
+                  regex: /(^|,\s*)(Varist|वरिष्ठ)(\s*,|$)/i,
+                },
+              },
+              1,
+              0,
+            ],
+          },
+        },
+        yuva: {
+          $sum: {
+            $cond: [
+              {
+                $regexMatch: {
+                  input: "$code",
+                  regex: /(^|,\s*)(Yuva|युवा)(\s*,|$)/i,
+                },
+              },
+              1,
+              0,
+            ],
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        name: { $ifNull: ["$_id", "Unassigned"] },
+        bc: 1,
+        pp: 1,
+        ip: 1,
+        fh: 1,
+        smm: 1,
+        ms: 1,
+        fp: 1,
+        er: 1,
+        ak: 1,
+        fm: 1,
+        varist: 1,
+        yuva: 1,
+      },
+    },
+    { $sort: { name: 1 } },
+  ]);
+
+  res.status(200).json({
+    success: true,
+    data: summary,
+  });
+});
+
 module.exports = {
   getDashboardStats,
   getDepartmentSummary,
   getBlockSummary,
   getChartData,
+  getMemberBlockSummary,
 };
