@@ -1,8 +1,0 @@
-Starting script at 2026-02-12T06:57:04.838Z
-MONGO_URI: Found
-Connecting to MongoDB...
-✅ Connected to MongoDB
-Found 2 tenants.
-ℹ️  Already enabled for Seashell-Corp
-ℹ️  Already enabled for Global Tech
-Done.
