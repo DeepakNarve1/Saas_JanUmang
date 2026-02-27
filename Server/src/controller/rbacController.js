@@ -151,6 +151,8 @@ exports.createPermission = asyncHandler(async (req, res) => {
 
 // Get all roles
 exports.getAllRoles = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 50 } = req.query;
+
   // Build query
   const query = { isDeleted: { $ne: true }, ...req.scopeFilter };
 
@@ -161,7 +163,22 @@ exports.getAllRoles = asyncHandler(async (req, res) => {
     query.name = { $ne: "tenant_admin" };
   }
 
-  const roles = await Role.find(query).populate("permissions");
+  const pageNum = parseInt(page) || 1;
+  let limitNum = parseInt(limit);
+  if (isNaN(limitNum)) limitNum = 50;
+  const fetchAll = limitNum === -1;
+
+  const total = await Role.countDocuments({
+    isDeleted: { $ne: true },
+    ...req.scopeFilter,
+  });
+
+  let rolesQuery = Role.find(query).populate("permissions");
+  if (!fetchAll) {
+    rolesQuery = rolesQuery.skip((pageNum - 1) * limitNum).limit(limitNum);
+  }
+
+  const roles = await rolesQuery;
 
   // Format the response to match what the frontend expects
   const formattedRoles = roles.map((role) => ({
@@ -172,15 +189,12 @@ exports.getAllRoles = asyncHandler(async (req, res) => {
     ...role.toObject(),
   }));
 
-  const total = await Role.countDocuments({
-    isDeleted: { $ne: true },
-    ...req.scopeFilter,
-  });
-
   res.status(200).json({
     success: true,
     total,
     count: formattedRoles.length,
+    page: pageNum,
+    limit: fetchAll ? -1 : limitNum,
     data: formattedRoles,
   });
 });

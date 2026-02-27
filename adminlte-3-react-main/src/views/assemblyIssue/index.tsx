@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
 import { ContentHeader } from "@app/components";
+import { API_BASE_URL } from "@app/utils/api";
 import { RouteGuard } from "@app/components/RouteGuard";
 import { usePermissions } from "@app/hooks/usePermissions";
 
@@ -45,6 +46,7 @@ import {
   Columns,
   Loader2,
   Upload,
+  FileImage,
 } from "lucide-react";
 import { Pagination } from "@app/components/common/Pagination";
 import { TimerDisplay } from "@app/components/TimerDisplay";
@@ -1145,14 +1147,19 @@ const AssemblyIssueListContent = ({
                         )}
                         {visibleColumns.avedanFile && (
                           <TableCell className="text-center whitespace-nowrap lowercase">
-                            {issue.avedanFileName ? (
+                            {issue.avedanFile ? (
                               <a
-                                href={issue.avedanFile}
+                                href={
+                                  issue.avedanFile.startsWith("/")
+                                    ? `${API_BASE_URL.replace("/api", "")}${issue.avedanFile}`
+                                    : issue.avedanFile
+                                }
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-500 underline"
+                                className="inline-flex items-center justify-center p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors"
+                                title="View Avedan"
                               >
-                                View
+                                <FileImage className="w-5 h-5" />
                               </a>
                             ) : (
                               "-"

@@ -13,7 +13,16 @@ const {
   changePassword,
   resetUserPassword,
   sanitizeUserLevels,
+  refreshToken,
 } = require("../controller/authController");
+const {
+  forgotPassword,
+  resetPasswordViaToken,
+} = require("../controller/forgotPasswordController");
+const {
+  sendVerificationEmail,
+  verifyEmail,
+} = require("../controller/emailVerificationController");
 const protect = require("../middleware/authMiddleware");
 const {
   checkPermission,
@@ -32,6 +41,15 @@ const router = express.Router();
 // ─── Public auth endpoints (rate-limited) ─────────────────────────────────
 router.post("/login", loginLimiter, loginUser);
 router.post("/google-login", googleLoginLimiter, googleLogin);
+router.post("/refresh-token", refreshToken); // no auth required — it reads the HttpOnly cookie
+
+// ─── Forgot Password (public, rate-limited) ────────────────────────────────
+router.post("/forgot-password", passwordResetLimiter, forgotPassword);
+router.post("/reset-password/:token", resetPasswordViaToken);
+
+// ─── Email Verification ────────────────────────────────────────────────────
+router.get("/verify-email/:token", verifyEmail); // Public — called from email link
+router.post("/send-verification-email", protect, sendVerificationEmail); // Protected
 
 // ─── Authenticated endpoints ───────────────────────────────────────────────
 router.post("/register", protect, registerLimiter, registerUser);

@@ -86,7 +86,7 @@ const ViewParty = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_party") && (
+                {hasPermission("edit_parties") && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20"
                     onClick={() => router.push(`/party/${id}/edit`)}

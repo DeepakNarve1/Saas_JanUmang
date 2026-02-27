@@ -1,7 +1,5 @@
-"use client";
-
-import Register from "@app/views/auth/register/Register";
+import { redirect } from "next/navigation";
 
 export default function RegisterPage() {
-  return <Register />;
+  redirect("/login");
 }

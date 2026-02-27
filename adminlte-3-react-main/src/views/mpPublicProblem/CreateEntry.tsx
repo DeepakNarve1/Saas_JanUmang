@@ -11,6 +11,7 @@ import {
   IPublicProblemFormValues,
 } from "./publicProblem.schema";
 import { handleError } from "@app/utils/errorHandler";
+import { API_BASE_URL } from "@app/utils/api";
 
 import { Input } from "@app/components/ui/input";
 import {
@@ -227,20 +228,37 @@ const CreateEntryContent = () => {
     } catch {}
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.size > 10 * 1024 * 1024) {
-        // 10MB limit
-        toast.error("File size exceeds 10MB");
-        return;
-      }
-      setFileName(file.name);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        formik.setFieldValue("avedan", reader.result);
-      };
-      reader.readAsDataURL(file);
+  const [fileUploading, setFileUploading] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size exceeds 10MB");
+      return;
+    }
+
+    setFileName(file.name);
+    setFileUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const { data } = await axios.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      // Store the URL — not base64
+      formik.setFieldValue("avedan", data.url);
+      toast.success("File uploaded successfully");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "File upload failed");
+      formik.setFieldValue("avedan", "");
+      setFileName("");
+    } finally {
+      setFileUploading(false);
     }
   };
 
@@ -615,18 +633,40 @@ const CreateEntryContent = () => {
                         <Button
                           type="button"
                           variant="outline"
+                          disabled={fileUploading}
                           onClick={() =>
                             document
                               .getElementById(`${field.name}-upload`)
                               ?.click()
                           }
-                          className="dark:bg-[#202123] dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-800"
+                          className="dark:bg-[#202123] dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-800 flex items-center gap-2"
                         >
-                          Choose File
+                          {fileUploading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
+                          {(formik.values as any)[field.name]
+                            ? "Change File"
+                            : "Choose File"}
                         </Button>
                         <span className="text-gray-500 dark:text-gray-400">
                           {fileName || "No file chosen"}
                         </span>
+                        {(formik.values as any)[field.name] && (
+                          <a
+                            href={
+                              (formik.values as any)[field.name].startsWith("/")
+                                ? `${API_BASE_URL.replace("/api", "")}${(formik.values as any)[field.name]}`
+                                : (formik.values as any)[field.name]
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 dark:text-blue-400 underline text-sm ml-2 flex items-center gap-1"
+                          >
+                            <FileImage className="w-4 h-4" /> View Uploaded
+                          </a>
+                        )}
                         <input
                           id={`${field.name}-upload`}
                           type="file"

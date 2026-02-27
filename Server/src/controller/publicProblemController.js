@@ -66,11 +66,6 @@ exports.getPublicProblems = asyncHandler(async (req, res) => {
 // @route   POST /api/public-problems
 exports.createPublicProblem = asyncHandler(async (req, res) => {
   try {
-    console.log("=== CREATE PUBLIC PROBLEM DEBUG ===");
-    console.log("User:", req.user?.email);
-    console.log("TenantId:", req.tenantId);
-    console.log("Body tenantId:", req.body.tenantId);
-
     // Generate regNo if not provided
     if (!req.body.regNo) {
       const lastProblem = await PublicProblem.findOne(
@@ -87,12 +82,10 @@ exports.createPublicProblem = asyncHandler(async (req, res) => {
         }
       }
       req.body.regNo = `MP/${lastNum + 1}`;
-      console.log("Generated regNo:", req.body.regNo);
     }
 
     // SaaS: Link to organization
     req.body.tenantId = req.tenantId;
-    console.log("Final tenantId:", req.body.tenantId);
 
     if (req.user) {
       req.body.addedBy = req.user.name || req.user.email || "System";
@@ -110,16 +103,12 @@ exports.createPublicProblem = asyncHandler(async (req, res) => {
 
     res.status(201).json({ success: true, data: problem });
   } catch (error) {
-    console.error("=== CREATE PUBLIC PROBLEM ERROR ===");
-    console.error("Error name:", error.name);
-    console.error("Error message:", error.message);
-    console.error("Error code:", error.code);
-    console.error("Error stack:", error.stack);
     if (error.name === "MongoServerError" && error.code === 11000) {
-      console.error("Duplicate key error:", JSON.stringify(error.keyPattern));
-      console.error("Duplicate value:", JSON.stringify(error.keyValue));
+      res.status(400);
+      throw new Error(
+        "A problem with this registration number already exists.",
+      );
     }
-    console.error("===================================");
     res.status(400);
     throw new Error(error.message);
   }

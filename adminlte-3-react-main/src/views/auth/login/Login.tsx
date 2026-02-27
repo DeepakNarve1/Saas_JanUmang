@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
-import Link from "next/link";
 import { setWindowClass } from "@app/utils/helpers";
 
 import { Card } from "@app/components/ui/card";
@@ -225,25 +224,6 @@ const Login = () => {
               </GoogleOAuthProvider>
             </div>
           </form>
-
-          {/* Links */}
-          <div className="mt-8 text-center space-y-4">
-            <Link
-              href="/forgot-password"
-              className="text-sm text-[#368F8B] hover:text-[#2d7a76] font-medium transition-colors block"
-            >
-              Forgot your password?
-            </Link>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Don't have an account?{" "}
-              <Link
-                href="/register"
-                className="text-[#368F8B] font-bold hover:underline transition-all"
-              >
-                Create Account
-              </Link>
-            </p>
-          </div>
         </div>
       </Card>
     </div>

@@ -42,7 +42,9 @@ const protect = asyncHandler(async (req, res, next) => {
       }
 
       // SaaS: Attach tenantId to request
-      req.tenantId = req.user.tenantId;
+      // Use _doc fallback because mutating req.user.role to a populated object
+      // can sometimes cause Mongoose to shadow plain field access on the document.
+      req.tenantId = req.user.tenantId || req.user._doc?.tenantId;
 
       // System Admin / Superadmin can override tenant context via header for management/support
       if (

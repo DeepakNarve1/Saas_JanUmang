@@ -20,6 +20,16 @@ export interface ITenantShort {
   name: string;
   enabledModules?: string[];
   plan?: string;
+  // Trial / subscription status
+  subscriptionStatus?:
+    | "trial"
+    | "active"
+    | "suspended"
+    | "cancelled"
+    | "expired";
+  trialEndsAt?: string | null;
+  daysLeftInTrial?: number | null;
+  isTrialExpiringSoon?: boolean;
 }
 
 export interface IPermission {

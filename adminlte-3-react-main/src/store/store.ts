@@ -14,7 +14,8 @@ const store = configureStore({
     const middleware = getDefaultMiddleware({
       serializableCheck: false,
     });
-    if (typeof window !== "undefined") {
+    // Only attach the logger in development — never in production builds
+    if (process.env.NODE_ENV === "development") {
       return middleware.concat(createLogger());
     }
     return middleware;
@@ -29,7 +30,9 @@ export const useAppSelector: TypedUseSelectorHook<ReduxState> = useSelector;
 /* Types */
 export type ReduxStore = typeof store;
 export type ReduxState = ReturnType<typeof store.getState>;
+export type RootState = ReduxState;
 export type ReduxDispatch = typeof store.dispatch;
+export type AppDispatch = ReduxDispatch;
 export type ReduxThunkAction<ReturnType = void> = ThunkAction<
   ReturnType,
   ReduxState,

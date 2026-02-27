@@ -23,6 +23,8 @@ import {
 import { Button } from "@app/components/ui/button";
 import { Label } from "@app/components/ui/label";
 import { ContentHeader } from "@app/components";
+import { API_BASE_URL } from "@app/utils/api";
+import { Loader2, Upload, FileImage } from "lucide-react";
 import { RouteGuard } from "@app/components/RouteGuard";
 
 const EditEntry = () => {
@@ -52,6 +54,7 @@ const EditEntryContent = () => {
   const [departmentsList, setDepartmentsList] = useState([]);
   const [assembliesList, setAssembliesList] = useState([]);
   const [fileName, setFileName] = useState("");
+  const [fileUploading, setFileUploading] = useState(false);
 
   const formik = useFormik({
     initialValues: publicProblemInitialValues,
@@ -118,7 +121,7 @@ const EditEntryContent = () => {
           } else if (
             data.avedan &&
             typeof data.avedan === "string" &&
-            data.avedan.startsWith("http")
+            (data.avedan.startsWith("http") || data.avedan.startsWith("/"))
           ) {
             const urlParts = data.avedan.split("/");
             setFileName(urlParts[urlParts.length - 1]);
@@ -259,19 +262,35 @@ const EditEntryContent = () => {
     } catch {}
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("File size exceeds 10MB");
-        return;
-      }
-      setFileName(file.name);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        formik.setFieldValue("avedan", reader.result);
-      };
-      reader.readAsDataURL(file);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size exceeds 10MB");
+      return;
+    }
+
+    setFileName(file.name);
+    setFileUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const { data } = await axios.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      // Store the URL — not base64
+      formik.setFieldValue("avedan", data.url);
+      toast.success("File uploaded successfully");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "File upload failed");
+      formik.setFieldValue("avedan", "");
+      setFileName("");
+    } finally {
+      setFileUploading(false);
     }
   };
 
@@ -998,11 +1017,17 @@ const EditEntryContent = () => {
                     <Button
                       type="button"
                       variant="outline"
+                      disabled={fileUploading}
                       onClick={() =>
                         document.getElementById("file-upload")?.click()
                       }
-                      className="dark:bg-[#202123] dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-800"
+                      className="dark:bg-[#202123] dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-800 flex items-center gap-2"
                     >
+                      {fileUploading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4" />
+                      )}
                       {formik.values.avedan ? "Change File" : "Choose File"}
                     </Button>
                     <span className="text-gray-500 dark:text-gray-400">
@@ -1011,17 +1036,21 @@ const EditEntryContent = () => {
                           ? "File attached"
                           : "No file chosen")}
                     </span>
-                    {formik.values.avedan &&
-                      formik.values.avedan.startsWith("http") && (
-                        <a
-                          href={formik.values.avedan}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-600 underline text-sm"
-                        >
-                          View Current
-                        </a>
-                      )}
+                    {formik.values.avedan && (
+                      <a
+                        href={
+                          formik.values.avedan.startsWith("/")
+                            ? `${API_BASE_URL.replace("/api", "")}${formik.values.avedan}`
+                            : formik.values.avedan
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 underline text-sm ml-2 flex items-center gap-1 hover:text-blue-700"
+                      >
+                        <FileImage className="w-4 h-4" />
+                        View Current
+                      </a>
+                    )}
                     <input
                       id="file-upload"
                       type="file"

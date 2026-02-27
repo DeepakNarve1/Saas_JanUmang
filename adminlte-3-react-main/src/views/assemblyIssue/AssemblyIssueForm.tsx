@@ -8,7 +8,8 @@ import { toast } from "react-toastify";
 import { Button } from "@app/components/ui/button";
 import { Input } from "@app/components/ui/input";
 import { Label } from "@app/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, FileImage } from "lucide-react";
+import { API_BASE_URL } from "@app/utils/api";
 import {
   Select,
   SelectContent,
@@ -65,6 +66,9 @@ const AssemblyIssueForm = ({
   const [selectedDistrictId, setSelectedDistrictId] = useState<string>("");
   const [selectedAssemblyId, setSelectedAssemblyId] = useState<string>("");
   const [selectedPanchayatId, setSelectedPanchayatId] = useState<string>("");
+  const [fileUploading, setFileUploading] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   const months = [
     "January",
@@ -236,11 +240,12 @@ const AssemblyIssueForm = ({
     const selectedBooth = booths.find((b) => b._id === boothId);
     if (selectedBooth) {
       formik.setFieldValue("boothName", selectedBooth.name);
-      formik.setFieldValue("boothNo", selectedBooth.name); // Using Name as No if Code not available or as per request 'Booth No'
+      // Using Name as No if Code not available or as per request 'Booth No'
+      formik.setFieldValue("boothNo", selectedBooth.name);
     }
   };
 
-  const handleFileChange = (
+  const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     fieldName: string,
     fileNameField: string,
@@ -253,12 +258,26 @@ const AssemblyIssueForm = ({
         return;
       }
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        formik.setFieldValue(fieldName, reader.result as string);
+      setFileUploading((prev) => ({ ...prev, [fieldName]: true }));
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const { data } = await axios.post("/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        formik.setFieldValue(fieldName, data.url);
         formik.setFieldValue(fileNameField, file.name);
-      };
-      reader.readAsDataURL(file);
+        toast.success("File uploaded successfully");
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || "File upload failed");
+        formik.setFieldValue(fieldName, "");
+        formik.setFieldValue(fileNameField, "");
+      } finally {
+        setFileUploading((prev) => ({ ...prev, [fieldName]: false }));
+      }
     }
   };
 
@@ -327,7 +346,7 @@ const AssemblyIssueForm = ({
 
   const FORM_FIELDS: FormFieldConfig[] = [
     { name: "sectorName", label: "Sector Name", type: "text" },
-    { name: "microSectorNo", label: "Micro Sector No.", type: "number" },
+    { name: "microSectorNo", label: "Micro Sector No.", type: "text" },
     { name: "microSectorName", label: "Micro Sector Name", type: "text" },
     { name: "year", label: "Year", type: "text", required: true },
     {
@@ -369,7 +388,7 @@ const AssemblyIssueForm = ({
     {
       name: "recommendedLetterNo",
       label: "Recommended Letter No",
-      type: "number",
+      type: "text",
     },
     {
       name: "boothName",
@@ -634,7 +653,7 @@ const AssemblyIssueForm = ({
                   onChange={formik.handleChange}
                 />
               ) : field.type === "file" ? (
-                <div className="flex gap-4 items-center">
+                <div className="flex gap-4 items-center flex-wrap">
                   <Input
                     className="max-w-md dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"
                     value={String(
@@ -648,15 +667,38 @@ const AssemblyIssueForm = ({
                   <Button
                     type="button"
                     variant="outline"
-                    className="dark:bg-[#202123] dark:border-gray-700 dark:text-gray-300"
+                    disabled={fileUploading[field.name as string]}
+                    className="dark:bg-[#202123] dark:border-gray-700 dark:text-gray-300 flex items-center gap-2"
                     onClick={() =>
                       document
                         .getElementById(`${field.name}-file-input`)
                         ?.click()
                     }
                   >
+                    {fileUploading[field.name as string] ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
                     Choose File
                   </Button>
+
+                  {formik.values[field.name] &&
+                    typeof formik.values[field.name] === "string" && (
+                      <a
+                        href={
+                          (formik.values[field.name] as string).startsWith("/")
+                            ? `${API_BASE_URL.replace("/api", "")}${formik.values[field.name]}`
+                            : (formik.values[field.name] as string)
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 dark:text-blue-400 font-semibold hover:underline flex items-center gap-2 ml-2"
+                      >
+                        <FileImage className="w-5 h-5" /> View Current
+                      </a>
+                    )}
+
                   <input
                     id={`${field.name}-file-input`}
                     type="file"

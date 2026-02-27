@@ -6,6 +6,7 @@ import { useAppSelector, useAppDispatch } from "@app/store/store";
 import { setCurrentUser } from "@store/reducers/auth";
 import Main from "@modules/main/Main";
 import axios from "@app/utils/axios";
+import TrialWarningBanner from "@app/components/TrialWarningBanner";
 
 export default function ProtectedLayout({
   children,
@@ -66,5 +67,10 @@ export default function ProtectedLayout({
     );
   }
 
-  return <Main>{children}</Main>;
+  return (
+    <>
+      <TrialWarningBanner />
+      <Main>{children}</Main>
+    </>
+  );
 }

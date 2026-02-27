@@ -7,7 +7,7 @@ import UserDropdown from "@app/modules/main/header/user-dropdown/UserDropdown";
 import LanguagesDropdown from "@app/modules/main/header/languages-dropdown/LanguagesDropdown";
 import Image from "@app/components/Image";
 import { useAppDispatch, useAppSelector } from "@app/store/store";
-import { Users } from "lucide-react";
+import { Users, Home } from "lucide-react";
 import TenantSwitcher from "./tenant-switcher/TenantSwitcher";
 
 import ThemeToggle from "@app/components/common/ThemeToggle";
@@ -83,9 +83,10 @@ const Header = ({ containered, ...rest }: { containered?: boolean } & any) => {
             <li className="hidden sm:block">
               <Link
                 href="/"
-                className="block px-3 py-2 text-gray-500 hover:text-[#2e7875] font-bold dark:text-gray-400 dark:hover:text-gray-200"
+                className="flex items-center gap-2 px-3 py-2 text-gray-500 hover:text-[#2e7875] font-bold dark:text-gray-400 dark:hover:text-gray-200"
               >
-                {t("header.label.home")}
+                <Home className="w-4 h-4" />
+                <span>{t("header.label.home")}</span>
               </Link>
             </li>
             <li className="hidden sm:block">

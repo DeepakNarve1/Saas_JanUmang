@@ -1,5 +1,3 @@
-import i18n from "@app/utils/i18n";
-
 export interface IMenuItem {
   name: string;
   icon?: string;
@@ -12,13 +10,13 @@ export interface IMenuItem {
 
 export const MENU: IMenuItem[] = [
   {
-    name: i18n.t("menusidebar.label.dashboard"),
+    name: "Dashboard",
     icon: "fas fa-tachometer-alt nav-icon",
     path: "/dashboard",
     allowedPermissions: ["view_dashboard"],
   },
   {
-    name: i18n.t("menusidebar.label.users"),
+    name: "Users",
     icon: "fas fa-wrench nav-icon",
     path: "/users",
     allowedRoles: ["tenant_admin", "superadmin", "system_admin"],

@@ -11,19 +11,47 @@ const { isGlobalAdmin } = require("../utils/authHelpers");
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// Generate JWT token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "15h" });
+// ─── Token Generators ─────────────────────────────────────────────────────
+// Access token: short-lived (15 min) — sent in response body, stored in memory
+const generateAccessToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "15m" });
 };
 
-// Helper to get consistent tenant data including core modules
+// Refresh token: long-lived (7 days) — stored ONLY in an HttpOnly cookie
+const generateRefreshToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
+};
+
+// Set refresh token as a secure HttpOnly cookie (not accessible to JS)
+const setRefreshCookie = (res, refreshToken) => {
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true, // JS cannot read this
+    secure: process.env.NODE_ENV === "production", // HTTPS only in prod
+    sameSite: "strict", // CSRF protection
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+    path: "/api/auth", // Only sent to auth routes
+  });
+};
+
+// Helper to get consistent tenant data including core modules + trial status
 const getTenantData = async (tenantId) => {
   if (!tenantId) return null;
   const Tenant = require("../models/tenantModel");
   const tenant = await Tenant.findById(tenantId).select(
-    "name slug enabledModules plan",
+    "name slug enabledModules plan subscriptionStatus trialEndsAt subscriptionEndDate",
   );
   if (!tenant) return null;
+
+  // ── Trial expiry warning flag ────────────────────────────────────────────
+  const now = new Date();
+  let daysLeftInTrial = null;
+  let isTrialExpiringSoon = false;
+
+  if (tenant.subscriptionStatus === "trial" && tenant.trialEndsAt) {
+    const msLeft = tenant.trialEndsAt - now;
+    daysLeftInTrial = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+    isTrialExpiringSoon = daysLeftInTrial <= 7;
+  }
 
   return {
     _id: tenant._id,
@@ -33,13 +61,17 @@ const getTenantData = async (tenantId) => {
       ...new Set([...(tenant.enabledModules || []), ...getCoreModuleIds()]),
     ],
     plan: tenant.plan,
+    // Subscription / trial status — used by frontend warning banner
+    subscriptionStatus: tenant.subscriptionStatus,
+    trialEndsAt: tenant.trialEndsAt || null,
+    daysLeftInTrial,
+    isTrialExpiringSoon,
   };
 };
 
 // Register User
 exports.registerUser = asyncHandler(async (req, res) => {
   try {
-    console.log("Register Request Body:", req.body);
     let { name, email, password, role, mobile, userType } = req.body;
 
     // ... (rest of registration logic)
@@ -161,12 +193,14 @@ exports.registerUser = asyncHandler(async (req, res) => {
       userType: newUser.userType,
       level: newUser.level,
       tenantId: newUser.tenantId,
-      token: generateToken(newUser._id),
+      token: generateAccessToken(newUser._id),
     };
 
     if (newUser.tenantId) {
       userObj.tenant = await getTenantData(newUser.tenantId);
     }
+
+    setRefreshCookie(res, generateRefreshToken(newUser._id));
 
     res.status(201).json({
       success: true,
@@ -180,9 +214,33 @@ exports.registerUser = asyncHandler(async (req, res) => {
 
 // Get all users (exclude superadmin accounts unless showAll=true)
 exports.getUsers = asyncHandler(async (req, res) => {
-  const { showAll } = req.query;
+  const { showAll, page = 1, limit = 20, search } = req.query;
+
+  const query = { ...req.scopeFilter };
+
+  // Optional search across name and email
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  const pageNum = parseInt(page) || 1;
+  let limitNum = parseInt(limit);
+  if (isNaN(limitNum)) limitNum = 20;
+  // Support limit=-1 to fetch all (e.g. for export/dropdowns)
+  const fetchAll = limitNum === -1;
+
   const total = await User.countDocuments({ ...req.scopeFilter });
-  let users = await User.find({ ...req.scopeFilter }).select("-password");
+  const filteredCount = await User.countDocuments(query);
+
+  let usersQuery = User.find(query).select("-password").sort({ createdAt: -1 });
+  if (!fetchAll) {
+    usersQuery = usersQuery.skip((pageNum - 1) * limitNum).limit(limitNum);
+  }
+
+  let users = await usersQuery;
 
   const populatedUsers = await Promise.all(
     users.map(async (u) => {
@@ -206,14 +264,19 @@ exports.getUsers = asyncHandler(async (req, res) => {
 
   const isGlobal = isGlobalAdmin(req.user);
 
-  if (showAll === "true" || isGlobal) {
-    res.json({ success: true, total, data: populatedUsers });
-  } else {
-    const filtered = populatedUsers.filter(
-      (u) => u.role?.name !== "superadmin",
-    );
-    res.json({ success: true, total, data: filtered });
-  }
+  const data =
+    showAll === "true" || isGlobal
+      ? populatedUsers
+      : populatedUsers.filter((u) => u.role?.name !== "superadmin");
+
+  res.json({
+    success: true,
+    total,
+    filteredCount,
+    page: pageNum,
+    limit: fetchAll ? -1 : limitNum,
+    data,
+  });
 });
 
 // Get single user by ID
@@ -601,7 +664,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
   }
 
   req.user = user;
-  req.tenantId = user.tenantId; // SaaS: Set tenantId for logging
+  req.tenantId = user.tenantId;
   await logActivity(
     req,
     "LOGIN",
@@ -609,10 +672,12 @@ exports.loginUser = asyncHandler(async (req, res) => {
     `User logged in: ${user.name} (${user.email})`,
   );
 
+  setRefreshCookie(res, generateRefreshToken(user._id));
+
   res.json({
     success: true,
     data: {
-      token: generateToken(user._id),
+      token: generateAccessToken(user._id),
       user: {
         _id: user._id,
         name: user.name,
@@ -673,10 +738,12 @@ exports.googleLogin = asyncHandler(async (req, res) => {
     }
   }
 
+  setRefreshCookie(res, generateRefreshToken(user._id));
+
   res.json({
     success: true,
     data: {
-      token: generateToken(user._id),
+      token: generateAccessToken(user._id),
       user: {
         _id: user._id,
         name: user.name,
@@ -689,6 +756,41 @@ exports.googleLogin = asyncHandler(async (req, res) => {
         photoURL: picture,
       },
     },
+  });
+});
+
+// Refresh Access Token
+// Reads the HttpOnly refresh cookie, issues a fresh 15-minute access token.
+exports.refreshToken = asyncHandler(async (req, res) => {
+  const token = req.cookies?.refreshToken;
+
+  if (!token) {
+    throw new AppError("No refresh token provided", 401);
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+  } catch (err) {
+    // Clear the invalid / expired cookie
+    res.clearCookie("refreshToken", { path: "/api/auth" });
+    throw new AppError(
+      "Refresh token expired or invalid. Please log in again.",
+      401,
+    );
+  }
+
+  const user = await User.findById(decoded.id).select("-password");
+  if (!user) {
+    res.clearCookie("refreshToken", { path: "/api/auth" });
+    throw new AppError("User no longer exists", 401);
+  }
+
+  // Issue a fresh access token — do NOT rotate the refresh token here
+  // to avoid invalidating other browser tabs that are still valid.
+  res.json({
+    success: true,
+    data: { token: generateAccessToken(user._id) },
   });
 });
 
@@ -830,6 +932,8 @@ exports.logoutUser = asyncHandler(async (req, res) => {
       `User logged out: ${req.user.name} (${req.user.email})`,
     );
   }
+  // Clear the HttpOnly refresh token cookie
+  res.clearCookie("refreshToken", { path: "/api/auth" });
   res.status(200).json({ success: true, message: "Logged out successfully" });
 });
 

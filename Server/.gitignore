@@ -1,3 +1,11 @@
 /node_modules   
 .env
 service-key.json
+
+# HTTP request logs — never commit these
+logs/
+*.log
+*.log.gz
+
+# User-uploaded files — never commit these
+uploads/

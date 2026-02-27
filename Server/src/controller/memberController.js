@@ -163,8 +163,11 @@ exports.updateMember = asyncHandler(async (req, res) => {
 
   const oldData = member.toObject();
 
-  // Update fields from body
+  // Update fields from body — EXCLUDE security-critical fields
   Object.keys(req.body).forEach((key) => {
+    // Prevent hijacking the record to another tenant or spoofing IDs
+    if (["tenantId", "_id", "__v"].includes(key)) return;
+
     if (req.body[key] !== undefined) {
       member[key] = req.body[key];
     }

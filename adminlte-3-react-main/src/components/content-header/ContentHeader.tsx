@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect } from "react";
 
 const ContentHeader = ({ title }: { title: string | React.ReactNode }) => {

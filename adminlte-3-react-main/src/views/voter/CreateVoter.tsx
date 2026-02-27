@@ -49,7 +49,7 @@ interface Booth {
 
 const CreateVoter = () => {
   return (
-    <RouteGuard requiredPermissions={["create_voter"]}>
+    <RouteGuard requiredPermissions={["create_voters"]}>
       <CreateVoterContent />
     </RouteGuard>
   );

@@ -172,9 +172,23 @@ exports.createBooth = asyncHandler(async (req, res) => {
   if (assembly === "") assembly = undefined;
   if (block === "") block = undefined;
 
+  const { isGlobalAdmin } = require("../utils/authHelpers");
+
+  // Resolve tenantId — must be set for non-global-admin users
+  const tenantId =
+    req.tenantId || req.user?.tenantId || req.user?._doc?.tenantId;
+
+  if (!tenantId && !isGlobalAdmin(req.user)) {
+    res.status(400);
+    throw new Error(
+      "Your account is not linked to an organisation. Please contact your administrator.",
+    );
+  }
+
   const booth = await Booth.create({
     name,
     code,
+    tenantId: tenantId || null, // null = global-admin orphan record
     state,
     division,
     ...(district && { district }),

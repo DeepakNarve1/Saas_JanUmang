@@ -222,8 +222,20 @@ exports.createPanchayat = asyncHandler(async (req, res) => {
     throw new Error("Tenant ID is missing. Cannot create record.");
   }
 
-  // Use tenant from request context (set by auth middleware)
-  const tenantId = req.tenantId || req.user.tenantId;
+  // Robust tenantId resolution:
+  // req.tenantId is set by authMiddleware from req.user.tenantId,
+  // but after role population (req.user.role = roleDoc) on a Mongoose doc,
+  // direct field access can occasionally shadow stored values.
+  // We check all three sources to be safe.
+  const tenantId =
+    req.tenantId || req.user?.tenantId || req.user?._doc?.tenantId;
+
+  if (!tenantId && !isGlobalAdmin(req.user)) {
+    res.status(400);
+    throw new Error(
+      "Your account is not linked to an organisation. Please contact your administrator.",
+    );
+  }
 
   // --- Start Hierarchy Resolution ---
   const resolveHierarchy = async (data) => {

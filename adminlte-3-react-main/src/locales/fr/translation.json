@@ -1,0 +1,59 @@
+{
+  "header": {
+    "label": {
+      "home": "Home"
+    }
+  },
+  "footer": {
+    "version": "Version"
+  },
+  "main": {
+    "label": {
+      "moreInfo": "More Info"
+    }
+  },
+  "login": {
+    "label": {
+      "signIn": "Sign In",
+      "forgotPassword": "Forgot Password?",
+      "rememberMe": "Remember Me"
+    }
+  },
+  "register": {
+    "label": {
+      "fullName": "Full Name",
+      "email": "Email",
+      "password": "Password",
+      "retype": "Retype Password",
+      "iAgree": "I agree to the",
+      "register": "Register",
+      "alreadyHave": "Already have an account?"
+    }
+  },
+  "forgotPassword": {
+    "label": {
+      "forgotPassword": "Forgot Password",
+      "email": "Email",
+      "sendLink": "Send Reset Link",
+      "rememberPassword": "I remember my password"
+    }
+  },
+  "recoverPassword": {
+    "label": {
+      "changePassword": "Change Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "changePasswordButton": "Change Password"
+    }
+  },
+  "profile": {
+    "label": {
+      "myProfile": "My Profile",
+      "settings": "Settings",
+      "personalData": "Personal Data",
+      "fullName": "Full Name",
+      "email": "Email",
+      "phone": "Phone"
+    }
+  }
+}

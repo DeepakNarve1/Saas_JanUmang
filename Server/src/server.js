@@ -6,13 +6,17 @@ const path = require("path");
 
 // Security & Logging
 const helmet = require("helmet");
-const morgan = require("morgan");
 const compression = require("compression");
+const mongoSanitize = require("express-mongo-sanitize");
+const cookieParser = require("cookie-parser");
+const { setupRequestLogging } = require("./config/logger");
 
 // Error Handling
 const AppError = require("./utils/AppError");
 const globalErrorHandler = require("./middleware/errorMiddleware");
 const { generalApiLimiter } = require("./middleware/rateLimitMiddleware");
+const sanitizeQuery = require("./middleware/sanitizeQuery");
+const { startSubscriptionCron } = require("./services/subscriptionCron");
 
 // Routes
 const authRoutes = require("./routes/authRoute");
@@ -22,6 +26,10 @@ const rbacRoutes = require("./routes/rbacRoute");
 // Configuration
 dotenv.config();
 
+// Validation
+const validateEnv = require("./config/configValidation");
+validateEnv();
+
 // Handle Uncaught Exceptions
 process.on("uncaughtException", (err) => {
   console.log("UNCAUGHT EXCEPTION! 💥 Shutting down...");
@@ -30,6 +38,9 @@ process.on("uncaughtException", (err) => {
 });
 
 connectDB();
+
+// Kick off background jobs (trial + subscription expiry cron)
+startSubscriptionCron();
 
 const app = express();
 
@@ -42,10 +53,11 @@ app.use(helmet());
 // Specific stricter limiters are applied per-route in authRoute.js
 app.use("/api", generalApiLimiter);
 
-// Development logging
-if (process.env.NODE_ENV === "development") {
-  app.use(morgan("dev"));
-}
+// DoS Mitigation: Pagination limit capping
+app.use("/api", sanitizeQuery(1000)); // Hardcap 'limit' to 1000 max
+
+// Request logging (dev: colourised stdout | production: rotating daily files)
+setupRequestLogging(app);
 
 // CORS
 const corsOptions = {
@@ -63,71 +75,35 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(compression());
 
-// Body parser — 1mb is plenty for JSON API calls
-// 50mb was dangerous: it invited DoS via huge payloads
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ limit: "1mb", extended: true }));
+// Body parser — 50 MB limit for all JSON API routes (needed for batch excel imports base64 strings if applicable)
+// File uploads use multipart/form-data via /api/upload (Multer), not JSON.
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+// NoSQL injection sanitizer
+// Express 5 compatibility shim: req.query is read-only by default in v5.
+// We redefine it as writable so mongoSanitize can strip malicious operators.
+app.use((req, res, next) => {
+  Object.defineProperty(req, "query", {
+    value: { ...req.query },
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
+  next();
+});
+app.use(mongoSanitize());
+
+// Cookie parser — required to read the HttpOnly refresh token cookie
+app.use(cookieParser());
 
 // Test middleware
 app.get("/", (req, res) => {
   res.send("Api is running...");
 });
 
-// TEMPORARY FIX ROUTE
-app.get("/api/fix-indices", async (req, res) => {
-  try {
-    const mongoose = require("mongoose");
-    const db = mongoose.connection.db;
-    const results = [];
-
-    // Explicit list of collections likely to have stale indices
-    const targets = [
-      "samitilists",
-      "parties",
-      "departments",
-      "worktypes",
-      "subtypeofworks",
-      "vidhasabha.ganesh_samitis",
-      "vidhasabha.tenkar_samitis",
-      "vidhasabha.dp_samitis",
-      "vidhasabha.mandir_samitis",
-      "vidhasabha.bhagoria_samitis",
-      "vidhasabha.nirman_samitis",
-      "vidhasabha.booth_samitis",
-      "vidhasabha.block_samitis",
-      "vidhasabha.vidhan_sabha_lists",
-    ];
-
-    for (const colName of targets) {
-      try {
-        const collection = db.collection(colName);
-        const indexes = await collection.indexes();
-        for (const idx of indexes) {
-          if (
-            idx.unique &&
-            (idx.key.name || idx.key.uniqueId || idx.key.code) &&
-            !idx.key.tenantId &&
-            idx.name !== "_id_"
-          ) {
-            results.push(`Dropped index ${idx.name} on ${colName}`);
-            await collection.dropIndex(idx.name);
-          }
-        }
-      } catch (e) {
-        // Skip collections that don't exist yet
-      }
-    }
-
-    res.json({
-      success: true,
-      message: "Database cleanup completed.",
-      actionTaken:
-        results.length > 0 ? results : "No stale global indices found.",
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+// NOTE: /api/fix-indices removed — was an unprotected one-time maintenance route.
+// If you need to re-run index fixes, create a protected admin-only route or run via a migration script.
 
 // 2) ROUTES
 app.use("/api/auth", authRoutes);
@@ -144,6 +120,14 @@ app.use("/api/roles", (req, res, next) => {
   req.url = "/roles" + req.url;
   rbacRoutes(req, res, next);
 });
+
+// File uploads — Multer stores files on disk, returns a URL
+const { UPLOADS_ROOT } = require("./middleware/uploadMiddleware");
+const uploadRoutes = require("./routes/uploadRoute");
+app.use("/api/upload", uploadRoutes);
+// Serve uploaded files as static assets (auth is NOT enforced here —
+// files are accessed via unguessable UUID-prefixed filenames)
+app.use("/uploads", express.static(UPLOADS_ROOT));
 
 const publicProblemRoutes = require("./routes/publicProblemRoute");
 app.use("/api/public-problems", publicProblemRoutes);

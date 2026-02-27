@@ -216,36 +216,6 @@ exports.deleteEvent = asyncHandler(async (req, res) => {
   res.json({ success: true, message: "Event removed" });
 });
 
-// @desc    Seed events
-// @route   GET /api/events/seed
-exports.seedEvents = asyncHandler(async (req, res) => {
-  await Event.deleteMany({});
-  const events = [];
-  const districts = ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain"];
-  const eventTypes = [
-    "Social Events",
-    "Religious Events",
-    "Political Rally",
-    "Meeting",
-    "Inauguration",
-  ];
-  for (let i = 1; i <= 50; i++) {
-    events.push({
-      uniqueId: `ET/${i}`,
-      district: districts[Math.floor(Math.random() * districts.length)],
-      year: "2025",
-      month: "February",
-      receivingDate: new Date(),
-      programDate: new Date(new Date().setDate(new Date().getDate() + i)),
-      time: "19:00:00",
-      eventType: eventTypes[Math.floor(Math.random() * eventTypes.length)],
-      eventDetails: `Sample event details for event ${i}`,
-    });
-  }
-  await Event.insertMany(events);
-  res.json({ success: true, message: "Seeded events successfully" });
-});
-
 // @desc    Sync all unsynced events to Google Calendar
 // @route   POST /api/events/sync
 // @access  Private

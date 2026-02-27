@@ -145,7 +145,7 @@ voterSchema.index({ voterId: 1, tenantId: 1 }, { unique: true });
 voterSchema.index({ uniqueId: 1, tenantId: 1 }, { unique: true });
 
 // Pre-save hook to generate uniqueId
-voterSchema.pre("save", async function (next) {
+voterSchema.pre("save", async function () {
   if (this.isNew && !this.uniqueId) {
     const prefix = "VOTER"; // Or any other desired prefix
     const count = await this.constructor.countDocuments({
@@ -153,7 +153,6 @@ voterSchema.pre("save", async function (next) {
     });
     this.uniqueId = `${prefix}/${1000 + count + 1}`; // Starting from 1001
   }
-  next();
 });
 
 module.exports = mongoose.model("Voter", voterSchema);

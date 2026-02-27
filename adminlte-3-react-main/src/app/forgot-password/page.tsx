@@ -1,7 +1,5 @@
-"use client";
-
-import ForgotPassword from "@app/views/auth/forgot-password/ForgotPassword";
+import { redirect } from "next/navigation";
 
 export default function ForgotPasswordPage() {
-  return <ForgotPassword />;
+  redirect("/login");
 }

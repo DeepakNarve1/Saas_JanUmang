@@ -39,7 +39,8 @@ import {
   DialogTitle,
 } from "@app/components/ui/dialog";
 import { ViewPageActions } from "@app/components/ViewPageActions";
-import { ArrowLeft, Edit } from "lucide-react";
+import { ArrowLeft, Edit, FileImage } from "lucide-react";
+import { API_BASE_URL } from "@app/utils/api";
 
 const ViewAssemblyIssueContent = ({
   issueType,
@@ -246,34 +247,69 @@ const ViewAssemblyIssueContent = ({
                   }
                 />
 
-                <div className="col-span-1 md:col-span-2 lg:col-span-3">
-                  <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
-                    Attached Image
-                  </h3>
-                  <div className="p-6 bg-gray-50 dark:bg-gray-800/20 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 flex justify-center">
-                    {issue.file ? (
-                      <div
-                        className="relative group cursor-pointer overflow-hidden rounded-lg shadow-md border border-gray-200 dark:border-gray-800 max-w-md w-full"
-                        onClick={() => setImageOpen(true)}
-                      >
-                        <img
-                          src={issue.file}
-                          alt="Attached"
-                          className="w-full h-auto object-cover hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-[2px]">
-                          <span className="bg-white text-gray-900 px-4 py-2 rounded-lg text-sm font-bold shadow-xl">
-                            Preview Image
-                          </span>
+                <div className="col-span-1 md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                      Avedan File
+                    </h3>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800/20 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[100px] flex items-center justify-center">
+                      {issue.avedanFile ? (
+                        <div className="text-center">
+                          <a
+                            href={
+                              issue.avedanFile.startsWith("/")
+                                ? `${API_BASE_URL.replace("/api", "")}${issue.avedanFile}`
+                                : issue.avedanFile
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex flex-col items-center gap-2 text-[#368F8B] hover:text-[#2d7a76] font-bold transition-all"
+                          >
+                            <FileImage className="w-12 h-12" />
+                            <span>View Avedan</span>
+                            <span className="text-xs text-gray-400 font-normal">
+                              {issue.avedanFileName || "View Attachment"}
+                            </span>
+                          </a>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-10">
+                      ) : (
                         <p className="text-gray-400 dark:text-gray-500 italic">
-                          No image attached to this issue
+                          No Avedan attached
                         </p>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                      Documents Set
+                    </h3>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800/20 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[100px] flex items-center justify-center">
+                      {issue.documentFile ? (
+                        <div className="text-center">
+                          <a
+                            href={
+                              issue.documentFile.startsWith("/")
+                                ? `${API_BASE_URL.replace("/api", "")}${issue.documentFile}`
+                                : issue.documentFile
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex flex-col items-center gap-2 text-[#00563B] hover:text-[#368F8B] font-bold transition-all"
+                          >
+                            <FileImage className="w-12 h-12" />
+                            <span>View Documents</span>
+                            <span className="text-xs text-gray-400 font-normal">
+                              {issue.documentFileName || "View PDF"}
+                            </span>
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 dark:text-gray-500 italic">
+                          No documents attached
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

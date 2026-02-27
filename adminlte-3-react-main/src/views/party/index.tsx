@@ -106,7 +106,7 @@ const PartyList = () => {
                 />
               </div>
               <div className="flex items-center gap-3">
-                {hasPermission("export_party") && (
+                {hasPermission("view_parties") && (
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -134,7 +134,7 @@ const PartyList = () => {
                     </Button>
                   </div>
                 )}
-                {hasPermission("create_party") && (
+                {hasPermission("create_parties") && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all"
                     onClick={() => router.push("/party/create")}
@@ -269,7 +269,7 @@ const PartyList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_party") && (
+                                {hasPermission("view_parties") && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/party/${item._id}/view`)
@@ -278,7 +278,7 @@ const PartyList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_party") && (
+                                {hasPermission("edit_parties") && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/party/${item._id}/edit`)
@@ -287,7 +287,7 @@ const PartyList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_party") && (
+                                {hasPermission("delete_parties") && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600"
                                     onClick={() =>

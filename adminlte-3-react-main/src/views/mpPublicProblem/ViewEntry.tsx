@@ -15,6 +15,7 @@ import {
   User,
 } from "lucide-react";
 import { ContentHeader } from "@app/components";
+import { API_BASE_URL } from "@app/utils/api";
 import { Button } from "@app/components/ui/button";
 import {
   Card,
@@ -23,6 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@app/components/ui/card";
+import { FileImage } from "lucide-react";
 import { Label } from "@app/components/ui/label";
 import { Badge } from "@app/components/ui/badge";
 import { Skeleton } from "@app/components/ui/skeleton";
@@ -548,12 +550,16 @@ const ViewMPPublicProblem = () => {
                       </p>
                       {entry.avedan ? (
                         <a
-                          href={entry.avedan}
+                          href={
+                            entry.avedan.startsWith("/")
+                              ? `${API_BASE_URL.replace("/api", "")}${entry.avedan}`
+                              : entry.avedan
+                          }
                           target="_blank"
                           rel="noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"
+                          className="text-blue-600 dark:text-blue-400 font-semibold hover:underline flex items-center gap-2"
                         >
-                          <FileText className="w-4 h-4" /> View Attached File
+                          <FileImage className="w-5 h-5" /> View Attached File
                         </a>
                       ) : (
                         <p className="text-gray-400 dark:text-gray-500 italic">

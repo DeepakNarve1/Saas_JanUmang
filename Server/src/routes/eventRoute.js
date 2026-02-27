@@ -5,7 +5,6 @@ const {
   createEvent,
   updateEvent,
   deleteEvent,
-  seedEvents,
   syncAllEvents,
 } = require("../controller/eventController");
 const protect = require("../middleware/authMiddleware");

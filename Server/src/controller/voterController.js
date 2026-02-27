@@ -350,10 +350,15 @@ exports.updateVoter = asyncHandler(async (req, res) => {
 
   const oldData = voter.toObject();
 
+  // Sanitize body to prevent mass-assignment of security fields
+  const updateData = { ...req.body };
+  delete updateData.tenantId;
+  delete updateData._id;
+
   const updatedVoter = await Voter.findByIdAndUpdate(
     req.params.id,
     {
-      ...req.body,
+      ...updateData,
       updatedBy: req.user ? req.user._id : undefined,
     },
     { new: true, runValidators: true },

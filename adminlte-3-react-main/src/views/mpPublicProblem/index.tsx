@@ -44,6 +44,7 @@ import {
   Loader2,
   XCircle,
 } from "lucide-react";
+import { API_BASE_URL } from "@app/utils/api";
 import { ContentHeader } from "@app/components";
 import { TimerDisplay } from "@app/components/TimerDisplay";
 import { usePermissions } from "@app/hooks/usePermissions";
@@ -1060,7 +1061,11 @@ const MpPublicProblem = () => {
                           <TableCell className="dark:text-gray-300">
                             {row.avedan ? (
                               <a
-                                href={row.avedan}
+                                href={
+                                  row.avedan.startsWith("/")
+                                    ? `${API_BASE_URL.replace("/api", "")}${row.avedan}`
+                                    : row.avedan
+                                }
                                 target="_blank"
                                 rel="noreferrer"
                                 className="inline-flex items-center justify-center p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors"

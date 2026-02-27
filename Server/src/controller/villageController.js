@@ -309,8 +309,22 @@ exports.createVillage = asyncHandler(async (req, res) => {
     }
   });
 
+  const { isGlobalAdmin } = require("../utils/authHelpers");
+
+  // Resolve tenantId — must be set for non-global-admin users
+  const tenantId =
+    req.tenantId || req.user?.tenantId || req.user?._doc?.tenantId;
+
+  if (!tenantId && !isGlobalAdmin(req.user)) {
+    res.status(400);
+    throw new Error(
+      "Your account is not linked to an organisation. Please contact your administrator.",
+    );
+  }
+
   const village = await Village.create({
     name: villageData.name,
+    tenantId: tenantId || null, // null = global-admin orphan record
     state: villageData.state,
     division: villageData.division,
     district: villageData.district,
