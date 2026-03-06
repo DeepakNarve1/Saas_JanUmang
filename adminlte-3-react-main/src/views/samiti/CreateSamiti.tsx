@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import SamitiForm from "./SamitiForm";
 
@@ -17,8 +18,8 @@ const CreateSamiti = () => {
       await axios.post("/samiti", values);
       toast.success("Samiti created successfully");
       router.push("/samiti");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to create Samiti");
+    } catch (err: unknown) {
+      handleError(err, "Failed to create Samiti");
     } finally {
       setLoading(false);
     }

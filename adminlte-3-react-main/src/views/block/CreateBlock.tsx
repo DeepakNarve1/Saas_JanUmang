@@ -5,26 +5,21 @@ import { toast } from "react-toastify";
 import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import BlockForm from "./BlockForm";
+import { IBlockFormValues } from "./block.schema";
 
 const CreateBlock = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (values: {
-    name: string;
-    state: string;
-    division: string;
-    district?: string;
-    parliament: string;
-    assembly: string;
-    booths: string[];
-  }) => {
+  const handleSubmit = async (
+    values: IBlockFormValues & { booths: string[] },
+  ) => {
     try {
       setLoading(true);
       await axios.post("/blocks", values);
       toast.success("Block created successfully");
       router.push("/blocks");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to create block");
     } finally {
       setLoading(false);
@@ -49,7 +44,7 @@ const CreateBlock = () => {
               <BlockForm
                 onSubmit={handleSubmit}
                 loading={loading}
-                isEdit={true}
+                isEdit={false}
               />
             </div>
           </div>

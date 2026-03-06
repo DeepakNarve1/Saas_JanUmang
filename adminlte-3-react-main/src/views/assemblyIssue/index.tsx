@@ -7,6 +7,8 @@ import { ContentHeader } from "@app/components";
 import { API_BASE_URL } from "@app/utils/api";
 import { RouteGuard } from "@app/components/RouteGuard";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
+import { handleError } from "@app/utils/errorHandler";
 
 import {
   Table,
@@ -56,7 +58,54 @@ import {
   useQueryClient,
   keepPreviousData,
 } from "@tanstack/react-query";
-import { IAssemblyIssueResponse } from "@app/types/assemblyIssue";
+import {
+  IAssemblyIssue,
+  IAssemblyIssueResponse,
+} from "@app/types/assemblyIssue";
+
+interface IAssemblyIssueColumns {
+  srNo: boolean;
+  uniqueId: boolean;
+  timer: boolean;
+  sectorName: boolean;
+  microSectorNo: boolean;
+  microSectorName: boolean;
+  year: boolean;
+  month: boolean;
+  date: boolean;
+  district: boolean;
+  assembly: boolean;
+  block: boolean;
+  recommendedLetterNo: boolean;
+  boothNo: boolean;
+  boothName: boolean;
+  panchayatName: boolean;
+  village: boolean;
+  majraFaliya: boolean;
+  workProblem: boolean;
+  office: boolean;
+  approximateCost: boolean;
+  department: boolean;
+  priority: boolean;
+  tsNoDate: boolean;
+  asNoDate: boolean;
+  typeOfWork: boolean;
+  subWorkType: boolean;
+  middleMen: boolean;
+  middleManContact: boolean;
+  beneficiaryName: boolean;
+  po: boolean;
+  status: boolean;
+  remarkGoshana: boolean;
+  remarkTipUsd: boolean;
+  addedBy: boolean;
+  beneficiaryContact: boolean;
+  latLng: boolean;
+  registrationDate: boolean;
+  avedanFile: boolean;
+  actions: boolean;
+  acMpNo: boolean;
+}
 
 interface AssemblyIssueListProps {
   issueType?: string;
@@ -70,7 +119,7 @@ const AssemblyIssueList = ({
   basePath = "/assembly-issue",
 }: AssemblyIssueListProps) => {
   return (
-    <RouteGuard requiredPermissions={["view_assembly_issues"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_ASSEMBLY_ISSUES]}>
       <AssemblyIssueListContent
         issueType={issueType}
         title={title}
@@ -105,7 +154,7 @@ const AssemblyIssueListContent = ({
   const [loading, setLoading] = useState(false);
 
   // Column Visibility
-  const [visibleColumns, setVisibleColumns] = useState({
+  const [visibleColumns, setVisibleColumns] = useState<IAssemblyIssueColumns>({
     srNo: true,
     uniqueId: true,
     timer: true,
@@ -146,7 +195,7 @@ const AssemblyIssueListContent = ({
     registrationDate: true,
     avedanFile: true,
     actions: true,
-    acMpNo: false, // Default hidden or remove if not needed, kept for existing logic
+    acMpNo: false,
   });
 
   // Live timer state
@@ -191,7 +240,7 @@ const AssemblyIssueListContent = ({
       filterPanchayat,
     ],
     queryFn: async () => {
-      const params: any = {
+      const params: Record<string, string | number | undefined> = {
         page: currentPage,
         limit: entriesPerPage,
         search: debouncedSearchTerm || undefined,
@@ -215,8 +264,8 @@ const AssemblyIssueListContent = ({
       toast.success("Issue deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["assembly-issues"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete issue");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete issue");
     },
   });
 
@@ -232,8 +281,8 @@ const AssemblyIssueListContent = ({
       setLoading(true);
       const XLSX = await import("xlsx");
 
-      const exportData = dataList.map((item: any, index: number) => {
-        const row: any = { "Sr No": index + 1 };
+      const exportData = dataList.map((item: IAssemblyIssue, index: number) => {
+        const row: Record<string, string | number> = { "Sr No": index + 1 };
 
         if (visibleColumns.uniqueId) row["Regi. No."] = item.uniqueId || "-";
         if (visibleColumns.year) row["Year"] = item.year || "-";
@@ -278,9 +327,8 @@ const AssemblyIssueListContent = ({
       XLSX.utils.book_append_sheet(wb, ws, title.substring(0, 30));
       XLSX.writeFile(wb, `${title.replace(/\s+/g, "_")}.xlsx`);
       toast.success("Exported successfully");
-    } catch (error) {
-      console.error("Export error:", error);
-      toast.error("Failed to export data");
+    } catch (error: unknown) {
+      handleError(error, "Failed to export data");
     } finally {
       setLoading(false);
     }
@@ -301,7 +349,7 @@ const AssemblyIssueListContent = ({
 
         const rawRows = XLSX.utils.sheet_to_json(worksheet, {
           header: 1,
-        }) as any[][];
+        }) as unknown[][];
 
         if (rawRows.length === 0) {
           toast.warning("No data found in Excel file");
@@ -309,7 +357,7 @@ const AssemblyIssueListContent = ({
           return;
         }
 
-        const normalize = (s: any) =>
+        const normalize = (s: unknown) =>
           String(s || "")
             .toLowerCase()
             .replace(/\s+/g, "")
@@ -350,7 +398,7 @@ const AssemblyIssueListContent = ({
           return idx;
         };
 
-        const colMap: any = {
+        const colMap: Record<string, number> = {
           uniqueId: getColIdx(["Regi. No.", "Unique ID", "RegNo", "Serial"]),
           year: getColIdx(["Year", "वर्ष"]),
           month: getColIdx(["Month", "महीना"]),
@@ -381,7 +429,7 @@ const AssemblyIssueListContent = ({
         let failureCount = 0;
         let firstErrorMessage = "";
 
-        for (const row of dataRows) {
+        for (const [index, row] of dataRows.entries()) {
           try {
             if (
               !row.some(
@@ -408,7 +456,7 @@ const AssemblyIssueListContent = ({
                 ? undefined
                 : rawId;
 
-            const payload: any = {
+            const payload: Partial<IAssemblyIssue> = {
               uniqueId: cleanUniqueId,
               year: getVal(colMap.year) || new Date().getFullYear().toString(),
               month: getVal(colMap.month),
@@ -446,13 +494,17 @@ const AssemblyIssueListContent = ({
 
             await axios.post("/assembly-issues", payload);
             successCount++;
-          } catch (error: any) {
-            console.error("Row import error:", error);
-            if (!firstErrorMessage) {
-              firstErrorMessage =
-                error.response?.data?.message || error.message;
-            }
+          } catch (error: unknown) {
             failureCount++;
+            handleError(error, `Import: Failed to add row ${index + 1}`);
+            if (!firstErrorMessage) {
+              const err = error as {
+                response?: { data?: { message?: string } };
+                message?: string;
+              };
+              firstErrorMessage =
+                err.response?.data?.message || err.message || "Unknown error";
+            }
           }
         }
 
@@ -464,11 +516,8 @@ const AssemblyIssueListContent = ({
           toast.success(`Successfully imported ${successCount} records`);
         }
         queryClient.invalidateQueries({ queryKey: ["assembly-issues"] });
-      } catch (error: any) {
-        console.error("Import error:", error);
-        toast.error(
-          "Failed to process file. Ensure it's a valid Excel format.",
-        );
+      } catch (error: unknown) {
+        handleError(error, "Failed to process import file");
       } finally {
         setLoading(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -477,7 +526,7 @@ const AssemblyIssueListContent = ({
     reader.readAsArrayBuffer(file);
   };
 
-  const toggleColumn = (key: keyof typeof visibleColumns) => {
+  const toggleColumn = (key: keyof IAssemblyIssueColumns) => {
     setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -544,7 +593,7 @@ const AssemblyIssueListContent = ({
                     Import
                   </Button>
 
-                  {hasPermission("create_assembly_issues") && (
+                  {hasPermission(PERMISSIONS.CREATE_ASSEMBLY_ISSUES) && (
                     <Button
                       size="lg"
                       onClick={() => router.push(`${basePath}/create`)}
@@ -601,7 +650,7 @@ const AssemblyIssueListContent = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Blocks</SelectItem>
-                    {blocks.map((b: any) => (
+                    {blocks.map((b: { _id: string; name: string }) => (
                       <SelectItem key={b._id} value={b.name}>
                         {b.name}
                       </SelectItem>
@@ -621,7 +670,7 @@ const AssemblyIssueListContent = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Panchayats</SelectItem>
-                    {panchayats.map((p: any) => (
+                    {panchayats.map((p: { _id: string; name: string }) => (
                       <SelectItem key={p._id} value={p.name}>
                         {p.name}
                       </SelectItem>
@@ -647,15 +696,15 @@ const AssemblyIssueListContent = ({
                   align="start"
                   className="w-56 max-h-[400px] overflow-y-auto"
                 >
-                  {Object.keys(visibleColumns).map((key) => (
+                  {(
+                    Object.keys(
+                      visibleColumns,
+                    ) as (keyof IAssemblyIssueColumns)[]
+                  ).map((key) => (
                     <DropdownMenuCheckboxItem
                       key={key}
-                      checked={
-                        visibleColumns[key as keyof typeof visibleColumns]
-                      }
-                      onCheckedChange={() =>
-                        toggleColumn(key as keyof typeof visibleColumns)
-                      }
+                      checked={visibleColumns[key]}
+                      onCheckedChange={() => toggleColumn(key)}
                     >
                       {key
                         .replace(/([A-Z])/g, " $1")
@@ -1186,7 +1235,9 @@ const AssemblyIssueListContent = ({
                                 >
                                   <Eye className="mr-2 h-4 w-4" /> View
                                 </DropdownMenuItem>
-                                {hasPermission("edit_assembly_issues") && (
+                                {hasPermission(
+                                  PERMISSIONS.EDIT_ASSEMBLY_ISSUES,
+                                ) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -1197,7 +1248,9 @@ const AssemblyIssueListContent = ({
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_assembly_issues") && (
+                                {hasPermission(
+                                  PERMISSIONS.DELETE_ASSEMBLY_ISSUES,
+                                ) && (
                                   <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => handleDelete(issue._id)}

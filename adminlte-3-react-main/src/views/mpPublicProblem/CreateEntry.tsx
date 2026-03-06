@@ -24,7 +24,8 @@ import {
 import { Button } from "@app/components/ui/button";
 import { Label } from "@app/components/ui/label";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import {
   Upload,
   FileImage,
@@ -36,7 +37,7 @@ import {
 
 const CreateEntry = () => {
   return (
-    <RouteGuard requiredPermissions={["create_mp_public_problems"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.CREATE_MP_PUBLIC_PROBLEMS]}>
       <CreateEntryContent />
     </RouteGuard>
   );
@@ -74,7 +75,7 @@ const CreateEntryContent = () => {
         await axios.post("/public-problems", values);
         toast.success("Entry created successfully!");
         router.push("/mp-public-problem");
-      } catch (error: any) {
+      } catch (error: unknown) {
         handleError(error, "Failed to create entry");
       } finally {
         setLoading(false);
@@ -188,44 +189,58 @@ const CreateEntryContent = () => {
     try {
       const { data } = await axios.get(`/districts?limit=-1`);
       setDistrictsList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch districts");
+    }
   };
   const fetchAssemblies = async (dst: string) => {
     try {
       const { data } = await axios.get(`/assemblies?district=${dst}&limit=-1`);
       setAssembliesList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch assemblies");
+    }
   };
   const fetchBlocks = async (asm: string) => {
     try {
       const { data } = await axios.get(`/blocks?assembly=${asm}&limit=-1`);
       setBlocksList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch blocks");
+    }
   };
   const fetchPanchayats = async (blk: string) => {
     try {
       const { data } = await axios.get(`/panchayat?block=${blk}&limit=-1`);
       setPanchayatsList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch panchayats");
+    }
   };
   const fetchVillages = async (pnch: string) => {
     try {
       const { data } = await axios.get(`/villages?panchayat=${pnch}&limit=-1`);
       setVillagesList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch villages");
+    }
   };
   const fetchBooths = async (blk: string) => {
     try {
       const { data } = await axios.get(`/booths?block=${blk}&limit=-1`);
       setBoothsList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch booths");
+    }
   };
 
   const fetchDepartments = async () => {
     try {
       const { data } = await axios.get("/departments?limit=-1");
       setDepartmentsList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch departments");
+    }
   };
 
   const [fileUploading, setFileUploading] = useState(false);
@@ -253,8 +268,8 @@ const CreateEntryContent = () => {
       // Store the URL — not base64
       formik.setFieldValue("avedan", data.url);
       toast.success("File uploaded successfully");
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "File upload failed");
+    } catch (error: unknown) {
+      handleError(error, "File upload failed");
       formik.setFieldValue("avedan", "");
       setFileName("");
     } finally {

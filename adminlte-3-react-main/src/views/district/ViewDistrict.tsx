@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import { Edit, ArrowLeft, Calendar, ShieldCheck, Hash } from "lucide-react";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { ViewPageActions } from "@app/components/ViewPageActions";
+import { IDistrict } from "@app/types/district";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const ViewDistrict = () => {
   const router = useRouter();
@@ -17,7 +20,7 @@ const ViewDistrict = () => {
   const id = params.id as string;
   const { hasPermission } = usePermissions();
 
-  const [district, setDistrict] = useState<any>(null);
+  const [district, setDistrict] = useState<IDistrict | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,8 +29,7 @@ const ViewDistrict = () => {
         const res = await axios.get(`/districts/${id}`);
         setDistrict(res.data?.data);
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(err.response?.data?.message || "Failed to load district");
+        handleError(error, "Failed to load district");
         router.push("/districts");
       } finally {
         setLoading(false);
@@ -53,8 +55,9 @@ const ViewDistrict = () => {
     if (!district) return {};
     return {
       "District Name": district.name,
-      Division: district.division?.name || "",
-      State: district.division?.state?.name || "",
+      Division: (district.division as { name?: string })?.name || "",
+      State:
+        (district.division as { state?: { name?: string } })?.state?.name || "",
       "Created At": district.createdAt
         ? new Date(district.createdAt).toLocaleDateString()
         : "",
@@ -90,7 +93,7 @@ const ViewDistrict = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_districts") && (
+                {hasPermission(PERMISSIONS.EDIT_DISTRICTS) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20"
                     onClick={() => router.push(`/districts/${id}/edit`)}
@@ -144,7 +147,7 @@ const ViewDistrict = () => {
                       Division
                     </label>
                     <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 mt-1">
-                      {district?.division?.name || "N/A"}
+                      {(district?.division as { name?: string })?.name || "N/A"}
                     </p>
                   </div>
                 </div>
@@ -159,7 +162,8 @@ const ViewDistrict = () => {
                       State
                     </label>
                     <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 mt-1">
-                      {district?.division?.state?.name || "N/A"}
+                      {(district?.division as { state?: { name?: string } })
+                        ?.state?.name || "N/A"}
                     </p>
                   </div>
                 </div>

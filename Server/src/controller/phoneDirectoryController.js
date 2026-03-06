@@ -162,6 +162,7 @@ exports.getPhoneDirectories = asyncHandler(async (req, res) => {
     success: true,
     total: count,
     count: filteredCount,
+    filteredCount,
     data,
   });
 });
@@ -241,7 +242,7 @@ exports.updatePhoneDirectory = asyncHandler(async (req, res) => {
 
 // Delete Phone Directory entry
 exports.deletePhoneDirectory = asyncHandler(async (req, res) => {
-  const phoneDirectory = await PhoneDirectory.findOne({
+  const phoneDirectory = await PhoneDirectory.findOneAndDelete({
     _id: req.params.id,
     ...req.scopeFilter,
   });

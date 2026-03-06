@@ -5,7 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import { Button } from "@app/components/ui/button";
 import { Label } from "@app/components/ui/label";
 import { Card, CardContent, CardHeader } from "@app/components/ui/card";
@@ -148,7 +149,7 @@ const ViewMember = () => {
   };
 
   return (
-    <RouteGuard requiredPermissions={["view_members"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_MEMBERS]}>
       <ContentHeader title="Member Details" />
       <section className="content pb-10">
         <div className="container-fluid px-4">

@@ -13,6 +13,7 @@ import {
 } from "@app/components/ui/select";
 import { useEffect, useState } from "react";
 import axios from "@app/utils/axios";
+import { handleError } from "@app/utils/errorHandler";
 import ReactSelect from "react-select";
 import {
   dispatchRegisterSchema,
@@ -65,8 +66,11 @@ const DispatchRegisterForm = ({
 
         setDepartments(deptRes.data.data || []);
         setDistricts(distRes.data.data || []);
-      } catch (error) {
-        console.error("Error fetching initial data:", error);
+      } catch (error: unknown) {
+        handleError(
+          error,
+          "Failed to fetch initial data for dispatch register",
+        );
       }
     };
     fetchInitialData();
@@ -81,8 +85,8 @@ const DispatchRegisterForm = ({
             params: { district: formik.values.district, limit: -1 },
           });
           setBlocks(res.data.data || []);
-        } catch (error) {
-          console.error("Error fetching blocks:", error);
+        } catch (error: unknown) {
+          handleError(error, "Failed to fetch blocks");
         }
       } else {
         setBlocks([]);
@@ -103,10 +107,10 @@ const DispatchRegisterForm = ({
             (res.data.data || []).map((p: any) => ({
               label: p.name,
               value: p._id,
-            }))
+            })),
           );
-        } catch (error) {
-          console.error("Error fetching panchayats:", error);
+        } catch (error: unknown) {
+          handleError(error, "Failed to fetch panchayats");
         }
       } else {
         setPanchayats([]);
@@ -127,10 +131,10 @@ const DispatchRegisterForm = ({
             (res.data.data || []).map((v: any) => ({
               label: v.name,
               value: v._id,
-            }))
+            })),
           );
-        } catch (error) {
-          console.error("Error fetching villages:", error);
+        } catch (error: unknown) {
+          handleError(error, "Failed to fetch villages");
         }
       } else {
         setVillages([]);
@@ -455,7 +459,7 @@ const DispatchRegisterForm = ({
                 if (event.currentTarget.files && event.currentTarget.files[0]) {
                   formik.setFieldValue(
                     "uploadLetter",
-                    event.currentTarget.files[0]
+                    event.currentTarget.files[0],
                   );
                 }
               }}

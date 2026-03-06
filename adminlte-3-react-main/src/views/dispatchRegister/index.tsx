@@ -4,6 +4,7 @@ import { useState } from "react";
 import axios from "@app/utils/axios";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { AxiosError } from "axios";
 import {
   useQuery,
@@ -50,6 +51,7 @@ import {
 } from "lucide-react";
 import { ContentHeader } from "@app/components";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 import { Pagination } from "@app/components/common/Pagination";
 import { IDispatchRegisterResponse } from "@app/types/dispatchRegister";
 import { IDistrict } from "@app/types/district";
@@ -115,8 +117,13 @@ const DispatchRegisterList = () => {
   const { data: districtData } = useQuery<IDistrict[]>({
     queryKey: ["districts-list"],
     queryFn: async () => {
-      const res = await axios.get("/districts?limit=100");
-      return res.data.data;
+      try {
+        const res = await axios.get("/districts?limit=100");
+        return res.data.data;
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch districts");
+        throw error;
+      }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -138,16 +145,21 @@ const DispatchRegisterList = () => {
       selectedDistrict,
     ],
     queryFn: async () => {
-      const res = await axios.get("/dispatch-register", {
-        params: {
-          page: pagination.page,
-          limit: pagination.limit,
-          search: debouncedSearchTerm,
-          month: selectedMonth,
-          district: selectedDistrict,
-        },
-      });
-      return res.data;
+      try {
+        const res = await axios.get("/dispatch-register", {
+          params: {
+            page: pagination.page,
+            limit: pagination.limit,
+            search: debouncedSearchTerm,
+            month: selectedMonth,
+            district: selectedDistrict,
+          },
+        });
+        return res.data;
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch dispatch register data");
+        throw error;
+      }
     },
     placeholderData: keepPreviousData,
   });
@@ -161,8 +173,8 @@ const DispatchRegisterList = () => {
       toast.success("Record deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["dispatchRegister"] });
     },
-    onError: (error: AxiosError<{ message?: string }>) => {
-      toast.error(error.response?.data?.message || "Failed to delete record");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete record");
     },
   });
 
@@ -182,7 +194,7 @@ const DispatchRegisterList = () => {
             <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
               <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto items-center">
                 <div className="flex gap-2 w-full sm:w-auto">
-                  {hasPermission("create_dispatch_register") && (
+                  {hasPermission(PERMISSIONS.CREATE_DISPATCH_REGISTER) && (
                     <Button
                       className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all w-full sm:w-auto"
                       onClick={() => router.push("/dispatch-register/create")}
@@ -561,7 +573,9 @@ const DispatchRegisterList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_dispatch_register") && (
+                                {hasPermission(
+                                  PERMISSIONS.VIEW_DISPATCH_REGISTER,
+                                ) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -572,7 +586,9 @@ const DispatchRegisterList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_dispatch_register") && (
+                                {hasPermission(
+                                  PERMISSIONS.EDIT_DISPATCH_REGISTER,
+                                ) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -583,7 +599,9 @@ const DispatchRegisterList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_dispatch_register") && (
+                                {hasPermission(
+                                  PERMISSIONS.DELETE_DISPATCH_REGISTER,
+                                ) && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600 focus:bg-red-50"
                                     onClick={() => handleDelete(item._id)}

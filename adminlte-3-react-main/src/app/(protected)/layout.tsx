@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@app/store/store";
-import { setCurrentUser } from "@store/reducers/auth";
+import { setCurrentUser, setSidebarAccess } from "@store/reducers/auth";
 import Main from "@modules/main/Main";
 import axios from "@app/utils/axios";
 import TrialWarningBanner from "@app/components/TrialWarningBanner";
@@ -31,6 +31,13 @@ export default function ProtectedLayout({
       const response = await axios.get(`/auth/me`);
 
       const userData = response.data.data;
+
+      // Map user's role access to sidebarAccessByRole state
+      if (userData.role && typeof userData.role === "object") {
+        const roleName = userData.role.name;
+        const sidebarAccess = userData.role.sidebarAccess || [];
+        dispatch(setSidebarAccess({ [roleName]: sidebarAccess }));
+      }
 
       // Update Redux store with fresh data
       dispatch(setCurrentUser(userData));

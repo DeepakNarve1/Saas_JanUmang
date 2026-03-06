@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 import { Badge } from "@app/components/ui/badge";
 import { ViewPageActions } from "@app/components/ViewPageActions";
 
@@ -128,7 +129,7 @@ const ViewPhoneDirectory = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_phone_directory") && (
+                {hasPermission(PERMISSIONS.EDIT_PHONE_DIRECTORY) && (
                   <Button
                     className="bg-[#00563B] hover:bg-[#368F8B]"
                     onClick={() => router.push(`/phone-directory/${id}/edit`)}

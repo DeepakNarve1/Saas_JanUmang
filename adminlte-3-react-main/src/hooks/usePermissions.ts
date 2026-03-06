@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useAppSelector } from "@app/store/store";
 import { IRole, IPermission } from "@app/types/user";
+import { PERMISSIONS, Permission } from "@app/config/permissions";
 
 /**
  * A helper that mirrors the backend isGlobalAdmin() security rule:
@@ -17,7 +18,7 @@ export const usePermissions = () => {
   const user = useAppSelector((state) => state.auth.currentUser);
 
   const hasPermission = useCallback(
-    (permissionName: string): boolean => {
+    (permissionName: Permission | string): boolean => {
       if (!user) return false;
 
       // Platform-level admin check (no tenantId + system_admin/superadmin level)
@@ -110,14 +111,14 @@ export const usePermissions = () => {
   );
 
   const hasAnyPermission = useCallback(
-    (permissionNames: string[]): boolean => {
+    (permissionNames: (Permission | string)[]): boolean => {
       return permissionNames.some((perm) => hasPermission(perm));
     },
     [hasPermission],
   );
 
   const hasAllPermissions = useCallback(
-    (permissionNames: string[]): boolean => {
+    (permissionNames: (Permission | string)[]): boolean => {
       return permissionNames.every((perm) => hasPermission(perm));
     },
     [hasPermission],

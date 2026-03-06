@@ -1,11 +1,12 @@
 "use client";
 
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import CreateInDocs from "@app/views/inDocs/CreateInDocs";
 
 export default function CreateInDocsPage() {
   return (
-    <RouteGuard requiredPermission="create_in_docs">
+    <RouteGuard requiredPermissions={[PERMISSIONS.CREATE_IN_DOCS]}>
       <CreateInDocs />
     </RouteGuard>
   );

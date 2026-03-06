@@ -4,6 +4,7 @@ import { useState } from "react";
 import axios from "@app/utils/axios";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import InwardRegisterForm from "./InwardRegisterForm";
 import {
@@ -22,11 +23,7 @@ const CreateInwardRegister = () => {
       toast.success("Inward Register entry created successfully");
       router.push("/inward-register");
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(
-        error.response?.data?.message ||
-          "Failed to create Inward Register entry"
-      );
+      handleError(err, "Failed to create Inward Register entry");
     } finally {
       setIsLoading(false);
     }

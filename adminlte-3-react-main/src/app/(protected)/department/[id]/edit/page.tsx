@@ -1,11 +1,12 @@
 "use client";
 
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import EditDepartment from "@app/views/department/EditDepartment";
 
 export default function EditDepartmentPage() {
   return (
-    <RouteGuard requiredPermission="edit_departments">
+    <RouteGuard requiredPermissions={[PERMISSIONS.EDIT_DEPARTMENTS]}>
       <EditDepartment />
     </RouteGuard>
   );

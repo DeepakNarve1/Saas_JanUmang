@@ -5,6 +5,7 @@ export interface IStateFormValues {
 export interface IState {
   _id: string;
   name: string;
+  divisions?: { _id: string; name: string }[];
   createdAt?: string;
   updatedAt?: string;
 }

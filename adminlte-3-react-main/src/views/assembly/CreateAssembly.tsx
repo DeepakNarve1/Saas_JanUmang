@@ -23,7 +23,7 @@ const CreateAssembly = () => {
       await axios.post("/assemblies", values);
       toast.success("Assembly created successfully");
       router.push("/assemblies");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to create assembly");
     } finally {
       setLoading(false);

@@ -1,11 +1,12 @@
 "use client";
 
 import EditDivision from "@app/views/division/EditDivision";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 export default function EditDivisionPage() {
   return (
-    <RouteGuard requiredPermission="edit_divisions">
+    <RouteGuard requiredPermissions={[PERMISSIONS.EDIT_DIVISIONS]}>
       <EditDivision />
     </RouteGuard>
   );

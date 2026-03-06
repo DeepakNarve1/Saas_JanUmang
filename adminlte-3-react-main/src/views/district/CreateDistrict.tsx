@@ -18,7 +18,7 @@ const CreateDistrict = () => {
       await axios.post("/districts", values);
       toast.success("District created successfully");
       router.push("/districts");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to create district");
     } finally {
       setLoading(false);

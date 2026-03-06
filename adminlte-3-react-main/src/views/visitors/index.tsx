@@ -41,6 +41,7 @@ import {
   Trash2,
   Loader2,
 } from "lucide-react";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { Pagination } from "@app/components/common/Pagination";
@@ -51,14 +52,15 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query";
 import { IVisitorResponse } from "@app/types/visitor";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const Visitors = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
-  const canDelete = hasPermission("delete_visitors");
-  const canCreate = hasPermission("create_visitors");
-  const canEdit = hasPermission("edit_visitors");
+  const canDelete = hasPermission(PERMISSIONS.DELETE_VISITORS);
+  const canCreate = hasPermission(PERMISSIONS.CREATE_VISITORS);
+  const canEdit = hasPermission(PERMISSIONS.EDIT_VISITORS);
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -201,8 +203,8 @@ const Visitors = () => {
       toast.success("Visitor deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["visitors"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete visitor");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete visitor");
     },
   });
 
@@ -243,9 +245,8 @@ const Visitors = () => {
       XLSX.utils.book_append_sheet(wb, ws, "Visitors");
       XLSX.writeFile(wb, `Visitors_${Date.now()}.xlsx`);
       toast.success("Exported successfully");
-    } catch (error) {
-      console.error("Export error:", error);
-      toast.error("Failed to export data");
+    } catch (error: unknown) {
+      handleError(error, "Failed to export data");
     } finally {
       setLoading(false);
     }
@@ -391,12 +392,14 @@ const Visitors = () => {
 
             await axios.post("/visitors", payload);
             successCount++;
-          } catch (error: any) {
-            console.error("Row import error:", error);
+          } catch (error: unknown) {
             if (!firstErrorMessage) {
-              firstErrorMessage =
-                error.response?.data?.message || error.message;
+              firstErrorMessage = `Row ${successCount + failureCount + 1} import failed`;
             }
+            handleError(
+              error,
+              `Import: Failed to add row ${successCount + failureCount + 1}`,
+            );
             failureCount++;
           }
         }
@@ -409,9 +412,9 @@ const Visitors = () => {
           toast.success(`Successfully imported ${successCount} records`);
         }
         queryClient.invalidateQueries({ queryKey: ["visitors"] });
-      } catch (error: any) {
-        console.error("Import error:", error);
-        toast.error(
+      } catch (error: unknown) {
+        handleError(
+          error,
           "Failed to process file. Ensure it's a valid Excel format.",
         );
       } finally {

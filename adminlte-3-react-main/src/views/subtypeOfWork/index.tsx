@@ -47,6 +47,7 @@ import { usePermissions } from "@app/hooks/usePermissions";
 import { Pagination } from "@app/components/common/Pagination";
 import { ISubTypeOfWorkResponse } from "@app/types/subtypeOfWork";
 import { useListManagement } from "@app/hooks/useListManagement";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const SubTypeOfWorkList = () => {
   const router = useRouter();
@@ -176,7 +177,7 @@ const SubTypeOfWorkList = () => {
                   onChange={handleImport}
                   className="hidden"
                 />
-                {hasPermission("create_sub_work_types") && (
+                {hasPermission(PERMISSIONS.CREATE_SUB_WORK_TYPES) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium h-9"
                     onClick={() => router.push("/sub-type-of-work/create")}
@@ -345,7 +346,9 @@ const SubTypeOfWorkList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-40">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_sub_work_types") && (
+                                {hasPermission(
+                                  PERMISSIONS.VIEW_SUB_WORK_TYPES,
+                                ) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -357,7 +360,9 @@ const SubTypeOfWorkList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_sub_work_types") && (
+                                {hasPermission(
+                                  PERMISSIONS.EDIT_SUB_WORK_TYPES,
+                                ) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -369,7 +374,9 @@ const SubTypeOfWorkList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_sub_work_types") && (
+                                {hasPermission(
+                                  PERMISSIONS.DELETE_SUB_WORK_TYPES,
+                                ) && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-700 cursor-pointer"
                                     onClick={() =>

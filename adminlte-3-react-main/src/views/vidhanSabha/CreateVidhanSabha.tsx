@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import VidhanSabhaForm from "./VidhanSabhaForm";
 
@@ -17,10 +18,8 @@ const CreateVidhanSabha = () => {
       await axios.post("/vidhan-sabha", values);
       toast.success("VidhanSabha created successfully");
       router.push("/vidhansabha");
-    } catch (err: any) {
-      toast.error(
-        err.response?.data?.message || "Failed to create VidhanSabha",
-      );
+    } catch (error: unknown) {
+      handleError(error, "Failed to create VidhanSabha");
     } finally {
       setLoading(false);
     }

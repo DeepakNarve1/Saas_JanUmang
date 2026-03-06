@@ -1,0 +1,11 @@
+modules.js updated
+menu.ts updated
+DONE 
+Traceback (most recent call last):
+  File "d:\Akalp\Saas\JanUmangSaas\update_perms.py", line 11, in <module>
+    modules_content = f.read()
+  File "C:\Python313\Lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x8d in position 13816: character maps to <undefined>
+DONE PYTHON 

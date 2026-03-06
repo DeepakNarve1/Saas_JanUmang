@@ -6,12 +6,13 @@ import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import BoothForm from "./BoothForm";
 import { Skeleton } from "@app/components/ui/skeleton";
+import { IBoothFormValues } from "./booth.schema";
 
 const EditBooth = () => {
   const router = useRouter();
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
-  const [initialValues, setInitialValues] = useState({
+  const [initialValues, setInitialValues] = useState<IBoothFormValues>({
     name: "",
     code: "",
     state: "",
@@ -43,21 +44,21 @@ const EditBooth = () => {
         block: booth.block?._id || booth.block || "",
         year: booth.year || "",
       });
-    } catch (err: unknown) {
-      toast.error("Failed to fetch booth details");
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch booth details");
       router.push("/booths");
     } finally {
       setIsFetching(false);
     }
   };
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: IBoothFormValues) => {
     try {
       setLoading(true);
       await axios.put(`/booths/${id}`, values);
       toast.success("Booth updated successfully");
       router.push("/booths");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to update booth");
     } finally {
       setLoading(false);

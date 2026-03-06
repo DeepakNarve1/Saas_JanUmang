@@ -5,14 +5,15 @@ import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import UserForm from "./UserForm";
 import { IUserFormValues, userInitialValues } from "./user.schema";
 import { handleError } from "@app/utils/errorHandler";
 
 const EditUser = () => {
   return (
-    <RouteGuard requiredPermissions={["manage_roles", "edit_users"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.MANAGE_ROLES, PERMISSIONS.EDIT_USERS]}>
       <EditUserContent />
     </RouteGuard>
   );
@@ -93,10 +94,7 @@ const EditUserContent = () => {
           throw new Error("No user data in response");
         }
       } catch (error: unknown) {
-        console.error("Failed to load user:", error);
-        const err = error as { response?: { data?: { message?: string } } };
-        const errorMsg = err.response?.data?.message || "Failed to load user";
-        toast.error(errorMsg);
+        handleError(error, "Failed to load user");
         router.push("/users");
       } finally {
         setPageLoading(false);

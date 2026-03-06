@@ -42,10 +42,11 @@ import { usePermissions } from "@app/hooks/usePermissions";
 import { Pagination } from "@app/components/common/Pagination";
 import { IDivisionResponse, IDivision } from "@app/types/division";
 import { useListManagement } from "@app/hooks/useListManagement";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const DivisionList = () => {
   const router = useRouter();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, isSuperAdmin } = usePermissions();
 
   const {
     pagination,
@@ -95,14 +96,15 @@ const DivisionList = () => {
                 />
               </div>
               <div className="flex items-center gap-3">
-                {hasPermission("create_divisions") && (
-                  <Button
-                    className="bg-[#368F8B] hover:bg-[#2d7a76] text-white dark:bg-[#368F8B] dark:hover:bg-[#2d7a76] rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
-                    onClick={() => router.push("/divisions/create")}
-                  >
-                    <Plus className="w-5 h-5 mr-2 font-bold" /> Add Division
-                  </Button>
-                )}
+                {isSuperAdmin() &&
+                  hasPermission(PERMISSIONS.CREATE_DIVISIONS) && (
+                    <Button
+                      className="bg-[#368F8B] hover:bg-[#2d7a76] text-white dark:bg-[#368F8B] dark:hover:bg-[#2d7a76] rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
+                      onClick={() => router.push("/divisions/create")}
+                    >
+                      <Plus className="w-5 h-5 mr-2 font-bold" /> Add Division
+                    </Button>
+                  )}
               </div>
             </div>
 
@@ -230,7 +232,7 @@ const DivisionList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_divisions") && (
+                                {hasPermission(PERMISSIONS.VIEW_DIVISIONS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/divisions/${item._id}`)
@@ -239,28 +241,34 @@ const DivisionList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_divisions") && (
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      router.push(`/divisions/${item._id}/edit`)
-                                    }
-                                  >
-                                    <Edit className="mr-2 h-4 w-4" /> Edit
-                                  </DropdownMenuItem>
-                                )}
-                                {hasPermission("delete_divisions") && (
-                                  <DropdownMenuItem
-                                    className="text-red-600 focus:text-red-600"
-                                    onClick={() =>
-                                      handleDelete(
-                                        item._id,
-                                        "Are you sure you want to delete this division?",
-                                      )
-                                    }
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                  </DropdownMenuItem>
-                                )}
+                                {isSuperAdmin() &&
+                                  hasPermission(PERMISSIONS.EDIT_DIVISIONS) && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        router.push(
+                                          `/divisions/${item._id}/edit`,
+                                        )
+                                      }
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" /> Edit
+                                    </DropdownMenuItem>
+                                  )}
+                                {isSuperAdmin() &&
+                                  hasPermission(
+                                    PERMISSIONS.DELETE_DIVISIONS,
+                                  ) && (
+                                    <DropdownMenuItem
+                                      className="text-red-600 focus:text-red-600"
+                                      onClick={() =>
+                                        handleDelete(
+                                          item._id,
+                                          "Are you sure you want to delete this division?",
+                                        )
+                                      }
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                    </DropdownMenuItem>
+                                  )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>

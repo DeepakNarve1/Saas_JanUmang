@@ -284,8 +284,8 @@ const TenantFormEnhanced: React.FC<TenantFormProps> = ({ tenantId }) => {
   }, [tenant, isEdit]);
 
   const handleModuleToggle = (moduleId: string) => {
-    const module = modules.find((m) => m.id === moduleId);
-    if (module?.alwaysEnabled) return; // Prevent toggling required modules
+    const foundModule = modules.find((m) => m.id === moduleId);
+    if (foundModule?.alwaysEnabled) return; // Prevent toggling required modules
 
     setSelectedModules((prev) =>
       prev.includes(moduleId)
@@ -476,7 +476,7 @@ const TenantFormEnhanced: React.FC<TenantFormProps> = ({ tenantId }) => {
                   Subscription Plan
                 </CardTitle>
                 <CardDescription>
-                  Choose a plan that fits your organization's needs
+                  Choose a plan that fits your organization&apos;s needs
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -653,15 +653,15 @@ const TenantFormEnhanced: React.FC<TenantFormProps> = ({ tenantId }) => {
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                     {selectedPlan.enabledModules.map((moduleId) => {
-                      const module = modules.find((m) => m.id === moduleId);
-                      return module ? (
+                      const mod = modules.find((m) => m.id === moduleId);
+                      return mod ? (
                         <Badge
                           key={moduleId}
                           variant="secondary"
                           className="justify-start"
                         >
                           <CheckCircle2 className="h-3 w-3 mr-1" />
-                          {module.name}
+                          {mod.name}
                         </Badge>
                       ) : null;
                     })}

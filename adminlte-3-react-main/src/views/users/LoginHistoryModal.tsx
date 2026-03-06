@@ -85,7 +85,7 @@ export const LoginHistoryModal = ({
               </div>
               <p className="font-medium text-lg">No login history found</p>
               <p className="text-sm">
-                We couldn't find any recent login activity for this user.
+                We couldn&apos;t find any recent login activity for this user.
               </p>
             </div>
           ) : (

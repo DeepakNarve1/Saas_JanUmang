@@ -50,6 +50,7 @@ import {
 } from "lucide-react";
 import { ContentHeader } from "@app/components";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 import { Pagination } from "@app/components/common/Pagination";
 import {
   useQuery,
@@ -621,7 +622,7 @@ const PhoneDirectoryList = () => {
                   onChange={handleImport}
                   className="hidden"
                 />
-                {hasPermission("create_phone_directory") && (
+                {hasPermission(PERMISSIONS.CREATE_PHONE_DIRECTORY) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all"
                     onClick={() => router.push("/phone-directory/create")}
@@ -937,7 +938,9 @@ const PhoneDirectoryList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_phone_directory") && (
+                                {hasPermission(
+                                  PERMISSIONS.VIEW_PHONE_DIRECTORY,
+                                ) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -948,7 +951,9 @@ const PhoneDirectoryList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_phone_directory") && (
+                                {hasPermission(
+                                  PERMISSIONS.EDIT_PHONE_DIRECTORY,
+                                ) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -959,7 +964,9 @@ const PhoneDirectoryList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_phone_directory") && (
+                                {hasPermission(
+                                  PERMISSIONS.DELETE_PHONE_DIRECTORY,
+                                ) && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600 focus:bg-red-50"
                                     onClick={() => handleDelete(item._id)}

@@ -102,14 +102,26 @@ export default function CalendarPage() {
     return "neutral";
   };
 
+  interface IEvent {
+    _id: string;
+    eventType: string;
+    time?: string;
+    programDate: string | Date;
+    eventDetails?: string;
+  }
+
+  interface IEventResponse {
+    data: IEvent[];
+    total?: number;
+  }
   const { data: events = [] } = useQuery<CalendarEvent[]>({
     queryKey: ["events-calendar"],
     queryFn: async () => {
-      const { data } = await axios.get("/events", {
+      const { data } = await axios.get<IEventResponse>("/events", {
         params: { limit: -1 },
       });
 
-      return data.data.map((e: any) => ({
+      return data.data.map((e: IEvent) => ({
         id: e._id,
         title: e.eventType,
         time: e.time || "",

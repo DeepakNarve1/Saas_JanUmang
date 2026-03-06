@@ -548,10 +548,145 @@ const getMemberBlockSummary = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Get MP public problems department summary
+ * @route   GET /api/dashboard/mp-department-summary
+ * @access  Private
+ */
+const getMpDepartmentSummary = asyncHandler(async (req, res) => {
+  const tenantId = req.tenantId;
+  const tenantFilter = tenantId ? { tenantId } : {};
+  const { block } = req.query;
+
+  // MP problems are identified by their MP/ regNo prefix
+  const matchFilter = {
+    ...tenantFilter,
+    regNo: { $regex: /^MP\//i },
+  };
+  if (block) matchFilter.block = block;
+
+  const summary = await PublicProblem.aggregate([
+    { $match: matchFilter },
+    {
+      $group: {
+        _id: "$department",
+        total: { $sum: 1 },
+        complete: {
+          $sum: {
+            $cond: [
+              { $in: ["$status", ["Resolved", "Closed", "Completed"]] },
+              1,
+              0,
+            ],
+          },
+        },
+        incomplete: {
+          $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] },
+        },
+        inProgress: {
+          $sum: {
+            $cond: [{ $in: ["$status", ["In Progress", "Processing"]] }, 1, 0],
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        name: { $ifNull: ["$_id", "Unassigned"] },
+        total: 1,
+        complete: 1,
+        incomplete: 1,
+        inProgress: 1,
+      },
+    },
+    { $sort: { total: -1 } },
+  ]);
+
+  res.status(200).json({ success: true, data: summary });
+});
+
+/**
+ * @desc    Get MP public problems block summary
+ * @route   GET /api/dashboard/mp-block-summary
+ * @access  Private
+ */
+const getMpBlockSummary = asyncHandler(async (req, res) => {
+  const tenantId = req.tenantId;
+  const tenantFilter = tenantId ? { tenantId } : {};
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const matchFilter = {
+    ...tenantFilter,
+    regNo: { $regex: /^MP\//i },
+  };
+
+  const summary = await PublicProblem.aggregate([
+    { $match: matchFilter },
+    {
+      $group: {
+        _id: "$block",
+        total: { $sum: 1 },
+        today: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $gte: ["$submissionDate", today] },
+                  { $lt: ["$submissionDate", tomorrow] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+        complete: {
+          $sum: {
+            $cond: [
+              { $in: ["$status", ["Resolved", "Closed", "Completed"]] },
+              1,
+              0,
+            ],
+          },
+        },
+        incomplete: {
+          $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] },
+        },
+        inProgress: {
+          $sum: {
+            $cond: [{ $in: ["$status", ["In Progress", "Processing"]] }, 1, 0],
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        name: { $ifNull: ["$_id", "Unassigned"] },
+        total: 1,
+        today: 1,
+        complete: 1,
+        incomplete: 1,
+        inProgress: 1,
+      },
+    },
+    { $sort: { total: -1 } },
+  ]);
+
+  res.status(200).json({ success: true, data: summary });
+});
+
 module.exports = {
   getDashboardStats,
   getDepartmentSummary,
   getBlockSummary,
   getChartData,
   getMemberBlockSummary,
+  getMpDepartmentSummary,
+  getMpBlockSummary,
 };

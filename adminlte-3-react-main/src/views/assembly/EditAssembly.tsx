@@ -36,7 +36,7 @@ const EditAssembly = () => {
         parliament: assembly.parliament?._id || assembly.parliament || "",
       });
     } catch (error: unknown) {
-      toast.error("Failed to fetch assembly details");
+      handleError(error, "Failed to fetch assembly details");
       router.push("/assemblies");
     } finally {
       setIsFetching(false);
@@ -53,7 +53,7 @@ const EditAssembly = () => {
       await axios.put(`/assemblies/${id}`, values);
       toast.success("Assembly updated successfully");
       router.push("/assemblies");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to update assembly");
     } finally {
       setLoading(false);

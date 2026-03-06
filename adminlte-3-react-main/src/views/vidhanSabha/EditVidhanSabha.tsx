@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Skeleton } from "@app/components/ui/skeleton";
 import VidhanSabhaForm from "./VidhanSabhaForm";
@@ -31,10 +32,8 @@ const EditVidhanSabha = () => {
             year: data.year,
           });
         }
-      } catch (err: any) {
-        toast.error(
-          err.response?.data?.message || "Failed to load vidhanSabha data",
-        );
+      } catch (error: unknown) {
+        handleError(error, "Failed to load vidhanSabha data");
         router.push("/vidhansabha");
       } finally {
         setLoading(false);
@@ -50,10 +49,8 @@ const EditVidhanSabha = () => {
       await axios.put(`/vidhan-sabha/${id}`, values);
       toast.success("VidhanSabha updated successfully");
       router.push("/vidhansabha");
-    } catch (err: any) {
-      toast.error(
-        err.response?.data?.message || "Failed to update vidhanSabha",
-      );
+    } catch (error: unknown) {
+      handleError(error, "Failed to update vidhanSabha");
     } finally {
       setSaving(false);
     }

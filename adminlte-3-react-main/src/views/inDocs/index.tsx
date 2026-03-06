@@ -51,6 +51,7 @@ import {
 import { ContentHeader } from "@app/components";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { Pagination } from "@app/components/common/Pagination";
+import { PERMISSIONS } from "@app/config/permissions";
 import { IInDocsResponse } from "@app/types/inDocs";
 
 const InDocsList = () => {
@@ -387,7 +388,7 @@ const InDocsList = () => {
                   Import
                 </Button>
 
-                {hasPermission("create_in_docs") && (
+                {hasPermission(PERMISSIONS.CREATE_IN_DOCS) && (
                   <Button
                     size="lg"
                     onClick={() => router.push("/in-docs/create")}
@@ -683,7 +684,7 @@ const InDocsList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_in_docs") && (
+                                {hasPermission(PERMISSIONS.VIEW_IN_DOCS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/in-docs/${item._id}/view`)
@@ -692,7 +693,7 @@ const InDocsList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_in_docs") && (
+                                {hasPermission(PERMISSIONS.EDIT_IN_DOCS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/in-docs/${item._id}/edit`)
@@ -701,7 +702,7 @@ const InDocsList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_in_docs") && (
+                                {hasPermission(PERMISSIONS.DELETE_IN_DOCS) && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600 focus:bg-red-50"
                                     onClick={() => handleDelete(item._id)}

@@ -8,7 +8,12 @@ const asyncHandler = require("express-async-handler");
 exports.getBooths = asyncHandler(async (req, res) => {
   const { search, page = 1, limit = 10, block, blockName } = req.query;
 
-  const query = {};
+  const tenantScopeId = req.scopeFilter?.tenantId;
+  const geoScope = tenantScopeId
+    ? { tenantId: { $in: [tenantScopeId, null] } }
+    : {};
+
+  const query = { ...geoScope };
 
   if (search) {
     query.$or = [
@@ -68,7 +73,7 @@ exports.getBooths = asyncHandler(async (req, res) => {
 
   let booths;
   let filteredCount;
-  let totalCount = await Booth.countDocuments({});
+  let totalCount = await Booth.countDocuments(geoScope);
 
   if (limitNum === -1) {
     booths = await Booth.find(query)
@@ -105,7 +110,11 @@ exports.getBooths = asyncHandler(async (req, res) => {
 // @desc    Get single booth
 // @route   GET /api/booths/:id
 exports.getBoothById = asyncHandler(async (req, res) => {
-  const booth = await Booth.findById(req.params.id)
+  const tenantScopeId = req.scopeFilter?.tenantId;
+  const booth = await Booth.findOne({
+    _id: req.params.id,
+    ...(tenantScopeId ? { tenantId: { $in: [tenantScopeId, null] } } : {}),
+  })
     .populate("state", "name")
     .populate("division", "name")
     .populate("district", "name")
@@ -212,7 +221,7 @@ exports.createBooth = asyncHandler(async (req, res) => {
 // @desc    Update a booth
 // @route   PUT /api/booths/:id
 exports.updateBooth = asyncHandler(async (req, res) => {
-  const booth = await Booth.findById(req.params.id);
+  const booth = await Booth.findOne({ _id: req.params.id, ...req.scopeFilter });
   if (!booth) {
     res.status(404);
     throw new Error("Booth not found");
@@ -270,7 +279,7 @@ exports.updateBooth = asyncHandler(async (req, res) => {
 // @desc    Delete a booth
 // @route   DELETE /api/booths/:id
 exports.deleteBooth = asyncHandler(async (req, res) => {
-  const booth = await Booth.findById(req.params.id);
+  const booth = await Booth.findOne({ _id: req.params.id, ...req.scopeFilter });
   if (!booth) {
     res.status(404);
     throw new Error("Booth not found");

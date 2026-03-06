@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { Button } from "@app/components/ui/button";
 import { Input } from "@app/components/ui/input";
 import { Label } from "@app/components/ui/label";
@@ -36,7 +37,7 @@ import {
 } from "./user.schema";
 import { USER_TYPE_OPTIONS } from "./user.constants";
 import { IRoleOption } from "@app/types/user";
-import { useAppSelector } from "@app/store/store";
+import { useAppSelector, RootState } from "@app/store/store";
 
 import { ITenant } from "@app/types/tenant";
 
@@ -57,7 +58,9 @@ const UserForm = ({
   const [roles, setRoles] = useState<IRoleOption[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [rolesError, setRolesError] = useState<string | null>(null);
-  const currentUser = useAppSelector((state: any) => state.auth.currentUser);
+  const currentUser = useAppSelector(
+    (state: RootState) => state.auth.currentUser,
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [tenants, setTenants] = useState<ITenant[]>([]);
@@ -87,8 +90,8 @@ const UserForm = ({
           if (res.data?.data) {
             setTenants(res.data.data);
           }
-        } catch (error) {
-          console.error("Failed to fetch tenants:", error);
+        } catch (error: unknown) {
+          handleError(error, "Failed to fetch tenants");
         }
       };
       fetchTenants();
@@ -118,10 +121,7 @@ const UserForm = ({
           throw new Error("Invalid response format from roles API");
         }
       } catch (error: unknown) {
-        const errorMessage = "Failed to load roles. Please refresh the page.";
-        console.error("Roles fetch error:", error);
-        setRolesError(errorMessage);
-        toast.error(errorMessage);
+        handleError(error, "Failed to load roles");
         setRoles([]); // Set empty array on error
       } finally {
         setRolesLoading(false);

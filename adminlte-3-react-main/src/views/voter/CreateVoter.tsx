@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from "@app/components/ui/select";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import {
   voterSchema,
   voterInitialValues,
@@ -49,7 +50,7 @@ interface Booth {
 
 const CreateVoter = () => {
   return (
-    <RouteGuard requiredPermissions={["create_voters"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.CREATE_VOTERS]}>
       <CreateVoterContent />
     </RouteGuard>
   );
@@ -163,9 +164,10 @@ const CreateVoterContent = () => {
         await axios.post("/voters", payload);
         toast.success("Voter created successfully!");
         router.push("/voter");
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const err = error as { response?: { data?: unknown } };
         console.error("Creation Error:", error);
-        console.error("Error response:", error.response?.data);
+        console.error("Error response:", err.response?.data);
         handleError(error, "Failed to create voter");
       } finally {
         setLoading(false);

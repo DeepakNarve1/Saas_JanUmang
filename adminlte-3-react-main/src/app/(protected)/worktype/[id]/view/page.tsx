@@ -1,11 +1,12 @@
 "use client";
 
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import ViewWorktype from "@app/views/worktype/ViewWorktype";
 
 export default function ViewWorktypePage() {
   return (
-    <RouteGuard requiredPermission="view_work_types">
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_WORK_TYPES]}>
       <ViewWorktype />
     </RouteGuard>
   );

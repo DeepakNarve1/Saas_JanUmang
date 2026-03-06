@@ -3,10 +3,12 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export interface AuthState {
   currentUser: IUser | null;
+  sidebarAccessByRole: Record<string, string[]>;
 }
 
 const initialState: AuthState = {
   currentUser: null,
+  sidebarAccessByRole: {},
 };
 
 export const authSlice = createSlice({
@@ -19,9 +21,15 @@ export const authSlice = createSlice({
     ) => {
       state.currentUser = payload;
     },
+    setSidebarAccess: (
+      state: AuthState,
+      { payload }: { payload: Record<string, string[]> },
+    ) => {
+      state.sidebarAccessByRole = payload;
+    },
   },
 });
 
-export const { setCurrentUser } = authSlice.actions;
+export const { setCurrentUser, setSidebarAccess } = authSlice.actions;
 
 export default authSlice.reducer;

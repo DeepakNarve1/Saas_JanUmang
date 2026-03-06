@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import DivisionForm from "./DivisionForm";
 import { Skeleton } from "@app/components/ui/skeleton";
@@ -33,8 +34,7 @@ const EditDivision = () => {
           });
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(err.response?.data?.message || "Failed to load division");
+        handleError(error, "Failed to load division");
         router.push("/divisions");
       } finally {
         setLoading(false);
@@ -51,8 +51,7 @@ const EditDivision = () => {
       toast.success("Division updated successfully");
       router.push("/divisions");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to update division");
+      handleError(error, "Failed to update division");
     } finally {
       setSaving(false);
     }

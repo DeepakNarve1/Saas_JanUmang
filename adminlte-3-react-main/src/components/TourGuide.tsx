@@ -36,8 +36,8 @@ const TourGuide = () => {
         <div>
           <h3 className="font-bold text-lg mb-2">Welcome to Jan Umang!</h3>
           <p>
-            This is your new dashboard. Let's take a quick tour to help you get
-            started.
+            This is your new dashboard. Let&apos;s take a quick tour to help you
+            get started.
           </p>
         </div>
       ),

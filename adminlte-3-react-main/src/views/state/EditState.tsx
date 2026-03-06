@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import StateForm from "./StateForm";
 import { Skeleton } from "@app/components/ui/skeleton";
@@ -30,8 +31,7 @@ const EditState = () => {
           });
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(err.response?.data?.message || "Failed to load state");
+        handleError(error, "Failed to load state");
         router.push("/states");
       } finally {
         setLoading(false);
@@ -48,8 +48,7 @@ const EditState = () => {
       toast.success("State updated successfully");
       router.push("/states");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to update state");
+      handleError(error, "Failed to update state");
     } finally {
       setSaving(false);
     }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { useDebounce } from "@app/hooks/useDebounce";
 import {
@@ -49,7 +50,8 @@ import {
 } from "lucide-react";
 import { ContentHeader } from "@app/components";
 import { Pagination } from "@app/components/common/Pagination";
-import { IBlockResponse } from "@app/types/block";
+import { IBlock, IBlockResponse } from "@app/types/block";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const Block = () => {
   const { hasPermission } = usePermissions();
@@ -69,6 +71,7 @@ const Block = () => {
     srNo: true,
     name: true,
     district: true,
+    assembly: true,
     year: true,
     action: true,
   });
@@ -156,8 +159,8 @@ const Block = () => {
       toast.success("Block deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["blocks"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete block");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete block");
     },
   });
 
@@ -200,7 +203,7 @@ const Block = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  {hasPermission("create_blocks") && (
+                  {hasPermission(PERMISSIONS.CREATE_BLOCKS) && (
                     <Button
                       size="lg"
                       onClick={() => router.push("/blocks/create")}
@@ -221,19 +224,7 @@ const Block = () => {
                     setFilterAssembly(val);
                     setPagination((prev) => ({ ...prev, page: 1 }));
                   }}
-                >
-                  <SelectTrigger className="w-36 h-9 bg-white dark:bg-[#202123] text-sm dark:border-gray-700 dark:text-gray-300">
-                    <SelectValue placeholder="Filter by Assembly" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Assemblies</SelectItem>
-                    {assemblies.map((a: any) => (
-                      <SelectItem key={a._id} value={a.name}>
-                        {a.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                ></Select>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500 whitespace-nowrap dark:text-gray-400">
                     Show
@@ -317,12 +308,17 @@ const Block = () => {
                         Block Name
                       </TableHead>
                     )}
-                    {(visibleColumns as any).district && (
+                    {visibleColumns.district && (
                       <TableHead className="font-semibold text-white dark:text-white uppercase tracking-wider text-xs">
                         District
                       </TableHead>
                     )}
-                    {(visibleColumns as any).year && (
+                    {visibleColumns.assembly && (
+                      <TableHead className="font-semibold text-white dark:text-white uppercase tracking-wider text-xs">
+                        Assembly
+                      </TableHead>
+                    )}
+                    {visibleColumns.year && (
                       <TableHead className="font-semibold text-white dark:text-white uppercase tracking-wider text-xs">
                         Year
                       </TableHead>
@@ -348,12 +344,17 @@ const Block = () => {
                             <Skeleton className="h-12 w-48 dark:bg-gray-800" />
                           </TableCell>
                         )}
-                        {(visibleColumns as any).district && (
+                        {visibleColumns.district && (
                           <TableCell>
                             <Skeleton className="h-12 w-48 dark:bg-gray-800" />
                           </TableCell>
                         )}
-                        {(visibleColumns as any).year && (
+                        {visibleColumns.assembly && (
+                          <TableCell>
+                            <Skeleton className="h-12 w-48 dark:bg-gray-800" />
+                          </TableCell>
+                        )}
+                        {visibleColumns.year && (
                           <TableCell>
                             <Skeleton className="h-12 w-24 dark:bg-gray-800" />
                           </TableCell>
@@ -403,18 +404,24 @@ const Block = () => {
                             </div>
                           </TableCell>
                         )}
-                        {(visibleColumns as any).district && (
+                        {visibleColumns.district && (
                           <TableCell className="text-gray-600 dark:text-gray-400">
-                            {(block as any).district?.name ||
-                              (block as any).assembly?.parliament?.district
-                                ?.name ||
+                            {(block.district as { name?: string })?.name ||
                               "N/A"}
                           </TableCell>
                         )}
-                        {(visibleColumns as any).year && (
+                        {visibleColumns.assembly && (
+                          <TableCell className="text-gray-600 dark:text-gray-400">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                              {(block.assembly as { name?: string })?.name ||
+                                "N/A"}
+                            </span>
+                          </TableCell>
+                        )}
+                        {visibleColumns.year && (
                           <TableCell className="text-gray-600 dark:text-gray-400">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                              {(block as any).year || "-"}
+                              {block.year || "-"}
                             </span>
                           </TableCell>
                         )}
@@ -431,7 +438,7 @@ const Block = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {hasPermission("view_blocks") && (
+                                {hasPermission(PERMISSIONS.VIEW_BLOCKS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/blocks/${block._id}`)
@@ -440,7 +447,7 @@ const Block = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_blocks") && (
+                                {hasPermission(PERMISSIONS.EDIT_BLOCKS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/blocks/${block._id}/edit`)
@@ -449,7 +456,7 @@ const Block = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_blocks") && (
+                                {hasPermission(PERMISSIONS.DELETE_BLOCKS) && (
                                   <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => handleDelete(block._id)}

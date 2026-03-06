@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import NextImage from "next/image";
 import axios from "@app/utils/axios";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import { ArrowLeft, Edit } from "lucide-react";
@@ -55,9 +56,8 @@ const SamitiView = ({
         setLoading(true);
         const res = await axios.get(`/${apiEndpoint}/${id}`);
         setData(res.data.data);
-      } catch (err: any) {
-        console.error(err);
-        setError(err.response?.data?.message || "Failed to load data");
+      } catch (err: unknown) {
+        handleError(err, "Failed to load data");
       } finally {
         setLoading(false);
       }
@@ -192,7 +192,7 @@ const ViewField = ({
     <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">
       {label}
     </h3>
-    <p className="text-base font-semibold text-gray-800 dark:text-gray-100 break-words line-clamp-2">
+    <p className="text-base font-semibold text-gray-800 dark:text-gray-100 wrap-break-word line-clamp-2">
       {value || (
         <span className="text-gray-400 dark:text-gray-600 italic">N/A</span>
       )}

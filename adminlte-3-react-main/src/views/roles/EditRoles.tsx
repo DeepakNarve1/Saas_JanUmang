@@ -4,14 +4,16 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import { IRoleFormValues, roleInitialValues } from "./role.schema";
 import RoleForm from "./roleForm";
 
 const EditRole = () => {
   return (
-    <RouteGuard requiredPermissions={["manage_roles", "edit_roles"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.MANAGE_ROLES, PERMISSIONS.EDIT_ROLES]}>
       <EditRoleContent />
     </RouteGuard>
   );
@@ -44,9 +46,8 @@ const EditRoleContent = () => {
             tenantId: roleData.tenantId || "",
           });
         }
-      } catch (err) {
-        console.error("Failed to load role data", err);
-        toast.error("Failed to load role data");
+      } catch (err: unknown) {
+        handleError(err, "Failed to load role data");
         router.push("/roles");
       } finally {
         setPageLoading(false);
@@ -67,8 +68,8 @@ const EditRoleContent = () => {
       });
       toast.success("Role updated successfully!");
       router.push("/roles");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to update role");
+    } catch (err: unknown) {
+      handleError(err, "Failed to update role");
     } finally {
       setLoading(false);
     }

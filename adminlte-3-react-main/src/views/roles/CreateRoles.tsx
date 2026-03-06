@@ -4,14 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import { IRoleFormValues } from "./role.schema";
 import RoleForm from "./roleForm";
 
 const CreateRole = () => {
   return (
-    <RouteGuard requiredPermissions={["manage_roles", "create_roles"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.MANAGE_ROLES, PERMISSIONS.CREATE_ROLES]}>
       <CreateRoleContent />
     </RouteGuard>
   );
@@ -40,30 +42,8 @@ const CreateRoleContent = () => {
 
       toast.success("Role created successfully!");
       router.push("/roles");
-    } catch (err: any) {
-      console.error("Create role error object:", err);
-
-      let errorMsg = "Failed to create role. Please try again.";
-
-      if (err.response) {
-        console.error("Error Response Data:", err.response.data);
-        console.error("Error Response Status:", err.response.status);
-
-        // Try to extract message if JSON
-        if (
-          err.response.data &&
-          typeof err.response.data === "object" &&
-          err.response.data.message
-        ) {
-          errorMsg = err.response.data.message;
-        } else if (err.response.status === 500) {
-          errorMsg = `System Error: The role "${values.name}" likely exists in the archives (soft-deleted). Please choose a unique name.`;
-        }
-      } else if (err.message) {
-        errorMsg = err.message;
-      }
-
-      toast.error(errorMsg);
+    } catch (err: unknown) {
+      handleError(err, "Failed to create role");
     } finally {
       setLoading(false);
     }

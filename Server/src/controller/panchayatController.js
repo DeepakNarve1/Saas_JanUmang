@@ -21,15 +21,7 @@ exports.getPanchayats = asyncHandler(async (req, res) => {
     boothName,
   } = req.query;
 
-  const query = {};
-
-  // SaaS: Enforce tenant isolation
-  if (!isGlobalAdmin(req.user)) {
-    query.tenantId = req.tenantId;
-  } else if (req.tenantId) {
-    // If Global Admin has selected a specific tenant context
-    query.tenantId = req.tenantId;
-  }
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.name = { $regex: search, $options: "i" };
@@ -132,9 +124,7 @@ exports.getPanchayats = asyncHandler(async (req, res) => {
   let filteredCount;
 
   // Total count restricted by tenant
-  const countQuery =
-    isGlobalAdmin(req.user) && !req.tenantId ? {} : { tenantId: req.tenantId };
-  let totalCount = await Panchayat.countDocuments(countQuery);
+  let totalCount = await Panchayat.countDocuments({ ...req.scopeFilter });
 
   if (limitNum === -1) {
     panchayats = await Panchayat.find(query)
@@ -174,7 +164,10 @@ exports.getPanchayats = asyncHandler(async (req, res) => {
 // @desc    Get single panchayat
 // @route   GET /api/panchayat/:id
 exports.getPanchayatById = asyncHandler(async (req, res) => {
-  const panchayat = await Panchayat.findById(req.params.id)
+  const panchayat = await Panchayat.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  })
     .populate("state", "name")
     .populate("division", "name")
     .populate("district", "name")
@@ -186,17 +179,6 @@ exports.getPanchayatById = asyncHandler(async (req, res) => {
   if (!panchayat) {
     res.status(404);
     throw new Error("Panchayat not found");
-  }
-
-  // Enforce Tenant Access
-  if (!isGlobalAdmin(req.user)) {
-    if (
-      panchayat.tenantId &&
-      panchayat.tenantId.toString() !== req.tenantId.toString()
-    ) {
-      res.status(403);
-      throw new Error("Not authorized to view this panchayat");
-    }
   }
 
   res.json({ success: true, data: panchayat });
@@ -367,21 +349,13 @@ exports.createPanchayat = asyncHandler(async (req, res) => {
 // @desc    Update a panchayat
 // @route   PUT /api/panchayat/:id
 exports.updatePanchayat = asyncHandler(async (req, res) => {
-  const panchayat = await Panchayat.findById(req.params.id);
+  const panchayat = await Panchayat.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!panchayat) {
     res.status(404);
     throw new Error("Panchayat not found");
-  }
-
-  // Enforce Tenant Access
-  if (!isGlobalAdmin(req.user)) {
-    if (
-      panchayat.tenantId &&
-      panchayat.tenantId.toString() !== req.tenantId.toString()
-    ) {
-      res.status(403);
-      throw new Error("Not authorized to update this panchayat");
-    }
   }
 
   let updateData = { ...req.body };
@@ -439,21 +413,13 @@ exports.updatePanchayat = asyncHandler(async (req, res) => {
 // @desc    Delete a panchayat
 // @route   DELETE /api/panchayat/:id
 exports.deletePanchayat = asyncHandler(async (req, res) => {
-  const panchayat = await Panchayat.findById(req.params.id);
+  const panchayat = await Panchayat.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!panchayat) {
     res.status(404);
     throw new Error("Panchayat not found");
-  }
-
-  // Enforce Tenant Access
-  if (!isGlobalAdmin(req.user)) {
-    if (
-      panchayat.tenantId &&
-      panchayat.tenantId.toString() !== req.tenantId.toString()
-    ) {
-      res.status(403);
-      throw new Error("Not authorized to delete this panchayat");
-    }
   }
 
   await panchayat.deleteOne();

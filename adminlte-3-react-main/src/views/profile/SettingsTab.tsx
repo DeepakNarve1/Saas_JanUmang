@@ -10,6 +10,7 @@ import { useAppSelector, useAppDispatch } from "@app/store/store";
 import { useEffect } from "react";
 import { setCurrentUser } from "@app/store/reducers/auth";
 import axios from "@app/utils/axios";
+import { handleError } from "@app/utils/errorHandler";
 import {
   profileSettingsSchema,
   profileSettingsInitialValues,
@@ -39,10 +40,8 @@ const SettingsTab = ({ isActive }: { isActive: boolean }) => {
           localStorage.setItem("user", JSON.stringify(updatedUser));
           toast.success("Profile changes saved successfully");
         }
-      } catch (error: any) {
-        const message =
-          error.response?.data?.message || "Failed to update profile";
-        toast.error(message);
+      } catch (error: unknown) {
+        handleError(error, "Failed to update profile");
       } finally {
         setSubmitting(false);
       }

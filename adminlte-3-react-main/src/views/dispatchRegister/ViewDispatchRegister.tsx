@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import {
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 import { ViewPageActions } from "@app/components/ViewPageActions";
 
 const ViewDispatchRegister = () => {
@@ -35,11 +37,7 @@ const ViewDispatchRegister = () => {
         const res = await axios.get(`/dispatch-register/${id}`);
         setData(res.data.data);
       } catch (err: unknown) {
-        const error = err as { response?: { data?: { message?: string } } };
-        toast.error(
-          error.response?.data?.message ||
-            "Failed to load Dispatch Register data",
-        );
+        handleError(err, "Failed to load Dispatch Register data");
         router.push("/dispatch-register");
       } finally {
         setLoading(false);
@@ -149,7 +147,7 @@ const ViewDispatchRegister = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_dispatch_register") && (
+                {hasPermission(PERMISSIONS.EDIT_DISPATCH_REGISTER) && (
                   <Button
                     className="bg-[#00563B] hover:bg-[#368F8B]"
                     onClick={() => router.push(`/dispatch-register/${id}/edit`)}

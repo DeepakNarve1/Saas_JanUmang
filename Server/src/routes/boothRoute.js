@@ -8,19 +8,45 @@ const {
 } = require("../controller/boothController");
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
-const { checkModuleAccess } = require("../middleware/moduleAccessMiddleware");
+const { scopeQuery } = require("../middleware/scopeMiddleware");
 
 const router = express.Router();
 
+// Booth — tenant-isolated via scopeQuery({}, false)
 router
   .route("/")
-  .get(protect, checkPermission("view_booths"), getBooths)
-  .post(protect, checkPermission("create_booths"), createBooth);
+  .get(
+    protect,
+    checkPermission("view_booths"),
+    scopeQuery({}, false),
+    getBooths,
+  )
+  .post(
+    protect,
+    checkPermission("create_booths"),
+    scopeQuery({}, false),
+    createBooth,
+  );
 
 router
   .route("/:id")
-  .get(protect, checkPermission("view_booths"), getBoothById)
-  .put(protect, checkPermission("edit_booths"), updateBooth)
-  .delete(protect, checkPermission("delete_booths"), deleteBooth);
+  .get(
+    protect,
+    checkPermission("view_booths"),
+    scopeQuery({}, false),
+    getBoothById,
+  )
+  .put(
+    protect,
+    checkPermission("edit_booths"),
+    scopeQuery({}, false),
+    updateBooth,
+  )
+  .delete(
+    protect,
+    checkPermission("delete_booths"),
+    scopeQuery({}, false),
+    deleteBooth,
+  );
 
 module.exports = router;

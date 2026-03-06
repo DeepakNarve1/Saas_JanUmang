@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "@app/utils/axios";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import CallForm from "./CallForm";
 import { Loader2 } from "lucide-react";
@@ -42,7 +43,7 @@ const EditCall = () => {
           remark: data.remark || "",
         });
       } catch (error: unknown) {
-        toast.error("Failed to fetch call details");
+        handleError(error, "Failed to fetch call details");
         router.push("/call-management");
       } finally {
         setIsFetching(false);
@@ -62,11 +63,7 @@ const EditCall = () => {
       toast.success("Call record updated successfully");
       router.push("/call-management");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      console.error(err);
-      toast.error(
-        err.response?.data?.message || "Failed to update call record"
-      );
+      handleError(error, "Failed to update call record");
     } finally {
       setIsLoading(false);
     }

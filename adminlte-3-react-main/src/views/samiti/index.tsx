@@ -51,6 +51,7 @@ import {
 } from "@tanstack/react-query";
 import { Pagination } from "@app/components/common/Pagination";
 import { ISamitiResponse } from "@app/types/samiti";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const SamitiList = () => {
   const router = useRouter();
@@ -164,7 +165,7 @@ const SamitiList = () => {
                 />
               </div>
               <div className="flex items-center gap-3">
-                {hasPermission("export_samiti") && (
+                {hasPermission(PERMISSIONS.EXPORT_SAMITI) && (
                   <Button
                     variant="outline"
                     onClick={handleExport}
@@ -174,7 +175,7 @@ const SamitiList = () => {
                   </Button>
                 )}
 
-                {hasPermission("create_samiti") && (
+                {hasPermission(PERMISSIONS.CREATE_SAMITI) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all"
                     onClick={() => router.push("/samiti/create")}
@@ -341,7 +342,7 @@ const SamitiList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_samiti") && (
+                                {hasPermission(PERMISSIONS.VIEW_SAMITI) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/samiti/${item._id}/view`)
@@ -350,7 +351,7 @@ const SamitiList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_samiti") && (
+                                {hasPermission(PERMISSIONS.EDIT_SAMITI) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/samiti/${item._id}/edit`)
@@ -359,7 +360,7 @@ const SamitiList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_samiti") && (
+                                {hasPermission(PERMISSIONS.DELETE_SAMITI) && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600 focus:bg-red-50"
                                     onClick={() => handleDelete(item._id)}

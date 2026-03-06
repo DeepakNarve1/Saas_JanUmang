@@ -4,6 +4,7 @@ import axios from "@app/utils/axios";
 import { useDebounce } from "@app/hooks/useDebounce";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { handleError } from "@app/utils/errorHandler";
 import {
   Table,
   TableBody,
@@ -48,6 +49,7 @@ import { API_BASE_URL } from "@app/utils/api";
 import { ContentHeader } from "@app/components";
 import { TimerDisplay } from "@app/components/TimerDisplay";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 import { Pagination } from "@app/components/common/Pagination";
 import {
   useQuery,
@@ -64,9 +66,9 @@ const MpPublicProblem = () => {
   const queryClient = useQueryClient();
 
   // Permissions
-  const canDelete = hasPermission("delete_mp_public_problems");
-  const canCreate = hasPermission("create_mp_public_problems");
-  const canEdit = hasPermission("edit_mp_public_problems");
+  const canDelete = hasPermission(PERMISSIONS.DELETE_MP_PUBLIC_PROBLEMS);
+  const canCreate = hasPermission(PERMISSIONS.CREATE_MP_PUBLIC_PROBLEMS);
+  const canEdit = hasPermission(PERMISSIONS.EDIT_MP_PUBLIC_PROBLEMS);
 
   // State
   const [entriesPerPage, setEntriesPerPage] = useState(10);
@@ -200,8 +202,8 @@ const MpPublicProblem = () => {
       toast.success("Record deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["mp-public-problems"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete record");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete record");
     },
   });
 
@@ -258,9 +260,8 @@ const MpPublicProblem = () => {
       XLSX.utils.book_append_sheet(wb, ws, "MPPublicProblem");
       XLSX.writeFile(wb, `MPPublicProblem_${Date.now()}.xlsx`);
       toast.success("Exported successfully");
-    } catch (error) {
-      console.error("Export error:", error);
-      toast.error("Failed to export data");
+    } catch (error: unknown) {
+      handleError(error, "Failed to export data");
     } finally {
       setLoading(false);
     }
@@ -432,9 +433,9 @@ const MpPublicProblem = () => {
           toast.success(`Successfully imported ${successCount} records`);
         }
         queryClient.invalidateQueries({ queryKey: ["mp-public-problems"] });
-      } catch (error: any) {
-        console.error("Import error:", error);
-        toast.error(
+      } catch (error: unknown) {
+        handleError(
+          error,
           "Failed to process file. Ensure it's a valid Excel format.",
         );
       } finally {

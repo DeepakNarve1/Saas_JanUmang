@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 const ActivityLogs = dynamic(
   () => import("@app/views/activityManagement/activityLogs"),
@@ -19,7 +20,7 @@ const ActivityLogs = dynamic(
 
 export default function ActivityLogsPage() {
   return (
-    <RouteGuard requiredPermission="view_activity_logs">
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_ACTIVITY_LOGS]}>
       <ActivityLogs />
     </RouteGuard>
   );

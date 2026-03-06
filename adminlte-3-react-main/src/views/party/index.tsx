@@ -46,6 +46,7 @@ import { usePermissions } from "@app/hooks/usePermissions";
 import { Pagination } from "@app/components/common/Pagination";
 import { IPartyResponse, IParty } from "@app/types/party";
 import { useListManagement } from "@app/hooks/useListManagement";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const PartyList = () => {
   const router = useRouter();
@@ -106,7 +107,7 @@ const PartyList = () => {
                 />
               </div>
               <div className="flex items-center gap-3">
-                {hasPermission("view_parties") && (
+                {hasPermission(PERMISSIONS.VIEW_PARTIES) && (
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -134,7 +135,7 @@ const PartyList = () => {
                     </Button>
                   </div>
                 )}
-                {hasPermission("create_parties") && (
+                {hasPermission(PERMISSIONS.CREATE_PARTIES) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all"
                     onClick={() => router.push("/party/create")}
@@ -269,7 +270,7 @@ const PartyList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_parties") && (
+                                {hasPermission(PERMISSIONS.VIEW_PARTIES) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/party/${item._id}/view`)
@@ -278,7 +279,7 @@ const PartyList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_parties") && (
+                                {hasPermission(PERMISSIONS.EDIT_PARTIES) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/party/${item._id}/edit`)
@@ -287,7 +288,7 @@ const PartyList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_parties") && (
+                                {hasPermission(PERMISSIONS.DELETE_PARTIES) && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600"
                                     onClick={() =>

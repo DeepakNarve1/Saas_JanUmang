@@ -7,18 +7,19 @@ import { toast } from "react-toastify";
 import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import VillageForm from "./VillageForm";
+import { IVillageFormValues } from "./village.schema";
 
 const CreateVillage = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: IVillageFormValues) => {
     try {
       setLoading(true);
       await axios.post("/villages", values);
       toast.success("Village created successfully");
       router.push("/villages");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to create village");
     } finally {
       setLoading(false);

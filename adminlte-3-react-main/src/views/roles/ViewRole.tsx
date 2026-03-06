@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { flattenMenu } from "@app/utils/sidebarMenu";
 
 import { Eye, Edit, ArrowLeft, Shield, Menu as MenuIcon } from "lucide-react";
@@ -63,8 +64,8 @@ const ViewRole = () => {
         setLoading(true);
         const res = await axios.get(`/rbac/roles/${params.id}`);
         setRole(res.data.data);
-      } catch (err: any) {
-        toast.error(err.response?.data?.message || "Failed to load role");
+      } catch (err: unknown) {
+        handleError(err, "Failed to load role");
         router.push("/roles");
       } finally {
         setLoading(false);

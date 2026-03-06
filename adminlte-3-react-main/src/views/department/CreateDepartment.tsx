@@ -18,7 +18,7 @@ const CreateDepartment = () => {
       await axios.post("/departments", values);
       toast.success("Department created successfully");
       router.push("/department");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to create Department");
     } finally {
       setLoading(false);

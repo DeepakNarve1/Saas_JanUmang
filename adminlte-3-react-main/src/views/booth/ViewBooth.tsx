@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import {
@@ -13,23 +14,12 @@ import {
 import { Skeleton } from "@app/components/ui/skeleton";
 import { ArrowLeft, Edit } from "lucide-react";
 import { ViewPageActions } from "@app/components/ViewPageActions";
-
-interface IBoothDetails {
-  _id: string;
-  name: string;
-  code?: string;
-  block: {
-    _id: string;
-    name: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
+import { IBooth } from "@app/types/booth";
 
 const ViewBooth = () => {
   const { id } = useParams();
   const router = useRouter();
-  const [booth, setBooth] = useState<IBoothDetails | null>(null);
+  const [booth, setBooth] = useState<IBooth | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,7 +32,7 @@ const ViewBooth = () => {
       const { data } = await axios.get(`/booths/${id}`);
       setBooth(data.data);
     } catch (error: unknown) {
-      toast.error("Failed to fetch booth details");
+      handleError(error, "Failed to fetch booth details");
       router.push("/booths");
     } finally {
       setLoading(false);
@@ -54,7 +44,7 @@ const ViewBooth = () => {
     return {
       Name: booth.name,
       Code: booth.code || "",
-      Block: booth.block?.name || "",
+      Block: (booth.block as { name?: string })?.name || "",
       "Created At": booth.createdAt,
       "Updated At": booth.updatedAt,
     };
@@ -130,11 +120,11 @@ const ViewBooth = () => {
                     </p>
                   </div>
                   <div className="p-4 bg-gray-50/50 dark:bg-gray-800/20 rounded-lg border border-gray-100 dark:border-gray-800/50">
-                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">
+                    <label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">
                       Associated Block
-                    </p>
+                    </label>
                     <p className="text-lg font-bold text-gray-800 dark:text-gray-100">
-                      {booth.block?.name || "N/A"}
+                      {(booth.block as { name?: string })?.name || "N/A"}
                     </p>
                   </div>
                 </div>

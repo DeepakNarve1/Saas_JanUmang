@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
 
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 const Booth = dynamic(() => import("@app/views/booth"), {
   ssr: false,
@@ -17,7 +18,7 @@ const Booth = dynamic(() => import("@app/views/booth"), {
 
 export default function BoothPage() {
   return (
-    <RouteGuard requiredPermission="view_booths">
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_BOOTHS]}>
       <Booth />
     </RouteGuard>
   );

@@ -5,12 +5,26 @@ export interface IBlockFormValues {
   district?: string;
   parliament: string;
   assembly: string;
+  year?: string;
 }
 
 export interface IBlock {
   _id: string;
   name: string;
-  assembly?: string | { _id: string; name: string };
+  state?: string | { _id: string; name: string };
+  division?: string | { _id: string; name: string };
+  district?: string | { _id: string; name: string };
+  parliament?: string | { _id: string; name: string };
+  assembly?:
+    | string
+    | {
+        _id: string;
+        name: string;
+        parliament?: {
+          district?: { name: string };
+        };
+      };
+  year?: string;
   createdAt?: string;
   updatedAt?: string;
 }

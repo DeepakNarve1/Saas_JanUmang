@@ -18,6 +18,7 @@ import {
 import { Skeleton } from "@app/components/ui/skeleton";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { ViewPageActions } from "@app/components/ViewPageActions";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const ViewInDocs = () => {
   const router = useRouter();
@@ -104,7 +105,7 @@ const ViewInDocs = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_in_docs") && (
+                {hasPermission(PERMISSIONS.EDIT_IN_DOCS) && (
                   <Button
                     className="bg-[#00563B] hover:bg-[#368F8B]"
                     onClick={() => router.push(`/in-docs/${id}/edit`)}

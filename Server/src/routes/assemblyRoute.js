@@ -12,20 +12,42 @@ const { scopeQuery } = require("../middleware/scopeMiddleware");
 
 const router = express.Router();
 
+// Assembly — tenant-isolated: scopeQuery({}, false) scopes by tenantId only,
+// no geographic sub-scoping needed (assemblies are org-level data)
 router
   .route("/")
-  .get(protect, checkPermission("view_assemblies"), getAssemblies)
-  .post(protect, checkPermission("create_assemblies"), createAssembly);
+  .get(
+    protect,
+    checkPermission("view_assemblies"),
+    scopeQuery({}, false),
+    getAssemblies,
+  )
+  .post(
+    protect,
+    checkPermission("create_assemblies"),
+    scopeQuery({}, false),
+    createAssembly,
+  );
 
 router
   .route("/:id")
   .get(
     protect,
     checkPermission("view_assemblies"),
-    scopeQuery(),
+    scopeQuery({}, false),
     getAssemblyById,
   )
-  .put(protect, checkPermission("edit_assemblies"), updateAssembly)
-  .delete(protect, checkPermission("delete_assemblies"), deleteAssembly);
+  .put(
+    protect,
+    checkPermission("edit_assemblies"),
+    scopeQuery({}, false),
+    updateAssembly,
+  )
+  .delete(
+    protect,
+    checkPermission("delete_assemblies"),
+    scopeQuery({}, false),
+    deleteAssembly,
+  );
 
 module.exports = router;

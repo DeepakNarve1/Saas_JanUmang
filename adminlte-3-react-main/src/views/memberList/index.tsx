@@ -55,11 +55,12 @@ import { Pagination } from "@app/components/common/Pagination";
 import { IMember, IMemberResponse } from "@app/types/member";
 import { IBlock } from "@app/types/block";
 import { ISamiti } from "@app/types/samiti";
+import { PERMISSIONS } from "@app/config/permissions";
 import { AxiosError } from "axios";
 
 const MemberList = () => {
   return (
-    <RouteGuard requiredPermissions={["view_members"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_MEMBERS]}>
       <MemberListContent />
     </RouteGuard>
   );
@@ -392,7 +393,7 @@ const MemberListContent = () => {
                   >
                     <Download className="w-5 h-5 mr-2 text-blue-500" /> Export
                   </Button>
-                  {hasPermission("create_members") && (
+                  {hasPermission(PERMISSIONS.CREATE_MEMBERS) && (
                     <Button
                       size="lg"
                       className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all"
@@ -1206,7 +1207,7 @@ const MemberListContent = () => {
                                 >
                                   <Eye className="mr-2 h-4 w-4" /> View
                                 </DropdownMenuItem>
-                                {hasPermission("edit_members") && (
+                                {hasPermission(PERMISSIONS.EDIT_MEMBERS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -1217,7 +1218,7 @@ const MemberListContent = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_members") && (
+                                {hasPermission(PERMISSIONS.DELETE_MEMBERS) && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600"
                                     onClick={() => handleDelete(member._id)}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { useDebounce } from "@app/hooks/useDebounce";
 import {
@@ -50,6 +51,7 @@ import {
 import { ContentHeader } from "@app/components";
 import { Pagination } from "@app/components/common/Pagination";
 import { IVillageResponse } from "@app/types/village";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const Village = () => {
   const { hasPermission } = usePermissions();
@@ -132,8 +134,8 @@ const Village = () => {
       toast.success("Village deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["villages"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete village");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete village");
     },
   });
 
@@ -175,7 +177,7 @@ const Village = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  {hasPermission("create_villages") && (
+                  {hasPermission(PERMISSIONS.CREATE_VILLAGES) && (
                     <Button
                       size="lg"
                       onClick={() => router.push("/villages/create")}
@@ -203,7 +205,7 @@ const Village = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Panchayats</SelectItem>
-                    {panchayats.map((p: any) => (
+                    {panchayats.map((p: { _id: string; name: string }) => (
                       <SelectItem key={p._id} value={p.name}>
                         {p.name}
                       </SelectItem>
@@ -223,7 +225,7 @@ const Village = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Blocks</SelectItem>
-                    {blocks.map((b: any) => (
+                    {blocks.map((b: { _id: string; name: string }) => (
                       <SelectItem key={b._id} value={b.name}>
                         {b.name}
                       </SelectItem>
@@ -416,7 +418,7 @@ const Village = () => {
                             <span className="text-gray-700 dark:text-gray-300">
                               {/* Handle both string and object returned from backend */}
                               {typeof village.panchayat === "object"
-                                ? (village.panchayat as any)?.name
+                                ? (village.panchayat as { name?: string })?.name
                                 : village.panchayat || "N/A"}
                             </span>
                           </TableCell>
@@ -425,7 +427,7 @@ const Village = () => {
                           <TableCell>
                             <span className="text-gray-700 dark:text-gray-300">
                               {typeof village.booth === "object"
-                                ? (village.booth as any)?.name
+                                ? (village.booth as { name?: string })?.name
                                 : village.booth || "N/A"}
                             </span>
                           </TableCell>
@@ -434,7 +436,7 @@ const Village = () => {
                           <TableCell>
                             <span className="text-gray-700 dark:text-gray-300">
                               {typeof village.block === "object"
-                                ? (village.block as any)?.name
+                                ? (village.block as { name?: string })?.name
                                 : village.block || "N/A"}
                             </span>
                           </TableCell>
@@ -452,7 +454,7 @@ const Village = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {hasPermission("view_villages") && (
+                                {hasPermission(PERMISSIONS.VIEW_VILLAGES) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/villages/${village._id}`)
@@ -461,7 +463,7 @@ const Village = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_villages") && (
+                                {hasPermission(PERMISSIONS.EDIT_VILLAGES) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -472,7 +474,7 @@ const Village = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_villages") && (
+                                {hasPermission(PERMISSIONS.DELETE_VILLAGES) && (
                                   <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => handleDelete(village._id)}

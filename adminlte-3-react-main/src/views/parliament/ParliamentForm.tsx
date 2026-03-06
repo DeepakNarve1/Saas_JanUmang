@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "@app/utils/axios";
+import { handleError } from "@app/utils/errorHandler";
 import { useFormik } from "formik";
 import { Button } from "@app/components/ui/button";
 import { Input } from "@app/components/ui/input";
@@ -27,14 +28,19 @@ interface ParliamentFormProps {
   loading?: boolean;
 }
 
+interface OptionItem {
+  _id: string;
+  name: string;
+}
+
 const ParliamentForm = ({
   initialValues = parliamentInitialValues,
   onSubmit,
   loading = false,
 }: ParliamentFormProps) => {
-  const [statesList, setStatesList] = useState([]);
-  const [divisionsList, setDivisionsList] = useState([]);
-  const [districtsList, setDistrictsList] = useState([]);
+  const [statesList, setStatesList] = useState<OptionItem[]>([]);
+  const [divisionsList, setDivisionsList] = useState<OptionItem[]>([]);
+  const [districtsList, setDistrictsList] = useState<OptionItem[]>([]);
   const [newAssemblies, setNewAssemblies] = useState<string[]>([]);
 
   useEffect(() => {
@@ -48,7 +54,7 @@ const ParliamentForm = ({
       });
       setStatesList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch states", error);
+      handleError(error, "Failed to fetch states");
     }
   };
 
@@ -63,7 +69,7 @@ const ParliamentForm = ({
       });
       setDivisionsList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch divisions", error);
+      handleError(error, "Failed to fetch divisions");
     }
   };
 
@@ -78,7 +84,7 @@ const ParliamentForm = ({
       });
       setDistrictsList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch districts", error);
+      handleError(error, "Failed to fetch districts");
     }
   };
 
@@ -123,7 +129,7 @@ const ParliamentForm = ({
                   <SelectValue placeholder="Select state" />
                 </SelectTrigger>
                 <SelectContent>
-                  {statesList.map((st: any) => (
+                  {statesList.map((st: OptionItem) => (
                     <SelectItem key={st._id} value={st._id}>
                       {st.name}
                     </SelectItem>
@@ -162,7 +168,7 @@ const ParliamentForm = ({
                   <SelectValue placeholder="Select division" />
                 </SelectTrigger>
                 <SelectContent>
-                  {divisionsList.map((div: any) => (
+                  {divisionsList.map((div: OptionItem) => (
                     <SelectItem key={div._id} value={div._id}>
                       {div.name}
                     </SelectItem>
@@ -199,7 +205,7 @@ const ParliamentForm = ({
                   <SelectValue placeholder="Select district" />
                 </SelectTrigger>
                 <SelectContent>
-                  {districtsList.map((dist: any) => (
+                  {districtsList.map((dist: OptionItem) => (
                     <SelectItem key={dist._id} value={dist._id}>
                       {dist.name}
                     </SelectItem>

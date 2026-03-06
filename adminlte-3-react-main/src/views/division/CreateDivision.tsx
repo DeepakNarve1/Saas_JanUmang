@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import DivisionForm from "./DivisionForm";
 
@@ -18,8 +19,7 @@ const CreateDivision = () => {
       toast.success("Division created successfully");
       router.push("/divisions");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to create division");
+      handleError(error, "Failed to create division");
     } finally {
       setLoading(false);
     }

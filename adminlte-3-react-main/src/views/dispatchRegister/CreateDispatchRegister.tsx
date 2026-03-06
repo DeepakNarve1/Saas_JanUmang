@@ -4,6 +4,7 @@ import { useState } from "react";
 import axios from "@app/utils/axios";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import DispatchRegisterForm from "./DispatchRegisterForm";
 import {
@@ -38,11 +39,7 @@ const CreateDispatchRegister = () => {
       toast.success("Dispatch Register entry created successfully");
       router.push("/dispatch-register");
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(
-        error.response?.data?.message ||
-          "Failed to create Dispatch Register entry"
-      );
+      handleError(err, "Failed to create Dispatch Register entry");
     } finally {
       setIsLoading(false);
     }

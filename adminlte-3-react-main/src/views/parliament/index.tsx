@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { useDebounce } from "@app/hooks/useDebounce";
 import {
@@ -50,9 +51,9 @@ import {
 import { ContentHeader } from "@app/components";
 import { Pagination } from "@app/components/common/Pagination";
 import { IParliamentResponse } from "@app/types/parliament";
-
+import { PERMISSIONS } from "@app/config/permissions";
 const Parliament = () => {
-  const { hasPermission } = usePermissions();
+  const { hasPermission, isSuperAdmin } = usePermissions();
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -109,10 +110,8 @@ const Parliament = () => {
       toast.success("Parliament deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["parliaments"] });
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to delete parliament",
-      );
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete parliament");
     },
   });
 
@@ -154,16 +153,17 @@ const Parliament = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  {hasPermission("create_parliaments") && (
-                    <Button
-                      size="lg"
-                      onClick={() => router.push("/parliaments/create")}
-                      className="bg-[#368F8B] hover:bg-[#2d7a76] text-white dark:bg-[#368F8B] dark:hover:bg-[#2d7a76] rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
-                    >
-                      <Plus className="w-5 h-5 mr-2 font-bold" /> Add New
-                      Parliament
-                    </Button>
-                  )}
+                  {isSuperAdmin() &&
+                    hasPermission(PERMISSIONS.CREATE_PARLIAMENTS) && (
+                      <Button
+                        size="lg"
+                        onClick={() => router.push("/parliaments/create")}
+                        className="bg-[#368F8B] hover:bg-[#2d7a76] text-white dark:bg-[#368F8B] dark:hover:bg-[#2d7a76] rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
+                      >
+                        <Plus className="w-5 h-5 mr-2 font-bold" /> Add New
+                        Parliament
+                      </Button>
+                    )}
                 </div>
               </div>
             </div>
@@ -346,7 +346,9 @@ const Parliament = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {hasPermission("view_parliaments") && (
+                                {hasPermission(
+                                  PERMISSIONS.VIEW_PARLIAMENTS,
+                                ) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -357,25 +359,33 @@ const Parliament = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_parliaments") && (
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      router.push(
-                                        `/parliaments/${parliament._id}/edit`,
-                                      )
-                                    }
-                                  >
-                                    <Edit className="mr-2 h-4 w-4" /> Edit
-                                  </DropdownMenuItem>
-                                )}
-                                {hasPermission("delete_parliaments") && (
-                                  <DropdownMenuItem
-                                    className="text-red-600"
-                                    onClick={() => handleDelete(parliament._id)}
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                  </DropdownMenuItem>
-                                )}
+                                {isSuperAdmin() &&
+                                  hasPermission(
+                                    PERMISSIONS.EDIT_PARLIAMENTS,
+                                  ) && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        router.push(
+                                          `/parliaments/${parliament._id}/edit`,
+                                        )
+                                      }
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" /> Edit
+                                    </DropdownMenuItem>
+                                  )}
+                                {isSuperAdmin() &&
+                                  hasPermission(
+                                    PERMISSIONS.DELETE_PARLIAMENTS,
+                                  ) && (
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onClick={() =>
+                                        handleDelete(parliament._id)
+                                      }
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                    </DropdownMenuItem>
+                                  )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>

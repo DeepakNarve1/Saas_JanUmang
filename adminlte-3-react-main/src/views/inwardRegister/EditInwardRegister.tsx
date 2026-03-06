@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "@app/utils/axios";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Skeleton } from "@app/components/ui/skeleton";
 import InwardRegisterForm from "./InwardRegisterForm";
@@ -17,7 +18,7 @@ const EditInwardRegister = () => {
   const { id } = useParams();
 
   const [initialValues, setInitialValues] = useState<IInwardRegisterFormValues>(
-    inwardRegisterInitialValues
+    inwardRegisterInitialValues,
   );
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,10 +53,7 @@ const EditInwardRegister = () => {
           remarks: data.remarks || "",
         });
       } catch (err: unknown) {
-        const error = err as { response?: { data?: { message?: string } } };
-        toast.error(
-          error.response?.data?.message || "Failed to load Inward Register data"
-        );
+        handleError(err, "Failed to load Inward Register data");
         router.push("/inward-register");
       } finally {
         setLoading(false);
@@ -72,11 +70,7 @@ const EditInwardRegister = () => {
       toast.success("Inward Register entry updated successfully");
       router.push("/inward-register");
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(
-        error.response?.data?.message ||
-          "Failed to update Inward Register entry"
-      );
+      handleError(err, "Failed to update Inward Register entry");
     } finally {
       setIsSubmitting(false);
     }

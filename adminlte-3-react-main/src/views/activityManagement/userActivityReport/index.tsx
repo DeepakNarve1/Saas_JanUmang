@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Table,
@@ -95,8 +96,13 @@ const UserActivityReport = () => {
   const { data: users = [] } = useQuery({
     queryKey: ["users-list-for-activity-report"],
     queryFn: async () => {
-      const res = await axios.get("/auth/users?limit=100");
-      return res.data.data || [];
+      try {
+        const res = await axios.get("/auth/users?limit=100");
+        return res.data.data || [];
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch users");
+        return [];
+      }
     },
   });
 
@@ -346,7 +352,7 @@ const UserActivityReport = () => {
           updateUserMap(res.data.data || []);
           return res;
         })
-        .catch((err) => console.error("Ghost hunt failed", err));
+        .catch((err: unknown) => handleError(err, "Ghost hunt failed"));
 
       if (activeTab === "summary") {
         const [reportRes] = await Promise.all([
@@ -369,8 +375,8 @@ const UserActivityReport = () => {
     onSuccess: () => {
       setHasGenerated(true);
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Failed to generate report");
+    onError: (err: unknown) => {
+      handleError(err, "Failed to generate report");
     },
   });
 
@@ -611,9 +617,9 @@ const UserActivityReport = () => {
                           "Timeline Report Not Generated"}
                       </h4>
                       <p className="text-sm opacity-90">
-                        Please select '{selectedReportType}' from the Report
-                        Type dropdown and click 'Generate Report' to view
-                        activity data.
+                        Please select &apos;{selectedReportType}&apos; from the
+                        Report Type dropdown and click &apos;Generate
+                        Report&apos; to view activity data.
                       </p>
                     </div>
                   </div>

@@ -1,11 +1,12 @@
 "use client";
 
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import CreateDepartment from "@app/views/department/CreateDepartment";
 
 export default function CreateDepartmentPage() {
   return (
-    <RouteGuard requiredPermission="create_departments">
+    <RouteGuard requiredPermissions={[PERMISSIONS.CREATE_DEPARTMENTS]}>
       <CreateDepartment />
     </RouteGuard>
   );

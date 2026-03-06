@@ -25,11 +25,12 @@ import { Label } from "@app/components/ui/label";
 import { ContentHeader } from "@app/components";
 import { API_BASE_URL } from "@app/utils/api";
 import { Loader2, Upload, FileImage } from "lucide-react";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 const EditEntry = () => {
   return (
-    <RouteGuard requiredPermissions={["edit_mp_public_problems"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.EDIT_MP_PUBLIC_PROBLEMS]}>
       <EditEntryContent />
     </RouteGuard>
   );
@@ -66,7 +67,7 @@ const EditEntryContent = () => {
         await axios.put(`/public-problems/${id}`, values);
         toast.success("Entry updated successfully!");
         router.push("/mp-public-problem");
-      } catch (error: any) {
+      } catch (error: unknown) {
         handleError(error, "Failed to update entry");
       } finally {
         setLoading(false);
@@ -127,8 +128,8 @@ const EditEntryContent = () => {
             setFileName(urlParts[urlParts.length - 1]);
           }
         }
-      } catch (error) {
-        toast.error("Failed to fetch entry details");
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch entry details");
         router.push("/mp-public-problem");
       } finally {
         setFetching(false);
@@ -222,44 +223,58 @@ const EditEntryContent = () => {
     try {
       const { data } = await axios.get(`/districts?limit=-1`);
       setDistrictsList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch districts");
+    }
   };
   const fetchAssemblies = async (dst: string) => {
     try {
       const { data } = await axios.get(`/assemblies?district=${dst}&limit=-1`);
       setAssembliesList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch assemblies");
+    }
   };
   const fetchBlocks = async (asm: string) => {
     try {
       const { data } = await axios.get(`/blocks?assembly=${asm}&limit=-1`);
       setBlocksList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch blocks");
+    }
   };
   const fetchPanchayats = async (blk: string) => {
     try {
       const { data } = await axios.get(`/panchayat?block=${blk}&limit=-1`);
       setPanchayatsList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch panchayats");
+    }
   };
   const fetchVillages = async (pnch: string) => {
     try {
       const { data } = await axios.get(`/villages?panchayat=${pnch}&limit=-1`);
       setVillagesList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch villages");
+    }
   };
   const fetchBooths = async (blk: string) => {
     // fetchBooths implementation
     try {
       const { data } = await axios.get(`/booths?block=${blk}&limit=-1`);
       setBoothsList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch booths");
+    }
   };
   const fetchDepartments = async () => {
     try {
       const { data } = await axios.get("/departments?limit=-1");
       setDepartmentsList(data.data || []);
-    } catch {}
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch departments");
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -285,8 +300,8 @@ const EditEntryContent = () => {
       // Store the URL — not base64
       formik.setFieldValue("avedan", data.url);
       toast.success("File uploaded successfully");
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "File upload failed");
+    } catch (error: unknown) {
+      handleError(error, "File upload failed");
       formik.setFieldValue("avedan", "");
       setFileName("");
     } finally {

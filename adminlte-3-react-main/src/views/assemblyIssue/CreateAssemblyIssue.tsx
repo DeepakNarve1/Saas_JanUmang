@@ -6,7 +6,8 @@ import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
 import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import AssemblyIssueForm from "./AssemblyIssueForm";
 import { IAssemblyIssueFormValues } from "./assemblyIssue.schema";
 
@@ -22,7 +23,7 @@ const CreateAssemblyIssue = ({
   basePath = "/assembly-issue",
 }: CreateAssemblyIssueProps) => {
   return (
-    <RouteGuard requiredPermissions={["create_assembly_issues"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.CREATE_ASSEMBLY_ISSUES]}>
       <CreateAssemblyIssueContent
         issueType={issueType}
         title={title}
@@ -57,8 +58,7 @@ const CreateAssemblyIssueContent = ({
 
       toast.success(`${title} created successfully!`);
       router.push(basePath);
-    } catch (error: any) {
-      console.error("Creation Error:", error);
+    } catch (error: unknown) {
       handleError(error, "Failed to create issue");
     } finally {
       setLoading(false);

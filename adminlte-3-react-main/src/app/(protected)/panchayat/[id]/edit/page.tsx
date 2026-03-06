@@ -1,11 +1,12 @@
 "use client";
 
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import EditPanchayat from "@app/views/Panchayat/EditPanchayat";
 
 const EditPanchayatPage = () => {
   return (
-    <RouteGuard requiredPermission="edit_panchayats">
+    <RouteGuard requiredPermissions={[PERMISSIONS.EDIT_PANCHAYATS]}>
       <EditPanchayat />
     </RouteGuard>
   );

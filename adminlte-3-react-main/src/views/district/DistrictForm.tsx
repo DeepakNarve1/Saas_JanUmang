@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "@app/utils/axios";
+import { handleError } from "@app/utils/errorHandler";
 import { useFormik } from "formik";
 import { Button } from "@app/components/ui/button";
 import { Input } from "@app/components/ui/input";
@@ -27,13 +28,18 @@ interface DistrictFormProps {
   loading?: boolean;
 }
 
+interface OptionItem {
+  _id: string;
+  name: string;
+}
+
 const DistrictForm = ({
   initialValues = districtInitialValues,
   onSubmit,
   loading = false,
 }: DistrictFormProps) => {
-  const [statesList, setStatesList] = useState([]);
-  const [divisionsList, setDivisionsList] = useState([]);
+  const [statesList, setStatesList] = useState<OptionItem[]>([]);
+  const [divisionsList, setDivisionsList] = useState<OptionItem[]>([]);
   const [selectedState, setSelectedState] = useState("");
 
   useEffect(() => {
@@ -60,9 +66,9 @@ const DistrictForm = ({
             setSelectedState(stId);
           }
         } catch (error: unknown) {
-          console.error(
-            "Failed to fetch division details for state pre-selection",
+          handleError(
             error,
+            "Failed to fetch division details for state pre-selection",
           );
         }
       }
@@ -75,7 +81,7 @@ const DistrictForm = ({
       const { data } = await axios.get("/states");
       setStatesList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch states", error);
+      handleError(error, "Failed to fetch states");
     }
   };
 
@@ -84,7 +90,7 @@ const DistrictForm = ({
       const { data } = await axios.get(`/divisions?state=${stateId}&limit=-1`);
       setDivisionsList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch divisions", error);
+      handleError(error, "Failed to fetch divisions");
     }
   };
 
@@ -118,7 +124,7 @@ const DistrictForm = ({
                   <SelectValue placeholder="Select state" />
                 </SelectTrigger>
                 <SelectContent>
-                  {statesList.map((st: any) => (
+                  {statesList.map((st: OptionItem) => (
                     <SelectItem key={st._id} value={st._id}>
                       {st.name}
                     </SelectItem>
@@ -152,7 +158,7 @@ const DistrictForm = ({
                   <SelectValue placeholder="Select division" />
                 </SelectTrigger>
                 <SelectContent>
-                  {divisionsList.map((div: any) => (
+                  {divisionsList.map((div: OptionItem) => (
                     <SelectItem key={div._id} value={div._id}>
                       {div.name}
                     </SelectItem>

@@ -75,10 +75,10 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(compression());
 
-// Body parser — 50 MB limit for all JSON API routes (needed for batch excel imports base64 strings if applicable)
-// File uploads use multipart/form-data via /api/upload (Multer), not JSON.
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+// Body parser — 5 MB limit for JSON API routes.
+// File uploads use multipart/form-data via /api/upload (Multer) — not affected by this limit.
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ limit: "5mb", extended: true }));
 
 // NoSQL injection sanitizer
 // Express 5 compatibility shim: req.query is read-only by default in v5.
@@ -122,12 +122,12 @@ app.use("/api/roles", (req, res, next) => {
 });
 
 // File uploads — Multer stores files on disk, returns a URL
-const { UPLOADS_ROOT } = require("./middleware/uploadMiddleware");
 const uploadRoutes = require("./routes/uploadRoute");
 app.use("/api/upload", uploadRoutes);
-// Serve uploaded files as static assets (auth is NOT enforced here —
-// files are accessed via unguessable UUID-prefixed filenames)
-app.use("/uploads", express.static(UPLOADS_ROOT));
+// Auth-protected file serving: GET /api/uploads/files/<tenantId>/<month>/<filename>
+// Replaces the previous unprotected express.static("/uploads") handler.
+// Files are now only accessible to authenticated users in the correct tenant.
+app.use("/api/uploads", uploadRoutes);
 
 const publicProblemRoutes = require("./routes/publicProblemRoute");
 app.use("/api/public-problems", publicProblemRoutes);

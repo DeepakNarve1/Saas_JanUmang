@@ -22,6 +22,16 @@ import {
   assemblyIssueInitialValues,
   IAssemblyIssueFormValues,
 } from "./assemblyIssue.schema";
+import { IDistrict } from "@app/types/district";
+import { IAssembly } from "@app/types/assembly";
+import { IBlock } from "@app/types/block";
+import { IBooth } from "@app/types/booth";
+import { IPanchayat } from "@app/types/panchayat";
+import { IVillage } from "@app/types/village";
+import { IDepartment } from "@app/types/department";
+import { IWorkType } from "@app/types/workType";
+import { ISubTypeOfWork } from "@app/types/subtypeOfWork";
+import { handleError } from "@app/utils/errorHandler";
 
 interface AssemblyIssueFormProps {
   initialValues?: IAssemblyIssueFormValues;
@@ -53,15 +63,15 @@ const AssemblyIssueForm = ({
   basePath = "/assembly-issue",
 }: AssemblyIssueFormProps) => {
   const router = useRouter();
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [assemblies, setAssemblies] = useState<any[]>([]);
-  const [blocks, setBlocks] = useState<any[]>([]);
-  const [booths, setBooths] = useState<any[]>([]);
-  const [panchayats, setPanchayats] = useState<any[]>([]);
-  const [villages, setVillages] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [workTypes, setWorkTypes] = useState<any[]>([]);
-  const [subWorkTypes, setSubWorkTypes] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<IDistrict[]>([]);
+  const [assemblies, setAssemblies] = useState<IAssembly[]>([]);
+  const [blocks, setBlocks] = useState<IBlock[]>([]);
+  const [booths, setBooths] = useState<IBooth[]>([]);
+  const [panchayats, setPanchayats] = useState<IPanchayat[]>([]);
+  const [villages, setVillages] = useState<IVillage[]>([]);
+  const [departments, setDepartments] = useState<IDepartment[]>([]);
+  const [workTypes, setWorkTypes] = useState<IWorkType[]>([]);
+  const [subWorkTypes, setSubWorkTypes] = useState<ISubTypeOfWork[]>([]);
 
   const [selectedDistrictId, setSelectedDistrictId] = useState<string>("");
   const [selectedAssemblyId, setSelectedAssemblyId] = useState<string>("");
@@ -103,8 +113,8 @@ const AssemblyIssueForm = ({
         if (districtsRes.data.success) {
           setDistricts(districtsRes.data.data);
         }
-      } catch (error) {
-        console.error("Failed to fetch districts", error);
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch districts");
       }
 
       // Fetch Departments
@@ -113,8 +123,8 @@ const AssemblyIssueForm = ({
         if (deptsRes.data.success || deptsRes.data.data) {
           setDepartments(deptsRes.data.data || []);
         }
-      } catch (error) {
-        console.error("Failed to fetch departments", error);
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch departments");
       }
 
       // Fetch Work Types
@@ -123,8 +133,8 @@ const AssemblyIssueForm = ({
         if (worksRes.data.success || worksRes.data.data) {
           setWorkTypes(worksRes.data.data || []);
         }
-      } catch (error) {
-        console.error("Failed to fetch worktypes", error);
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch worktypes");
       }
     };
     fetchData();
@@ -139,8 +149,8 @@ const AssemblyIssueForm = ({
             `/sub-type-of-work?limit=-1&typeOfWork=${formik.values.typeOfWork}`,
           );
           setSubWorkTypes(data.data || []);
-        } catch (err) {
-          console.error("Failed to fetch sub-work-types", err);
+        } catch (err: unknown) {
+          handleError(err, "Failed to fetch sub-work-types");
           setSubWorkTypes([]);
         }
       } else {
@@ -167,7 +177,9 @@ const AssemblyIssueForm = ({
       axios
         .get(`/assemblies?limit=-1&district=${selectedDistrictId}`)
         .then(({ data }) => setAssemblies(data.data || []))
-        .catch((err) => console.error("Failed to fetch assemblies", err));
+        .catch((err: unknown) =>
+          handleError(err, "Failed to fetch assemblies"),
+        );
     } else {
       setAssemblies([]);
     }
@@ -190,7 +202,7 @@ const AssemblyIssueForm = ({
       axios
         .get(`/blocks?limit=-1&assembly=${selectedAssemblyId}`)
         .then(({ data }) => setBlocks(data.data || []))
-        .catch((err) => console.error("Failed to fetch blocks", err));
+        .catch((err: unknown) => handleError(err, "Failed to fetch blocks"));
     } else {
       setBlocks([]);
     }
@@ -202,12 +214,14 @@ const AssemblyIssueForm = ({
       axios
         .get(`/booths?limit=-1&block=${formik.values.block}`)
         .then(({ data }) => setBooths(data.data || []))
-        .catch((err) => console.error("Failed to fetch booths", err));
+        .catch((err: unknown) => handleError(err, "Failed to fetch booths"));
 
       axios
         .get(`/panchayat?limit=-1&block=${formik.values.block}`)
         .then(({ data }) => setPanchayats(data.data || []))
-        .catch((err) => console.error("Failed to fetch panchayats", err));
+        .catch((err: unknown) =>
+          handleError(err, "Failed to fetch panchayats"),
+        );
     } else {
       setBooths([]);
       setPanchayats([]);
@@ -230,7 +244,7 @@ const AssemblyIssueForm = ({
       axios
         .get(`/villages?limit=-1&panchayat=${selectedPanchayatId}`)
         .then(({ data }) => setVillages(data.data || []))
-        .catch((err) => console.error("Failed to fetch villages", err));
+        .catch((err: unknown) => handleError(err, "Failed to fetch villages"));
     } else {
       setVillages([]);
     }
@@ -271,8 +285,8 @@ const AssemblyIssueForm = ({
         formik.setFieldValue(fieldName, data.url);
         formik.setFieldValue(fileNameField, file.name);
         toast.success("File uploaded successfully");
-      } catch (err: any) {
-        toast.error(err?.response?.data?.message || "File upload failed");
+      } catch (err: unknown) {
+        handleError(err, "File upload failed");
         formik.setFieldValue(fieldName, "");
         formik.setFieldValue(fileNameField, "");
       } finally {
@@ -538,7 +552,11 @@ const AssemblyIssueForm = ({
                             )?._id || ""
                           : field.useIdAsValue &&
                               typeof formik.values[field.name] !== "string"
-                            ? (formik.values[field.name] as any)?._id
+                            ? (
+                                formik.values[field.name] as unknown as {
+                                  _id: string;
+                                }
+                              )?._id
                             : formik.values[field.name]?.toString() || ""
                       }
                       onValueChange={(val) => {

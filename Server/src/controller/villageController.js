@@ -21,7 +21,7 @@ exports.getVillages = asyncHandler(async (req, res) => {
     booth,
   } = req.query;
 
-  const query = {};
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.$or = [{ name: { $regex: search, $options: "i" } }];
@@ -127,7 +127,7 @@ exports.getVillages = asyncHandler(async (req, res) => {
 
   let villages;
   let filteredCount;
-  let totalCount = await Village.countDocuments({});
+  let totalCount = await Village.countDocuments({ ...req.scopeFilter });
 
   if (limitNum === -1) {
     villages = await Village.find(query)
@@ -171,7 +171,10 @@ exports.getVillages = asyncHandler(async (req, res) => {
 // @desc    Get single village
 // @route   GET /api/villages/:id
 exports.getVillageById = asyncHandler(async (req, res) => {
-  const village = await Village.findById(req.params.id)
+  const village = await Village.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  })
     .populate("state", "name")
     .populate("division", "name")
     .populate("district", "name")
@@ -351,7 +354,10 @@ exports.createVillage = asyncHandler(async (req, res) => {
 // @desc    Update a village
 // @route   PUT /api/villages/:id
 exports.updateVillage = asyncHandler(async (req, res) => {
-  const village = await Village.findById(req.params.id);
+  const village = await Village.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!village) {
     res.status(404);
     throw new Error("Village not found");
@@ -408,7 +414,10 @@ exports.updateVillage = asyncHandler(async (req, res) => {
 // @desc    Delete a village
 // @route   DELETE /api/villages/:id
 exports.deleteVillage = asyncHandler(async (req, res) => {
-  const village = await Village.findById(req.params.id);
+  const village = await Village.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!village) {
     res.status(404);
     throw new Error("Village not found");

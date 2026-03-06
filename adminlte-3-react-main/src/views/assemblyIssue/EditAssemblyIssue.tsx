@@ -6,7 +6,8 @@ import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
 import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import { Skeleton } from "@app/components/ui/skeleton";
 import AssemblyIssueForm from "./AssemblyIssueForm";
 import {
@@ -26,7 +27,7 @@ const EditAssemblyIssue = ({
   basePath = "/assembly-issue",
 }: EditAssemblyIssueProps) => {
   return (
-    <RouteGuard requiredPermissions={["edit_assembly_issues"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.EDIT_ASSEMBLY_ISSUES]}>
       <EditAssemblyIssueContent
         issueType={issueType}
         title={title}
@@ -111,11 +112,7 @@ const EditAssemblyIssueContent = ({
           });
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(
-          err.response?.data?.message ||
-            "Failed to load assembly issue details",
-        );
+        handleError(error, "Failed to load assembly issue details");
         router.push(basePath);
       } finally {
         setPageLoading(false);
@@ -137,7 +134,7 @@ const EditAssemblyIssueContent = ({
 
       toast.success(`${title} updated successfully!`);
       router.push(basePath);
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to update issue");
     } finally {
       setLoading(false);

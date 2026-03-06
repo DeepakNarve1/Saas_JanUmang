@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { useDebounce } from "@app/hooks/useDebounce";
 import {
@@ -50,6 +51,7 @@ import {
 import { ContentHeader } from "@app/components";
 import { Pagination } from "@app/components/common/Pagination";
 import { IAssemblyResponse } from "@app/types/assembly";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const Assembly = () => {
   const { hasPermission } = usePermissions();
@@ -109,8 +111,8 @@ const Assembly = () => {
       toast.success("Assembly deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["assemblies"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete assembly");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete assembly");
     },
   });
 
@@ -152,7 +154,7 @@ const Assembly = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  {hasPermission("create_assemblies") && (
+                  {hasPermission(PERMISSIONS.CREATE_ASSEMBLIES) && (
                     <Button
                       size="lg"
                       onClick={() => router.push("/assemblies/create")}
@@ -348,7 +350,7 @@ const Assembly = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {hasPermission("view_assemblies") && (
+                                {hasPermission(PERMISSIONS.VIEW_ASSEMBLIES) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/assemblies/${assembly._id}`)
@@ -357,7 +359,7 @@ const Assembly = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_assemblies") && (
+                                {hasPermission(PERMISSIONS.EDIT_ASSEMBLIES) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -368,7 +370,9 @@ const Assembly = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_assemblies") && (
+                                {hasPermission(
+                                  PERMISSIONS.DELETE_ASSEMBLIES,
+                                ) && (
                                   <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => handleDelete(assembly._id)}

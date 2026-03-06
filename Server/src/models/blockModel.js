@@ -37,6 +37,12 @@ const blockSchema = new mongoose.Schema(
       ref: "Assembly",
       index: true,
     },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      index: true,
+      default: null,
+    },
   },
   { timestamps: true },
 );

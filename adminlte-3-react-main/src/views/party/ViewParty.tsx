@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import { Edit, ArrowLeft, ShieldCheck, Hash } from "lucide-react";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { ViewPageActions } from "@app/components/ViewPageActions";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const ViewParty = () => {
   const router = useRouter();
@@ -26,8 +28,7 @@ const ViewParty = () => {
         const res = await axios.get(`/party/${id}`);
         setPartyData(res.data.data);
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(err.response?.data?.message || "Failed to load Party");
+        handleError(error, "Failed to load Party");
         router.push("/party");
       } finally {
         setLoading(false);
@@ -86,7 +87,7 @@ const ViewParty = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_parties") && (
+                {hasPermission(PERMISSIONS.EDIT_PARTIES) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20"
                     onClick={() => router.push(`/party/${id}/edit`)}

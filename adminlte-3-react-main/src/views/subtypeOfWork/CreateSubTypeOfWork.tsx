@@ -21,7 +21,7 @@ const CreateSubTypeOfWork = () => {
       await axios.post("/sub-type-of-work", values);
       toast.success("Sub Type of Work created successfully");
       router.push("/sub-type-of-work");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to create Sub Type of Work");
     } finally {
       setLoading(false);

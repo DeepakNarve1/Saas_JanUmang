@@ -1,11 +1,12 @@
 "use client";
 
 import BhagoriaSamitiForm from "@app/views/vidhasabhaSamiti/forms/BhagoriaSamitiForm";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 export default function CreateBhagoriaSamiti() {
   return (
-    <RouteGuard requiredPermissions={["create_bhagoria_samiti"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.CREATE_BHAGORIA_SAMITI]}>
       <BhagoriaSamitiForm />
     </RouteGuard>
   );

@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 const Users = dynamic(() => import("@app/views/users"), {
   ssr: false,
@@ -16,7 +17,7 @@ const Users = dynamic(() => import("@app/views/users"), {
 
 export default function UsersPage() {
   return (
-    <RouteGuard requiredPermission="view_users">
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_USERS]}>
       <Users />
     </RouteGuard>
   );

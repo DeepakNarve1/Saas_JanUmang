@@ -67,7 +67,7 @@ const SummaryTable: React.FC<SummaryTableProps> = React.memo(
             <table className="w-full text-sm text-center">
               <thead className="bg-gray-50 dark:bg-gray-800/80 text-gray-600 dark:text-gray-400 font-semibold uppercase tracking-wider text-xs border-b border-gray-100 dark:border-gray-800">
                 <tr>
-                  <th className="px-6 py-3 w-16 text-center">#</th>
+                  <th className="px-6 py-3 w-16 text-center">Sr No.</th>
                   {columns.map((col, idx) => (
                     <th key={idx} className="px-6 py-3 text-center">
                       {col.header}

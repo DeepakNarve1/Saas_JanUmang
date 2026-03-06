@@ -19,6 +19,7 @@ import {
 } from "@app/components/ui/select";
 import { ContentHeader } from "@app/components";
 import { RouteGuard } from "@app/components/RouteGuard";
+import { PERMISSIONS } from "@app/config/permissions";
 import {
   voterSchema,
   voterInitialValues,
@@ -49,7 +50,7 @@ interface Booth {
 
 const EditVoter = () => {
   return (
-    <RouteGuard requiredPermissions={["edit_voter"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.EDIT_VOTERS]}>
       <EditVoterContent />
     </RouteGuard>
   );
@@ -115,7 +116,7 @@ const EditVoterContent = () => {
         await axios.put(`/voters/${voterId}`, payload);
         toast.success("Voter updated successfully!");
         router.push("/voter");
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Update Error:", error);
         handleError(error, "Failed to update voter");
       } finally {

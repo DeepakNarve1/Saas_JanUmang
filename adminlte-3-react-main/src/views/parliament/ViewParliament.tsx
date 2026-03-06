@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import {
@@ -13,26 +14,12 @@ import {
 import { Skeleton } from "@app/components/ui/skeleton";
 import { ArrowLeft, Edit } from "lucide-react";
 import { ViewPageActions } from "@app/components/ViewPageActions";
-
-interface IParliamentDetails {
-  _id: string;
-  name: string;
-  division: {
-    _id: string;
-    name: string;
-  };
-  assemblies: {
-    _id: string;
-    name: string;
-  }[];
-  createdAt: string;
-  updatedAt: string;
-}
+import { IParliament } from "@app/types/parliament";
 
 const ViewParliament = () => {
   const { id } = useParams();
   const router = useRouter();
-  const [parliament, setParliament] = useState<IParliamentDetails | null>(null);
+  const [parliament, setParliament] = useState<IParliament | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,7 +32,7 @@ const ViewParliament = () => {
       const { data } = await axios.get(`/parliaments/${id}`);
       setParliament(data.data);
     } catch (error: unknown) {
-      toast.error("Failed to fetch parliament details");
+      handleError(error, "Failed to fetch parliament details");
       router.push("/parliaments");
     } finally {
       setLoading(false);
@@ -57,9 +44,12 @@ const ViewParliament = () => {
     if (!parliament) return {};
     return {
       "Parliament Name": parliament.name,
-      Division: parliament.division?.name || "",
+      Division: (parliament.division as { name?: string })?.name || "",
       "Total Assemblies": parliament.assemblies?.length || 0,
-      Assemblies: parliament.assemblies?.map((a) => a.name).join(", ") || "",
+      Assemblies:
+        parliament.assemblies
+          ?.map((a: { name: string }) => a.name)
+          .join(", ") || "",
       "Created At": parliament.createdAt,
     };
   };
@@ -118,11 +108,12 @@ const ViewParliament = () => {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
+                    <label className="text-sm font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
                       Division
-                    </p>
+                    </label>
                     <p className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                      {parliament.division?.name || "N/A"}
+                      {(parliament.division as { name?: string })?.name ||
+                        "N/A"}
                     </p>
                   </div>
                 </div>

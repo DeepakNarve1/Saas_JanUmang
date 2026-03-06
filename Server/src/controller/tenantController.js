@@ -215,9 +215,11 @@ const syncTenantPermissions = async (tenantId, enabledModules) => {
     await role.save();
   }
 
-  console.log(
-    `[Tenant] Synchronized permissions for ${roles.length} roles in tenant ${tenantId}`,
-  );
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `[Tenant] Synchronized permissions for ${roles.length} roles in tenant ${tenantId}`,
+    );
+  }
 };
 
 /**
@@ -238,9 +240,11 @@ const createDefaultTenantAdminRole = async (
 
   if (existingRole) {
     // Role already exists, return it instead of creating a new one
-    console.log(
-      `[Tenant] tenant_admin role already exists for tenant ${tenantId}, reusing it`,
-    );
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `[Tenant] tenant_admin role already exists for tenant ${tenantId}, reusing it`,
+      );
+    }
     return existingRole;
   }
 
@@ -262,7 +266,11 @@ const createDefaultTenantAdminRole = async (
       tenantId,
     });
 
-    console.log(`[Tenant] Cleaned up ${orphanedRoles.length} orphaned role(s)`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `[Tenant] Cleaned up ${orphanedRoles.length} orphaned role(s)`,
+      );
+    }
   }
 
   // Get all permissions for enabled modules
@@ -282,15 +290,17 @@ const createDefaultTenantAdminRole = async (
       isDefault: true, // Mark as default role for the tenant
     };
 
-    console.log(
-      `[Tenant] About to create tenant_admin role for tenant ${tenantId}`,
-    );
-    console.log(`[Tenant] Using session: ${session ? "YES" : "NO"}`);
-    console.log(`[Tenant] Role data:`, {
-      name: roleData.name,
-      tenantId: roleData.tenantId,
-    });
-    console.log(`[Tenant] Timestamp: ${new Date().toISOString()}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `[Tenant] About to create tenant_admin role for tenant ${tenantId}`,
+      );
+      console.log(`[Tenant] Using session: ${session ? "YES" : "NO"}`);
+      console.log(`[Tenant] Role data:`, {
+        name: roleData.name,
+        tenantId: roleData.tenantId,
+      });
+      console.log(`[Tenant] Timestamp: ${new Date().toISOString()}`);
+    }
 
     let adminRole;
     if (session) {
@@ -309,26 +319,36 @@ const createDefaultTenantAdminRole = async (
       }
 
       // Create within transaction using save()
-      console.log(
-        `[Tenant] Instantiating new Role() with session at ${new Date().toISOString()}`,
-      );
+      if (process.env.NODE_ENV !== "production") {
+        console.log(
+          `[Tenant] Instantiating new Role() with session at ${new Date().toISOString()}`,
+        );
+      }
       const role = new Role(roleData);
       adminRole = await role.save({ session });
-      console.log(
-        `[Tenant] Role.save() completed at ${new Date().toISOString()}`,
-      );
+      if (process.env.NODE_ENV !== "production") {
+        console.log(
+          `[Tenant] Role.save() completed at ${new Date().toISOString()}`,
+        );
+      }
     } else {
       // Create without transaction (for backward compatibility)
-      console.log(
-        `[Tenant] Calling Role.create() without session at ${new Date().toISOString()}`,
-      );
+      if (process.env.NODE_ENV !== "production") {
+        console.log(
+          `[Tenant] Calling Role.create() without session at ${new Date().toISOString()}`,
+        );
+      }
       adminRole = await Role.create(roleData);
-      console.log(
-        `[Tenant] Role.create() completed at ${new Date().toISOString()}`,
-      );
+      if (process.env.NODE_ENV !== "production") {
+        console.log(
+          `[Tenant] Role.create() completed at ${new Date().toISOString()}`,
+        );
+      }
     }
 
-    console.log(`[Tenant] Created tenant_admin role for tenant ${tenantId}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[Tenant] Created tenant_admin role for tenant ${tenantId}`);
+    }
     return adminRole;
   } catch (error) {
     // Handle duplicate key error
@@ -356,7 +376,9 @@ const createDefaultTenantAdminRole = async (
       });
 
       if (existingRole) {
-        console.log(`[Tenant] Successfully recovered - using existing role`);
+        if (process.env.NODE_ENV !== "production") {
+          console.log(`[Tenant] Successfully recovered - using existing role`);
+        }
         return existingRole;
       }
 
@@ -449,7 +471,9 @@ const createTenant = asyncHandler(async (req, res) => {
       { session },
     );
 
-    console.log(`[Tenant] Created tenant: ${tenant.name} (${tenant._id})`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[Tenant] Created tenant: ${tenant.name} (${tenant._id})`);
+    }
 
     // Create default tenant admin role within transaction
     const tenantAdminRole = await createDefaultTenantAdminRole(
@@ -458,9 +482,11 @@ const createTenant = asyncHandler(async (req, res) => {
       session, // Pass session to helper function
     );
 
-    console.log(
-      `[Tenant] Created/retrieved tenant_admin role: ${tenantAdminRole._id}`,
-    );
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `[Tenant] Created/retrieved tenant_admin role: ${tenantAdminRole._id}`,
+      );
+    }
 
     // Create tenant admin user if provided
     let ownerUser = null;
@@ -498,7 +524,9 @@ const createTenant = asyncHandler(async (req, res) => {
         { session },
       );
 
-      console.log(`[Tenant] Created owner user: ${ownerUser.email}`);
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`[Tenant] Created owner user: ${ownerUser.email}`);
+      }
 
       // Update tenant with owner reference
       tenant.owner = ownerUser._id;
@@ -507,9 +535,11 @@ const createTenant = asyncHandler(async (req, res) => {
 
     // Commit the transaction
     await session.commitTransaction();
-    console.log(
-      `[Tenant] Transaction committed successfully for ${tenant.name}`,
-    );
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `[Tenant] Transaction committed successfully for ${tenant.name}`,
+      );
+    }
 
     // Fetch populated tenant data
     const populated = await Tenant.findById(tenant._id)
@@ -625,9 +655,11 @@ const updateTenant = asyncHandler(async (req, res) => {
       },
     ]);
 
-    console.log(
-      `[Tenant] Created new admin user during update: ${newUser.email}`,
-    );
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `[Tenant] Created new admin user during update: ${newUser.email}`,
+      );
+    }
 
     // 4. Set as owner
     update.owner = newUser._id;
@@ -668,23 +700,33 @@ const deleteTenant = asyncHandler(async (req, res) => {
   session.startTransaction();
 
   try {
-    console.log(`[Tenant] Deleting tenant: ${tenant.name} (${tenantId})`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[Tenant] Deleting tenant: ${tenant.name} (${tenantId})`);
+    }
 
     // 1. Delete all roles associated with this tenant
     const rolesResult = await Role.deleteMany({ tenantId }, { session });
-    console.log(`[Tenant] Deleted ${rolesResult.deletedCount} roles`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[Tenant] Deleted ${rolesResult.deletedCount} roles`);
+    }
 
     // 2. Delete all users associated with this tenant
     const usersResult = await User.deleteMany({ tenantId }, { session });
-    console.log(`[Tenant] Deleted ${usersResult.deletedCount} users`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[Tenant] Deleted ${usersResult.deletedCount} users`);
+    }
 
     // 3. Delete the tenant itself
     await Tenant.findByIdAndDelete(tenantId, { session });
-    console.log(`[Tenant] Deleted tenant: ${tenant.name}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[Tenant] Deleted tenant: ${tenant.name}`);
+    }
 
     // Commit the transaction
     await session.commitTransaction();
-    console.log(`[Tenant] Cascade delete completed successfully`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[Tenant] Cascade delete completed successfully`);
+    }
 
     res.status(200).json({
       status: "success",

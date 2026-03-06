@@ -8,8 +8,10 @@ export interface IParliamentFormValues {
 export interface IParliament {
   _id: string;
   name: string;
+  state?: string | { _id: string; name: string };
   division?: string | { _id: string; name: string };
-  // Add other potentially populated fields if known
+  district?: string | { _id: string; name: string };
+  assemblies?: { _id: string; name: string }[];
   createdAt?: string;
   updatedAt?: string;
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Skeleton } from "@app/components/ui/skeleton";
 import WorktypeForm from "./WorktypeForm";
@@ -30,10 +31,7 @@ const EditWorktype = () => {
           });
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(
-          err.response?.data?.message || "Failed to load Worktype data",
-        );
+        handleError(error, "Failed to load Worktype data");
         router.push("/worktype");
       } finally {
         setLoading(false);
@@ -50,8 +48,7 @@ const EditWorktype = () => {
       toast.success("Worktype updated successfully");
       router.push("/worktype");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to update Worktype");
+      handleError(error, "Failed to update Worktype");
     } finally {
       setSaving(false);
     }

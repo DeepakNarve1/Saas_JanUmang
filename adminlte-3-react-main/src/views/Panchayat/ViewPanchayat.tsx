@@ -9,12 +9,15 @@ import { ArrowLeft, Edit } from "lucide-react";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { ViewPageActions } from "@app/components/ViewPageActions";
+import { IPanchayat } from "@app/types/panchayat";
+import { handleError } from "@app/utils/errorHandler";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const ViewPanchayat = () => {
   const { id } = useParams();
   const router = useRouter();
   const { hasPermission } = usePermissions();
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<IPanchayat | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,7 +28,7 @@ const ViewPanchayat = () => {
         const res = await axios.get(`/panchayat/${id}`);
         setData(res.data.data);
       } catch (error: unknown) {
-        console.error(error);
+        handleError(error, "Failed to load panchayat details");
       } finally {
         setLoading(false);
       }
@@ -38,13 +41,14 @@ const ViewPanchayat = () => {
     if (!data) return {};
     return {
       "Panchayat Name": data.name,
-      State: data.state?.name || "",
-      Division: data.division?.name || "",
-      District: data.district?.name || "",
-      Parliament: data.parliament?.name || "",
-      Assembly: data.assembly?.name || "",
-      Block: data.block?.name || "",
-      Booth: data.booth?.name || "",
+      State: typeof data.state === "object" ? data.state.name : "",
+      Division: typeof data.division === "object" ? data.division.name : "",
+      District: typeof data.district === "object" ? data.district.name : "",
+      Parliament:
+        typeof data.parliament === "object" ? data.parliament.name : "",
+      Assembly: typeof data.assembly === "object" ? data.assembly.name : "",
+      Block: typeof data.block === "object" ? data.block.name : "",
+      Booth: typeof data.booth === "object" ? data.booth.name : "",
     };
   };
 
@@ -87,7 +91,7 @@ const ViewPanchayat = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back
                 </Button>
-                {hasPermission("edit_panchayats") && (
+                {hasPermission(PERMISSIONS.EDIT_PANCHAYATS) && (
                   <Button
                     onClick={() => router.push(`/panchayat/${id}/edit`)}
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20"
@@ -101,25 +105,56 @@ const ViewPanchayat = () => {
             <div className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12">
                 <ViewField label="Panchayat Name" value={data.name} />
-                <ViewField label="State" value={data.state?.name || "N/A"} />
+                <ViewField
+                  label="State"
+                  value={
+                    typeof data.state === "object" ? data.state.name : "N/A"
+                  }
+                />
                 <ViewField
                   label="Division"
-                  value={data.division?.name || "N/A"}
+                  value={
+                    typeof data.division === "object"
+                      ? data.division.name
+                      : "N/A"
+                  }
                 />
                 <ViewField
                   label="District"
-                  value={data.district?.name || "N/A"}
+                  value={
+                    typeof data.district === "object"
+                      ? data.district.name
+                      : "N/A"
+                  }
                 />
                 <ViewField
                   label="Parliament"
-                  value={data.parliament?.name || "N/A"}
+                  value={
+                    typeof data.parliament === "object"
+                      ? data.parliament.name
+                      : "N/A"
+                  }
                 />
                 <ViewField
                   label="Assembly"
-                  value={data.assembly?.name || "N/A"}
+                  value={
+                    typeof data.assembly === "object"
+                      ? data.assembly.name
+                      : "N/A"
+                  }
                 />
-                <ViewField label="Block" value={data.block?.name || "N/A"} />
-                <ViewField label="Booth" value={data.booth?.name || "N/A"} />
+                <ViewField
+                  label="Block"
+                  value={
+                    typeof data.block === "object" ? data.block.name : "N/A"
+                  }
+                />
+                <ViewField
+                  label="Booth"
+                  value={
+                    typeof data.booth === "object" ? data.booth.name : "N/A"
+                  }
+                />
               </div>
             </div>
           </div>

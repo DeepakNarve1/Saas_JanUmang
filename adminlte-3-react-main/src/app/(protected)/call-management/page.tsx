@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 const CallManagementList = dynamic(() => import("@app/views/callManagement"), {
   ssr: false,
@@ -16,7 +17,7 @@ const CallManagementList = dynamic(() => import("@app/views/callManagement"), {
 
 export default function CallManagementPage() {
   return (
-    <RouteGuard requiredPermission="view_call_management">
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_CALL_MANAGEMENT]}>
       <CallManagementList />
     </RouteGuard>
   );

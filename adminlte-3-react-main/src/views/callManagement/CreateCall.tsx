@@ -4,6 +4,7 @@ import { useState } from "react";
 import axios from "@app/utils/axios";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import CallForm from "./CallForm";
 
@@ -36,11 +37,7 @@ const CreateCall = () => {
       toast.success("Call record created successfully");
       router.push("/call-management");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      console.error(err);
-      toast.error(
-        err.response?.data?.message || "Failed to create call record"
-      );
+      handleError(error, "Failed to create call record");
     } finally {
       setIsLoading(false);
     }

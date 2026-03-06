@@ -1,11 +1,12 @@
 "use client";
 
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import EditSubTypeOfWork from "@app/views/subtypeOfWork/EditSubTypeOfWork";
 
 export default function EditSubTypeOfWorkPage() {
   return (
-    <RouteGuard requiredPermission="edit_sub_work_types">
+    <RouteGuard requiredPermissions={[PERMISSIONS.EDIT_SUB_WORK_TYPES]}>
       <EditSubTypeOfWork />
     </RouteGuard>
   );

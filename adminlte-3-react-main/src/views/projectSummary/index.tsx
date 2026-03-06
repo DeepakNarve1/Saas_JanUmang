@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { ContentHeader } from "@app/components";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 import { Pagination } from "@app/components/common/Pagination";
 import {
   useQuery,
@@ -59,9 +60,9 @@ const ProjectSummary = () => {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
 
-  const canDelete = hasPermission("delete_projects");
-  const canCreate = hasPermission("create_projects");
-  const canEdit = hasPermission("edit_projects");
+  const canDelete = hasPermission(PERMISSIONS.DELETE_PROJECTS);
+  const canCreate = hasPermission(PERMISSIONS.CREATE_PROJECTS);
+  const canEdit = hasPermission(PERMISSIONS.EDIT_PROJECTS);
 
   // State
   const [entriesPerPage, setEntriesPerPage] = useState(10);

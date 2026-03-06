@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import WorktypeForm from "./WorktypeForm";
 
@@ -18,8 +19,7 @@ const CreateWorktype = () => {
       toast.success("Worktype created successfully");
       router.push("/worktype");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to create Worktype");
+      handleError(error, "Failed to create Worktype");
     } finally {
       setLoading(false);
     }

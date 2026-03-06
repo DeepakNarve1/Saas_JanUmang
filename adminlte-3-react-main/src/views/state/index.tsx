@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { useDebounce } from "@app/hooks/useDebounce";
 import {
@@ -51,9 +52,10 @@ import {
 import { ContentHeader } from "@app/components";
 import { Pagination } from "@app/components/common/Pagination";
 import { IStateResponse } from "@app/types/state";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const State = () => {
-  const { hasPermission } = usePermissions();
+  const { hasPermission, isSuperAdmin } = usePermissions();
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -109,8 +111,8 @@ const State = () => {
       toast.success("State deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["states"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete state");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete state");
     },
   });
 
@@ -181,15 +183,17 @@ const State = () => {
                     </span>
                   </div>
 
-                  {hasPermission("create_states") && (
-                    <Button
-                      size="lg"
-                      onClick={() => router.push("/states/create")}
-                      className="bg-[#368F8B] hover:bg-[#2d7a76] text-white dark:bg-[#368F8B] dark:hover:bg-[#2d7a76] rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
-                    >
-                      <Plus className="w-5 h-5 mr-2 font-bold" /> Add New State
-                    </Button>
-                  )}
+                  {isSuperAdmin() &&
+                    hasPermission(PERMISSIONS.CREATE_STATES) && (
+                      <Button
+                        size="lg"
+                        onClick={() => router.push("/states/create")}
+                        className="bg-[#368F8B] hover:bg-[#2d7a76] text-white dark:bg-[#368F8B] dark:hover:bg-[#2d7a76] rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
+                      >
+                        <Plus className="w-5 h-5 mr-2 font-bold" /> Add New
+                        State
+                      </Button>
+                    )}
                 </div>
               </div>
             </div>
@@ -315,7 +319,7 @@ const State = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {hasPermission("view_states") && (
+                                {hasPermission(PERMISSIONS.VIEW_STATES) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/states/${state._id}`)
@@ -324,23 +328,25 @@ const State = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_states") && (
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      router.push(`/states/${state._id}/edit`)
-                                    }
-                                  >
-                                    <Edit className="mr-2 h-4 w-4" /> Edit
-                                  </DropdownMenuItem>
-                                )}
-                                {hasPermission("delete_states") && (
-                                  <DropdownMenuItem
-                                    className="text-red-600"
-                                    onClick={() => handleDelete(state._id)}
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                  </DropdownMenuItem>
-                                )}
+                                {isSuperAdmin() &&
+                                  hasPermission(PERMISSIONS.EDIT_STATES) && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        router.push(`/states/${state._id}/edit`)
+                                      }
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" /> Edit
+                                    </DropdownMenuItem>
+                                  )}
+                                {isSuperAdmin() &&
+                                  hasPermission(PERMISSIONS.DELETE_STATES) && (
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onClick={() => handleDelete(state._id)}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                    </DropdownMenuItem>
+                                  )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>

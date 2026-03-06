@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "@app/utils/axios";
+import { handleError } from "@app/utils/errorHandler";
 import { useFormik } from "formik";
 import { Button } from "@app/components/ui/button";
 import { Input } from "@app/components/ui/input";
@@ -28,18 +29,23 @@ interface BoothFormProps {
   isEdit?: boolean;
 }
 
+interface OptionItem {
+  _id: string;
+  name: string;
+}
+
 const BoothForm = ({
   initialValues = boothInitialValues,
   onSubmit,
   loading = false,
   isEdit = false,
 }: BoothFormProps) => {
-  const [statesList, setStatesList] = useState([]);
-  const [divisionsList, setDivisionsList] = useState([]);
-  const [districtsList, setDistrictsList] = useState([]);
-  const [parliamentsList, setParliamentsList] = useState([]);
-  const [assembliesList, setAssembliesList] = useState([]);
-  const [blocksList, setBlocksList] = useState([]);
+  const [statesList, setStatesList] = useState<OptionItem[]>([]);
+  const [divisionsList, setDivisionsList] = useState<OptionItem[]>([]);
+  const [districtsList, setDistrictsList] = useState<OptionItem[]>([]);
+  const [parliamentsList, setParliamentsList] = useState<OptionItem[]>([]);
+  const [assembliesList, setAssembliesList] = useState<OptionItem[]>([]);
+  const [blocksList, setBlocksList] = useState<OptionItem[]>([]);
 
   useEffect(() => {
     fetchStates();
@@ -51,7 +57,7 @@ const BoothForm = ({
       const { data } = await axios.get("/states?limit=-1");
       setStatesList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch states", error);
+      handleError(error, "Failed to fetch states");
     }
   };
 
@@ -64,7 +70,7 @@ const BoothForm = ({
       const { data } = await axios.get(`/divisions?limit=-1&state=${stateId}`);
       setDivisionsList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch divisions", error);
+      handleError(error, "Failed to fetch divisions");
     }
   };
 
@@ -79,7 +85,7 @@ const BoothForm = ({
       );
       setDistrictsList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch districts", error);
+      handleError(error, "Failed to fetch districts");
     }
   };
 
@@ -102,7 +108,7 @@ const BoothForm = ({
       const { data } = await axios.get(url);
       setParliamentsList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch parliaments", error);
+      handleError(error, "Failed to fetch parliaments");
     }
   };
 
@@ -117,7 +123,7 @@ const BoothForm = ({
       );
       setAssembliesList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch assemblies", error);
+      handleError(error, "Failed to fetch assemblies");
     }
   };
 
@@ -130,7 +136,7 @@ const BoothForm = ({
       const { data } = await axios.get(url);
       setBlocksList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch blocks", error);
+      handleError(error, "Failed to fetch blocks");
     }
   };
 
@@ -176,7 +182,7 @@ const BoothForm = ({
                       <SelectValue placeholder="Select state" />
                     </SelectTrigger>
                     <SelectContent>
-                      {statesList.map((st: any) => (
+                      {statesList.map((st: OptionItem) => (
                         <SelectItem key={st._id} value={st._id}>
                           {st.name}
                         </SelectItem>
@@ -217,7 +223,7 @@ const BoothForm = ({
                       <SelectValue placeholder="Select division" />
                     </SelectTrigger>
                     <SelectContent>
-                      {divisionsList.map((div: any) => (
+                      {divisionsList.map((div: OptionItem) => (
                         <SelectItem key={div._id} value={div._id}>
                           {div.name}
                         </SelectItem>
@@ -259,7 +265,7 @@ const BoothForm = ({
                       <SelectValue placeholder="Select district" />
                     </SelectTrigger>
                     <SelectContent>
-                      {districtsList.map((dist: any) => (
+                      {districtsList.map((dist: OptionItem) => (
                         <SelectItem key={dist._id} value={dist._id}>
                           {dist.name}
                         </SelectItem>
@@ -297,7 +303,7 @@ const BoothForm = ({
                       <SelectValue placeholder="Select parliament" />
                     </SelectTrigger>
                     <SelectContent>
-                      {parliamentsList.map((par: any) => (
+                      {parliamentsList.map((par: OptionItem) => (
                         <SelectItem key={par._id} value={par._id}>
                           {par.name}
                         </SelectItem>
@@ -334,7 +340,7 @@ const BoothForm = ({
                       <SelectValue placeholder="Select assembly" />
                     </SelectTrigger>
                     <SelectContent>
-                      {assembliesList.map((asm: any) => (
+                      {assembliesList.map((asm: OptionItem) => (
                         <SelectItem key={asm._id} value={asm._id}>
                           {asm.name}
                         </SelectItem>
@@ -373,7 +379,7 @@ const BoothForm = ({
                   <SelectValue placeholder="Select block" />
                 </SelectTrigger>
                 <SelectContent>
-                  {blocksList.map((blk: any) => (
+                  {blocksList.map((blk: OptionItem) => (
                     <SelectItem key={blk._id} value={blk._id}>
                       {blk.name}
                     </SelectItem>
@@ -440,7 +446,7 @@ const BoothForm = ({
                 id="year"
                 name="year"
                 placeholder="Enter year"
-                value={(formik.values as any).year || ""}
+                value={formik.values.year || ""}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
                 className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"

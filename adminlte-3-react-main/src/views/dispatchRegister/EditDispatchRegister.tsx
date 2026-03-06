@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "@app/utils/axios";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Skeleton } from "@app/components/ui/skeleton";
 import DispatchRegisterForm from "./DispatchRegisterForm";
@@ -48,11 +49,7 @@ const EditDispatchRegister = () => {
           uploadLetter: data.uploadLetter || "",
         });
       } catch (err: unknown) {
-        const error = err as { response?: { data?: { message?: string } } };
-        toast.error(
-          error.response?.data?.message ||
-            "Failed to load Dispatch Register data"
-        );
+        handleError(err, "Failed to load Dispatch Register data");
         router.push("/dispatch-register");
       } finally {
         setLoading(false);
@@ -85,11 +82,7 @@ const EditDispatchRegister = () => {
       toast.success("Dispatch Register entry updated successfully");
       router.push("/dispatch-register");
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(
-        error.response?.data?.message ||
-          "Failed to update Dispatch Register entry"
-      );
+      handleError(err, "Failed to update Dispatch Register entry");
     } finally {
       setIsSubmitting(false);
     }

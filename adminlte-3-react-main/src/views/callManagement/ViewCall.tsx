@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import {
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 import { ViewPageActions } from "@app/components/ViewPageActions";
 
 const ViewCall = () => {
@@ -36,10 +38,7 @@ const ViewCall = () => {
         const res = await axios.get(`/call-management/${id}`);
         setData(res.data.data);
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(
-          err.response?.data?.message || "Failed to load Call Details",
-        );
+        handleError(error, "Failed to load Call Details");
         router.push("/call-management");
       } finally {
         setLoading(false);
@@ -118,7 +117,7 @@ const ViewCall = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_call_management") && (
+                {hasPermission(PERMISSIONS.EDIT_CALL_MANAGEMENT) && (
                   <Button
                     className="bg-[#00563B] hover:bg-[#368F8B]"
                     onClick={() => router.push(`/call-management/${id}/edit`)}

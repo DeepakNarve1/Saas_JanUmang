@@ -5,18 +5,19 @@ import { toast } from "react-toastify";
 import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import BoothForm from "./BoothForm";
+import { IBoothFormValues } from "./booth.schema";
 
 const CreateBooth = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: IBoothFormValues) => {
     try {
       setLoading(true);
       await axios.post("/booths", values);
       toast.success("Booth created successfully");
       router.push("/booths");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to create booth");
     } finally {
       setLoading(false);

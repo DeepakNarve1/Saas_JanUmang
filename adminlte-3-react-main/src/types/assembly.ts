@@ -9,8 +9,11 @@ export interface IAssemblyFormValues {
 export interface IAssembly {
   _id: string;
   name: string;
+  state?: string | { _id: string; name: string };
+  division?: string | { _id: string; name: string };
+  district?: string | { _id: string; name: string };
   parliament?: string | { _id: string; name: string };
-  // Add other potentially populated fields if known
+  blocks?: { _id: string; name: string }[];
   createdAt?: string;
   updatedAt?: string;
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "@app/utils/axios";
+import { handleError } from "@app/utils/errorHandler";
 import { useFormik } from "formik";
 import { Button } from "@app/components/ui/button";
 import { Input } from "@app/components/ui/input";
@@ -27,15 +28,20 @@ interface AssemblyFormProps {
   loading?: boolean;
 }
 
+interface OptionItem {
+  _id: string;
+  name: string;
+}
+
 const AssemblyForm = ({
   initialValues = assemblyInitialValues,
   onSubmit,
   loading = false,
 }: AssemblyFormProps) => {
-  const [statesList, setStatesList] = useState([]);
-  const [divisionsList, setDivisionsList] = useState([]);
-  const [districtsList, setDistrictsList] = useState([]);
-  const [parliamentsList, setParliamentsList] = useState([]);
+  const [statesList, setStatesList] = useState<OptionItem[]>([]);
+  const [divisionsList, setDivisionsList] = useState<OptionItem[]>([]);
+  const [districtsList, setDistrictsList] = useState<OptionItem[]>([]);
+  const [parliamentsList, setParliamentsList] = useState<OptionItem[]>([]);
   const [newBlocks, setNewBlocks] = useState<string[]>([]);
 
   useEffect(() => {
@@ -47,7 +53,7 @@ const AssemblyForm = ({
       const { data } = await axios.get("/states?limit=-1");
       setStatesList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch states", error);
+      handleError(error, "Failed to fetch states");
     }
   };
 
@@ -60,7 +66,7 @@ const AssemblyForm = ({
       const { data } = await axios.get(`/divisions?limit=-1&state=${stateId}`);
       setDivisionsList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch divisions", error);
+      handleError(error, "Failed to fetch divisions");
     }
   };
 
@@ -75,7 +81,7 @@ const AssemblyForm = ({
       );
       setDistrictsList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch districts", error);
+      handleError(error, "Failed to fetch districts");
     }
   };
 
@@ -98,7 +104,7 @@ const AssemblyForm = ({
       const { data } = await axios.get(url);
       setParliamentsList(data.data || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch parliaments", error);
+      handleError(error, "Failed to fetch parliaments");
     }
   };
 
@@ -144,7 +150,7 @@ const AssemblyForm = ({
                   <SelectValue placeholder="Select state" />
                 </SelectTrigger>
                 <SelectContent>
-                  {statesList.map((st: any) => (
+                  {statesList.map((st: OptionItem) => (
                     <SelectItem key={st._id} value={st._id}>
                       {st.name}
                     </SelectItem>
@@ -185,7 +191,7 @@ const AssemblyForm = ({
                   <SelectValue placeholder="Select division" />
                 </SelectTrigger>
                 <SelectContent>
-                  {divisionsList.map((div: any) => (
+                  {divisionsList.map((div: OptionItem) => (
                     <SelectItem key={div._id} value={div._id}>
                       {div.name}
                     </SelectItem>
@@ -222,7 +228,7 @@ const AssemblyForm = ({
                   <SelectValue placeholder="Select district" />
                 </SelectTrigger>
                 <SelectContent>
-                  {districtsList.map((dist: any) => (
+                  {districtsList.map((dist: OptionItem) => (
                     <SelectItem key={dist._id} value={dist._id}>
                       {dist.name}
                     </SelectItem>
@@ -259,7 +265,7 @@ const AssemblyForm = ({
                   <SelectValue placeholder="Select parliament" />
                 </SelectTrigger>
                 <SelectContent>
-                  {parliamentsList.map((par: any) => (
+                  {parliamentsList.map((par: OptionItem) => (
                     <SelectItem key={par._id} value={par._id}>
                       {par.name}
                     </SelectItem>

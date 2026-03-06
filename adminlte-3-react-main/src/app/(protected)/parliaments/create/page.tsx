@@ -1,11 +1,12 @@
 "use client";
 
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import CreateParliament from "@app/views/parliament/CreateParliament";
 
 export default function CreateParliamentPage() {
   return (
-    <RouteGuard requiredPermission="create_parliaments">
+    <RouteGuard requiredPermissions={[PERMISSIONS.CREATE_PARLIAMENTS]}>
       <CreateParliament />
     </RouteGuard>
   );

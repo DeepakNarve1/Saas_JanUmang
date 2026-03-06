@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import EventForm from "./EventForm";
 import { IEventFormValues, eventInitialValues } from "./event.schema";
 
@@ -31,7 +33,7 @@ const EditEvent = () => {
 
         setInitialValues(eventData);
       } catch (error: unknown) {
-        toast.error("Failed to fetch event details");
+        handleError(error, "Failed to fetch event details");
         router.push("/events");
       } finally {
         setLoading(false);
@@ -50,8 +52,7 @@ const EditEvent = () => {
       toast.success("Event updated successfully");
       router.push("/events");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to update event");
+      handleError(error, "Failed to update event");
     } finally {
       setIsSubmitting(false);
     }
@@ -60,7 +61,7 @@ const EditEvent = () => {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <RouteGuard requiredPermissions={["edit_events"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.EDIT_EVENTS]}>
       <ContentHeader title="Edit Event" />
       <section className="content">
         <div className="container-fluid px-4">

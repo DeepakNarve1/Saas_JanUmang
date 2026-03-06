@@ -5,14 +5,15 @@ import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import UserForm from "./UserForm";
 import { IUserFormValues } from "./user.schema";
 import { handleError } from "@app/utils/errorHandler";
 
 const CreateUser = () => {
   return (
-    <RouteGuard requiredPermissions={["manage_roles", "create_users"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.MANAGE_ROLES, PERMISSIONS.CREATE_USERS]}>
       <CreateUserContent />
     </RouteGuard>
   );

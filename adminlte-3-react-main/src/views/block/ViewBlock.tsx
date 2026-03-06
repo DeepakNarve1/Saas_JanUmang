@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import {
@@ -46,7 +47,7 @@ const ViewBlock = () => {
       const { data } = await axios.get(`/blocks/${id}`);
       setBlock(data.data);
     } catch (error: unknown) {
-      toast.error("Failed to fetch block details");
+      handleError(error, "Failed to fetch block details");
       router.push("/blocks");
     } finally {
       setLoading(false);
@@ -101,9 +102,9 @@ const ViewBlock = () => {
             />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="flex justify-center">
             {/* Basic Info */}
-            <Card className="dark:bg-card dark:border-gray-800 shadow-xl border border-gray-100 overflow-hidden">
+            <Card className="dark:bg-card dark:border-gray-800 shadow-xl border border-gray-100 overflow-hidden w-full max-w-2xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
                 <CardTitle className="text-xl font-bold text-gray-800 dark:text-gray-100">
                   Block Information
@@ -136,36 +137,6 @@ const ViewBlock = () => {
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Booths */}
-            <Card className="dark:bg-card dark:border-gray-800 shadow-xl border border-gray-100 overflow-hidden">
-              <CardHeader className="pb-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
-                <CardTitle className="text-xl font-bold text-gray-800 dark:text-gray-100">
-                  Associated Booths
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                {block.booths && block.booths.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {block.booths.map((booth) => (
-                      <div
-                        key={booth._id}
-                        className="bg-gray-50/50 dark:bg-gray-800/20 p-4 rounded-xl border border-gray-100 dark:border-gray-800/50 flex items-center justify-between group hover:border-[#368F8B] dark:hover:border-[#368F8B] transition-all"
-                      >
-                        <span className="font-bold text-gray-700 dark:text-gray-200">
-                          {booth.name} {booth.code ? `(${booth.code})` : ""}
-                        </span>
-                        <div className="w-2 h-2 rounded-full bg-[#368F8B] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-gray-400 dark:text-gray-500 bg-gray-50/50 dark:bg-gray-800/10 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 italic">
-                    No booths found for this block
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>

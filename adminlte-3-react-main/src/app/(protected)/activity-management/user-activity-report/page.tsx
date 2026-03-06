@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 const UserActivityReport = dynamic(
   () => import("@app/views/activityManagement/userActivityReport"),
@@ -19,7 +20,7 @@ const UserActivityReport = dynamic(
 
 export default function UserActivityReportPage() {
   return (
-    <RouteGuard requiredPermission="view_user_activity_report">
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_USER_ACTIVITY_REPORT]}>
       <UserActivityReport />
     </RouteGuard>
   );

@@ -8,12 +8,12 @@ import {
 import { useDebounce } from "@app/hooks/useDebounce";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
-import { getErrorMessage } from "@app/utils/errorHandler";
+import { getErrorMessage, handleError } from "@app/utils/errorHandler";
 
-interface ListManagementOptions<TData, TResponse> {
+interface ListManagementOptions<TData, TResponse, TVisibleColumns> {
   queryKey: string;
   endpoint: string;
-  initialVisibleColumns: Record<string, boolean>;
+  initialVisibleColumns: TVisibleColumns;
   exportConfig?: {
     filename: string;
     sheetName: string;
@@ -32,13 +32,14 @@ export const useListManagement = <
     count?: number;
     filteredCount?: number;
   },
+  TVisibleColumns = Record<string, boolean>,
 >({
   queryKey,
   endpoint,
   initialVisibleColumns,
   exportConfig,
   importConfig,
-}: ListManagementOptions<TData, TResponse>) => {
+}: ListManagementOptions<TData, TResponse, TVisibleColumns>) => {
   const queryClient = useQueryClient();
 
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
@@ -47,10 +48,10 @@ export const useListManagement = <
 
   const [visibleColumns, setVisibleColumns] = useState(initialVisibleColumns);
 
-  const toggleColumn = (key: string) => {
+  const toggleColumn = (key: keyof TVisibleColumns) => {
     setVisibleColumns((prev) => ({
       ...prev,
-      [key]: !prev[key as keyof typeof prev],
+      [key]: !prev[key],
     }));
   };
 
@@ -66,14 +67,19 @@ export const useListManagement = <
       debouncedSearchTerm,
     ],
     queryFn: async () => {
-      const res = await axios.get(endpoint, {
-        params: {
-          page: pagination.page,
-          limit: pagination.limit,
-          search: debouncedSearchTerm,
-        },
-      });
-      return res.data;
+      try {
+        const res = await axios.get(endpoint, {
+          params: {
+            page: pagination.page,
+            limit: pagination.limit,
+            search: debouncedSearchTerm,
+          },
+        });
+        return res.data;
+      } catch (error: unknown) {
+        handleError(error, `Failed to fetch data from ${endpoint}`);
+        throw error;
+      }
     },
     placeholderData: keepPreviousData,
   });
@@ -86,9 +92,8 @@ export const useListManagement = <
       toast.success("Deleted successfully");
       queryClient.invalidateQueries({ queryKey: [queryKey] });
     },
-    onError: (error: any) => {
-      const errorMessage = getErrorMessage(error, "Failed to delete");
-      toast.error(errorMessage);
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete");
     },
   });
 
@@ -117,8 +122,8 @@ export const useListManagement = <
 
       await navigator.clipboard.writeText(text);
       toast.success("Copied to clipboard");
-    } catch (error) {
-      toast.error("Failed to copy data");
+    } catch (error: unknown) {
+      handleError(error, "Failed to copy data");
     }
   };
 
@@ -157,9 +162,8 @@ export const useListManagement = <
       XLSX.utils.book_append_sheet(wb, ws, exportConfig.sheetName);
       XLSX.writeFile(wb, `${exportConfig.filename}_${Date.now()}.xlsx`);
       toast.success("Excel exported successfully");
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to load Excel library");
+    } catch (error: unknown) {
+      handleError(error, "Failed to load Excel library");
     }
   };
 
@@ -215,9 +219,8 @@ export const useListManagement = <
 
       doc.save(`${exportConfig.filename}_${Date.now()}.pdf`);
       toast.success("PDF exported successfully");
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to generate PDF");
+    } catch (error: unknown) {
+      handleError(error, "Failed to generate PDF");
     }
   };
 
@@ -293,12 +296,9 @@ export const useListManagement = <
 
             await axios.post(endpoint, payload);
             successCount++;
-          } catch (error: any) {
+          } catch (error: unknown) {
             failureCount++;
-            console.error(`Import: Failed to add row ${index + 1}`, {
-              row,
-              error: getErrorMessage(error, "Import failed"),
-            });
+            handleError(error, `Import: Failed to add row ${index + 1}`);
           }
         }
 
@@ -306,8 +306,8 @@ export const useListManagement = <
           `Import complete: ${successCount} added, ${failureCount} failed`,
         );
         queryClient.invalidateQueries({ queryKey: [queryKey] });
-      } catch (error) {
-        toast.error("Failed to import file");
+      } catch (error: unknown) {
+        handleError(error, "Failed to import file");
       } finally {
         if (event.target) event.target.value = "";
       }
@@ -425,8 +425,8 @@ export const useListManagement = <
 
       printWindow.document.write(html);
       printWindow.document.close();
-    } catch (error) {
-      toast.error("Failed to prepare print document");
+    } catch (error: unknown) {
+      handleError(error, "Failed to prepare print document");
     }
   };
 

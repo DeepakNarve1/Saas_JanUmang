@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import { Edit, ArrowLeft, ShieldCheck, Hash, MapPin } from "lucide-react";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { ViewPageActions } from "@app/components/ViewPageActions";
+import { IDivision } from "@app/types/division";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const ViewDivision = () => {
   const router = useRouter();
@@ -17,7 +20,7 @@ const ViewDivision = () => {
   const id = params.id as string;
   const { hasPermission } = usePermissions();
 
-  const [divisionData, setDivisionData] = useState<any>(null);
+  const [divisionData, setDivisionData] = useState<IDivision | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,8 +29,7 @@ const ViewDivision = () => {
         const res = await axios.get(`/divisions/${id}`);
         setDivisionData(res.data.data);
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(err.response?.data?.message || "Failed to load division");
+        handleError(error, "Failed to load division");
         router.push("/divisions");
       } finally {
         setLoading(false);
@@ -53,10 +55,12 @@ const ViewDivision = () => {
     if (!divisionData) return {};
     return {
       "Division Name": divisionData.name,
-      State: divisionData.state?.name || "",
+      State: (divisionData.state as { name?: string })?.name || "",
       "System ID": divisionData._id,
       Districts:
-        divisionData.districts?.map((d: any) => d.name).join(", ") || "",
+        divisionData.districts
+          ?.map((d: { name: string }) => d.name)
+          .join(", ") || "",
     };
   };
 
@@ -88,7 +92,7 @@ const ViewDivision = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_divisions") && (
+                {hasPermission(PERMISSIONS.EDIT_DIVISIONS) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20"
                     onClick={() => router.push(`/divisions/${id}/edit`)}
@@ -126,7 +130,8 @@ const ViewDivision = () => {
                       State
                     </label>
                     <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 mt-1">
-                      {divisionData?.state?.name || "N/A"}
+                      {(divisionData?.state as { name?: string })?.name ||
+                        "N/A"}
                     </p>
                   </div>
                 </div>
@@ -141,7 +146,7 @@ const ViewDivision = () => {
                       System ID
                     </label>
                     <p className="font-semibold text-gray-700 dark:text-gray-200 mt-1 text-sm">
-                      {divisionData.year}
+                      {divisionData?._id}
                     </p>
                   </div>
                 </div>
@@ -157,16 +162,18 @@ const ViewDivision = () => {
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
                   {divisionData?.districts &&
                   divisionData.districts.length > 0 ? (
-                    divisionData.districts.map((dist: any) => (
-                      <div
-                        key={dist._id}
-                        className="px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                      >
-                        <span className="text-gray-700 dark:text-gray-300 font-medium">
-                          {dist.name}
-                        </span>
-                      </div>
-                    ))
+                    divisionData.districts.map(
+                      (dist: { _id: string; name: string }) => (
+                        <div
+                          key={dist._id}
+                          className="px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                        >
+                          <span className="text-gray-700 dark:text-gray-300 font-medium">
+                            {dist.name}
+                          </span>
+                        </div>
+                      ),
+                    )
                   ) : (
                     <div className="px-6 py-4 text-gray-500 dark:text-gray-400 italic">
                       No districts found for this division.

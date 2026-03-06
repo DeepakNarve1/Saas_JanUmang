@@ -1,3 +1,4 @@
+const PERMISSIONS = require("../../../shared/permissions.json");
 /**
  * Module Registry - Central definition of all system modules
  * This defines which modules exist and their associated permissions
@@ -13,7 +14,7 @@ const MODULES = {
     description: "System overview and analytics",
     category: "core",
     alwaysEnabled: true,
-    permissions: ["view_dashboard"],
+    permissions: [PERMISSIONS.VIEW_DASHBOARD],
   },
 
   USERS: {
@@ -23,11 +24,11 @@ const MODULES = {
     category: "core",
     alwaysEnabled: true,
     permissions: [
-      "view_users",
-      "create_users",
-      "edit_users",
-      "delete_users",
-      "reset_password",
+      PERMISSIONS.VIEW_USERS,
+      PERMISSIONS.CREATE_USERS,
+      PERMISSIONS.EDIT_USERS,
+      PERMISSIONS.DELETE_USERS,
+      PERMISSIONS.RESET_PASSWORD,
     ],
   },
 
@@ -38,11 +39,11 @@ const MODULES = {
     category: "core",
     alwaysEnabled: true,
     permissions: [
-      "view_roles",
-      "create_roles",
-      "edit_roles",
-      "delete_roles",
-      "manage_roles",
+      PERMISSIONS.VIEW_ROLES,
+      PERMISSIONS.CREATE_ROLES,
+      PERMISSIONS.EDIT_ROLES,
+      PERMISSIONS.DELETE_ROLES,
+      PERMISSIONS.MANAGE_ROLES,
     ],
   },
 
@@ -52,7 +53,7 @@ const MODULES = {
     description: "View user distribution by role and location",
     category: "core",
     alwaysEnabled: true,
-    permissions: ["view_user_count"],
+    permissions: [PERMISSIONS.VIEW_USER_COUNT],
   },
 
   MEMBERS: {
@@ -61,11 +62,11 @@ const MODULES = {
     description: "Member/Constituent management",
     category: "people",
     permissions: [
-      "view_members",
-      "create_members",
-      "edit_members",
-      "delete_members",
-      "export_members",
+      PERMISSIONS.VIEW_MEMBERS,
+      PERMISSIONS.CREATE_MEMBERS,
+      PERMISSIONS.EDIT_MEMBERS,
+      PERMISSIONS.DELETE_MEMBERS,
+      PERMISSIONS.EXPORT_MEMBERS,
     ],
   },
 
@@ -75,11 +76,11 @@ const MODULES = {
     description: "Manage public problems and complaints",
     category: "operations",
     permissions: [
-      "view_mp_public_problems",
-      "create_mp_public_problems",
-      "edit_mp_public_problems",
-      "delete_mp_public_problems",
-      "export_mp_public_problems",
+      PERMISSIONS.VIEW_MP_PUBLIC_PROBLEMS,
+      PERMISSIONS.CREATE_MP_PUBLIC_PROBLEMS,
+      PERMISSIONS.EDIT_MP_PUBLIC_PROBLEMS,
+      PERMISSIONS.DELETE_MP_PUBLIC_PROBLEMS,
+      PERMISSIONS.EXPORT_MP_PUBLIC_PROBLEMS,
     ],
   },
 
@@ -89,11 +90,11 @@ const MODULES = {
     description: "Track and manage assembly issues",
     category: "operations",
     permissions: [
-      "view_assembly_issues",
-      "create_assembly_issues",
-      "edit_assembly_issues",
-      "delete_assembly_issues",
-      "export_assembly_issues",
+      PERMISSIONS.VIEW_ASSEMBLY_ISSUES,
+      PERMISSIONS.CREATE_ASSEMBLY_ISSUES,
+      PERMISSIONS.EDIT_ASSEMBLY_ISSUES,
+      PERMISSIONS.DELETE_ASSEMBLY_ISSUES,
+      PERMISSIONS.EXPORT_ASSEMBLY_ISSUES,
     ],
   },
 
@@ -102,7 +103,12 @@ const MODULES = {
     name: "Vidhasabha Samiti",
     description: "Vidhasabha Samiti management",
     category: "legislative",
-    permissions: ["view_vidhan_sabha_samiti"],
+    permissions: [
+      PERMISSIONS.VIEW_VIDHAN_SABHA_SAMITI,
+      PERMISSIONS.CREATE_VIDHAN_SABHA_SAMITI,
+      PERMISSIONS.EDIT_VIDHAN_SABHA_SAMITI,
+      PERMISSIONS.DELETE_VIDHAN_SABHA_SAMITI,
+    ],
   },
 
   GANESH_SAMITI: {
@@ -111,10 +117,10 @@ const MODULES = {
     description: "Ganesh Samiti management",
     category: "legislative",
     permissions: [
-      "view_ganesh_samiti",
-      "create_ganesh_samiti",
-      "edit_ganesh_samiti",
-      "delete_ganesh_samiti",
+      PERMISSIONS.VIEW_GANESH_SAMITI,
+      PERMISSIONS.CREATE_GANESH_SAMITI,
+      PERMISSIONS.EDIT_GANESH_SAMITI,
+      PERMISSIONS.DELETE_GANESH_SAMITI,
     ],
   },
 
@@ -124,10 +130,10 @@ const MODULES = {
     description: "Tenkar Samiti management",
     category: "legislative",
     permissions: [
-      "view_tenkar_samiti",
-      "create_tenkar_samiti",
-      "edit_tenkar_samiti",
-      "delete_tenkar_samiti",
+      PERMISSIONS.VIEW_TENKAR_SAMITI,
+      PERMISSIONS.CREATE_TENKAR_SAMITI,
+      PERMISSIONS.EDIT_TENKAR_SAMITI,
+      PERMISSIONS.DELETE_TENKAR_SAMITI,
     ],
   },
 
@@ -137,10 +143,10 @@ const MODULES = {
     description: "DP Samiti management",
     category: "legislative",
     permissions: [
-      "view_dp_samiti",
-      "create_dp_samiti",
-      "edit_dp_samiti",
-      "delete_dp_samiti",
+      PERMISSIONS.VIEW_DP_SAMITI,
+      PERMISSIONS.CREATE_DP_SAMITI,
+      PERMISSIONS.EDIT_DP_SAMITI,
+      PERMISSIONS.DELETE_DP_SAMITI,
     ],
   },
 
@@ -150,10 +156,10 @@ const MODULES = {
     description: "Mandir Samiti management",
     category: "legislative",
     permissions: [
-      "view_mandir_samiti",
-      "create_mandir_samiti",
-      "edit_mandir_samiti",
-      "delete_mandir_samiti",
+      PERMISSIONS.VIEW_MANDIR_SAMITI,
+      PERMISSIONS.CREATE_MANDIR_SAMITI,
+      PERMISSIONS.EDIT_MANDIR_SAMITI,
+      PERMISSIONS.DELETE_MANDIR_SAMITI,
     ],
   },
 
@@ -163,10 +169,10 @@ const MODULES = {
     description: "Bhagoria Samiti management",
     category: "legislative",
     permissions: [
-      "view_bhagoria_samiti",
-      "create_bhagoria_samiti",
-      "edit_bhagoria_samiti",
-      "delete_bhagoria_samiti",
+      PERMISSIONS.VIEW_BHAGORIA_SAMITI,
+      PERMISSIONS.CREATE_BHAGORIA_SAMITI,
+      PERMISSIONS.EDIT_BHAGORIA_SAMITI,
+      PERMISSIONS.DELETE_BHAGORIA_SAMITI,
     ],
   },
 
@@ -176,10 +182,10 @@ const MODULES = {
     description: "Nirman Samiti management",
     category: "legislative",
     permissions: [
-      "view_nirman_samiti",
-      "create_nirman_samiti",
-      "edit_nirman_samiti",
-      "delete_nirman_samiti",
+      PERMISSIONS.VIEW_NIRMAN_SAMITI,
+      PERMISSIONS.CREATE_NIRMAN_SAMITI,
+      PERMISSIONS.EDIT_NIRMAN_SAMITI,
+      PERMISSIONS.DELETE_NIRMAN_SAMITI,
     ],
   },
 
@@ -189,10 +195,10 @@ const MODULES = {
     description: "Booth Samiti management",
     category: "legislative",
     permissions: [
-      "view_booth_samiti",
-      "create_booth_samiti",
-      "edit_booth_samiti",
-      "delete_booth_samiti",
+      PERMISSIONS.VIEW_BOOTH_SAMITI,
+      PERMISSIONS.CREATE_BOOTH_SAMITI,
+      PERMISSIONS.EDIT_BOOTH_SAMITI,
+      PERMISSIONS.DELETE_BOOTH_SAMITI,
     ],
   },
 
@@ -202,10 +208,10 @@ const MODULES = {
     description: "Block Samiti management",
     category: "legislative",
     permissions: [
-      "view_block_samiti",
-      "create_block_samiti",
-      "edit_block_samiti",
-      "delete_block_samiti",
+      PERMISSIONS.VIEW_BLOCK_SAMITI,
+      PERMISSIONS.CREATE_BLOCK_SAMITI,
+      PERMISSIONS.EDIT_BLOCK_SAMITI,
+      PERMISSIONS.DELETE_BLOCK_SAMITI,
     ],
   },
 
@@ -215,11 +221,11 @@ const MODULES = {
     description: "Project management and tracking",
     category: "operations",
     permissions: [
-      "view_projects",
-      "create_projects",
-      "edit_projects",
-      "delete_projects",
-      "export_projects",
+      PERMISSIONS.VIEW_PROJECTS,
+      PERMISSIONS.CREATE_PROJECTS,
+      PERMISSIONS.EDIT_PROJECTS,
+      PERMISSIONS.DELETE_PROJECTS,
+      PERMISSIONS.EXPORT_PROJECTS,
     ],
   },
 
@@ -229,10 +235,10 @@ const MODULES = {
     description: "Visitor tracking and management",
     category: "activities",
     permissions: [
-      "view_visitors",
-      "create_visitors",
-      "edit_visitors",
-      "delete_visitors",
+      PERMISSIONS.VIEW_VISITORS,
+      PERMISSIONS.CREATE_VISITORS,
+      PERMISSIONS.EDIT_VISITORS,
+      PERMISSIONS.DELETE_VISITORS,
     ],
   },
 
@@ -242,11 +248,11 @@ const MODULES = {
     description: "Event management and tracking",
     category: "activities",
     permissions: [
-      "view_events",
-      "create_events",
-      "edit_events",
-      "delete_events",
-      "view_events_calendar",
+      PERMISSIONS.VIEW_EVENTS,
+      PERMISSIONS.CREATE_EVENTS,
+      PERMISSIONS.EDIT_EVENTS,
+      PERMISSIONS.DELETE_EVENTS,
+      PERMISSIONS.VIEW_EVENTS_CALENDAR,
     ],
   },
 
@@ -256,11 +262,11 @@ const MODULES = {
     description: "Voter list management",
     category: "people",
     permissions: [
-      "view_voters",
-      "create_voters",
-      "edit_voters",
-      "delete_voters",
-      "export_voters",
+      PERMISSIONS.VIEW_VOTERS,
+      PERMISSIONS.CREATE_VOTERS,
+      PERMISSIONS.EDIT_VOTERS,
+      PERMISSIONS.DELETE_VOTERS,
+      PERMISSIONS.EXPORT_VOTERS,
     ],
   },
 
@@ -271,11 +277,12 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_samiti",
-      "create_samiti",
-      "edit_samiti",
-      "delete_samiti",
-      "manage_samiti",
+      PERMISSIONS.VIEW_SAMITI,
+      PERMISSIONS.CREATE_SAMITI,
+      PERMISSIONS.EDIT_SAMITI,
+      PERMISSIONS.DELETE_SAMITI,
+      PERMISSIONS.MANAGE_SAMITI,
+      PERMISSIONS.EXPORT_SAMITI,
     ],
   },
 
@@ -286,11 +293,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_districts",
-      "create_districts",
-      "edit_districts",
-      "delete_districts",
-      "manage_districts",
+      PERMISSIONS.VIEW_DISTRICTS,
+      PERMISSIONS.CREATE_DISTRICTS,
+      PERMISSIONS.EDIT_DISTRICTS,
+      PERMISSIONS.DELETE_DISTRICTS,
+      PERMISSIONS.MANAGE_DISTRICTS,
     ],
   },
 
@@ -301,11 +308,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_assemblies",
-      "create_assemblies",
-      "edit_assemblies",
-      "delete_assemblies",
-      "manage_assemblies",
+      PERMISSIONS.VIEW_ASSEMBLIES,
+      PERMISSIONS.CREATE_ASSEMBLIES,
+      PERMISSIONS.EDIT_ASSEMBLIES,
+      PERMISSIONS.DELETE_ASSEMBLIES,
+      PERMISSIONS.MANAGE_ASSEMBLIES,
     ],
   },
 
@@ -316,11 +323,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_blocks",
-      "create_blocks",
-      "edit_blocks",
-      "delete_blocks",
-      "manage_blocks",
+      PERMISSIONS.VIEW_BLOCKS,
+      PERMISSIONS.CREATE_BLOCKS,
+      PERMISSIONS.EDIT_BLOCKS,
+      PERMISSIONS.DELETE_BLOCKS,
+      PERMISSIONS.MANAGE_BLOCKS,
     ],
   },
 
@@ -331,11 +338,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_booths",
-      "create_booths",
-      "edit_booths",
-      "delete_booths",
-      "manage_booths",
+      PERMISSIONS.VIEW_BOOTHS,
+      PERMISSIONS.CREATE_BOOTHS,
+      PERMISSIONS.EDIT_BOOTHS,
+      PERMISSIONS.DELETE_BOOTHS,
+      PERMISSIONS.MANAGE_BOOTHS,
     ],
   },
 
@@ -346,11 +353,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_panchayats",
-      "create_panchayats",
-      "edit_panchayats",
-      "delete_panchayats",
-      "manage_panchayats",
+      PERMISSIONS.VIEW_PANCHAYATS,
+      PERMISSIONS.CREATE_PANCHAYATS,
+      PERMISSIONS.EDIT_PANCHAYATS,
+      PERMISSIONS.DELETE_PANCHAYATS,
+      PERMISSIONS.MANAGE_PANCHAYATS,
     ],
   },
 
@@ -361,11 +368,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_villages",
-      "create_villages",
-      "edit_villages",
-      "delete_villages",
-      "manage_villages",
+      PERMISSIONS.VIEW_VILLAGES,
+      PERMISSIONS.CREATE_VILLAGES,
+      PERMISSIONS.EDIT_VILLAGES,
+      PERMISSIONS.DELETE_VILLAGES,
+      PERMISSIONS.MANAGE_VILLAGES,
     ],
   },
 
@@ -376,11 +383,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_parties",
-      "create_parties",
-      "edit_parties",
-      "delete_parties",
-      "manage_parties",
+      PERMISSIONS.VIEW_PARTIES,
+      PERMISSIONS.CREATE_PARTIES,
+      PERMISSIONS.EDIT_PARTIES,
+      PERMISSIONS.DELETE_PARTIES,
+      PERMISSIONS.MANAGE_PARTIES,
     ],
   },
 
@@ -390,11 +397,11 @@ const MODULES = {
     description: "Department management",
     category: "master_data",
     permissions: [
-      "view_departments",
-      "create_departments",
-      "edit_departments",
-      "delete_departments",
-      "manage_departments",
+      PERMISSIONS.VIEW_DEPARTMENTS,
+      PERMISSIONS.CREATE_DEPARTMENTS,
+      PERMISSIONS.EDIT_DEPARTMENTS,
+      PERMISSIONS.DELETE_DEPARTMENTS,
+      PERMISSIONS.MANAGE_DEPARTMENTS,
     ],
   },
 
@@ -405,11 +412,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_work_types",
-      "create_work_types",
-      "edit_work_types",
-      "delete_work_types",
-      "manage_work_types",
+      PERMISSIONS.VIEW_WORK_TYPES,
+      PERMISSIONS.CREATE_WORK_TYPES,
+      PERMISSIONS.EDIT_WORK_TYPES,
+      PERMISSIONS.DELETE_WORK_TYPES,
+      PERMISSIONS.MANAGE_WORK_TYPES,
     ],
   },
 
@@ -420,11 +427,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_sub_work_types",
-      "create_sub_work_types",
-      "edit_sub_work_types",
-      "delete_sub_work_types",
-      "manage_sub_work_types",
+      PERMISSIONS.VIEW_SUB_WORK_TYPES,
+      PERMISSIONS.CREATE_SUB_WORK_TYPES,
+      PERMISSIONS.EDIT_SUB_WORK_TYPES,
+      PERMISSIONS.DELETE_SUB_WORK_TYPES,
+      PERMISSIONS.MANAGE_SUB_WORK_TYPES,
     ],
   },
 
@@ -435,11 +442,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_states",
-      "create_states",
-      "edit_states",
-      "delete_states",
-      "manage_states",
+      PERMISSIONS.VIEW_STATES,
+      PERMISSIONS.CREATE_STATES,
+      PERMISSIONS.EDIT_STATES,
+      PERMISSIONS.DELETE_STATES,
+      PERMISSIONS.MANAGE_STATES,
     ],
   },
 
@@ -450,11 +457,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_divisions",
-      "create_divisions",
-      "edit_divisions",
-      "delete_divisions",
-      "manage_divisions",
+      PERMISSIONS.VIEW_DIVISIONS,
+      PERMISSIONS.CREATE_DIVISIONS,
+      PERMISSIONS.EDIT_DIVISIONS,
+      PERMISSIONS.DELETE_DIVISIONS,
+      PERMISSIONS.MANAGE_DIVISIONS,
     ],
   },
 
@@ -465,11 +472,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_parliaments",
-      "create_parliaments",
-      "edit_parliaments",
-      "delete_parliaments",
-      "manage_parliaments",
+      PERMISSIONS.VIEW_PARLIAMENTS,
+      PERMISSIONS.CREATE_PARLIAMENTS,
+      PERMISSIONS.EDIT_PARLIAMENTS,
+      PERMISSIONS.DELETE_PARLIAMENTS,
+      PERMISSIONS.MANAGE_PARLIAMENTS,
     ],
   },
 
@@ -480,11 +487,11 @@ const MODULES = {
     category: "master_data",
     alwaysEnabled: true,
     permissions: [
-      "view_assemblies",
-      "create_assemblies",
-      "edit_assemblies",
-      "delete_assemblies",
-      "manage_assemblies",
+      PERMISSIONS.VIEW_ASSEMBLIES,
+      PERMISSIONS.CREATE_ASSEMBLIES,
+      PERMISSIONS.EDIT_ASSEMBLIES,
+      PERMISSIONS.DELETE_ASSEMBLIES,
+      PERMISSIONS.MANAGE_ASSEMBLIES,
     ],
   },
 
@@ -494,10 +501,10 @@ const MODULES = {
     description: "System phone directory",
     category: "people",
     permissions: [
-      "view_phone_directory",
-      "create_phone_directory",
-      "edit_phone_directory",
-      "delete_phone_directory",
+      PERMISSIONS.VIEW_PHONE_DIRECTORY,
+      PERMISSIONS.CREATE_PHONE_DIRECTORY,
+      PERMISSIONS.EDIT_PHONE_DIRECTORY,
+      PERMISSIONS.DELETE_PHONE_DIRECTORY,
     ],
   },
 
@@ -507,10 +514,10 @@ const MODULES = {
     description: "Track inward correspondence",
     category: "documents",
     permissions: [
-      "view_inward_register",
-      "create_inward_register",
-      "edit_inward_register",
-      "delete_inward_register",
+      PERMISSIONS.VIEW_INWARD_REGISTER,
+      PERMISSIONS.CREATE_INWARD_REGISTER,
+      PERMISSIONS.EDIT_INWARD_REGISTER,
+      PERMISSIONS.DELETE_INWARD_REGISTER,
     ],
   },
 
@@ -520,10 +527,10 @@ const MODULES = {
     description: "Track dispatch correspondence",
     category: "documents",
     permissions: [
-      "view_dispatch_register",
-      "create_dispatch_register",
-      "edit_dispatch_register",
-      "delete_dispatch_register",
+      PERMISSIONS.VIEW_DISPATCH_REGISTER,
+      PERMISSIONS.CREATE_DISPATCH_REGISTER,
+      PERMISSIONS.EDIT_DISPATCH_REGISTER,
+      PERMISSIONS.DELETE_DISPATCH_REGISTER,
     ],
   },
 
@@ -533,10 +540,10 @@ const MODULES = {
     description: "Track outgoing documents and correspondence",
     category: "documents",
     permissions: [
-      "view_in_docs",
-      "create_in_docs",
-      "edit_in_docs",
-      "delete_in_docs",
+      PERMISSIONS.VIEW_IN_DOCS,
+      PERMISSIONS.CREATE_IN_DOCS,
+      PERMISSIONS.EDIT_IN_DOCS,
+      PERMISSIONS.DELETE_IN_DOCS,
     ],
   },
 
@@ -546,10 +553,10 @@ const MODULES = {
     description: "Track and manage calls",
     category: "activities",
     permissions: [
-      "view_call_management",
-      "create_call_management",
-      "edit_call_management",
-      "delete_call_management",
+      PERMISSIONS.VIEW_CALL_MANAGEMENT,
+      PERMISSIONS.CREATE_CALL_MANAGEMENT,
+      PERMISSIONS.EDIT_CALL_MANAGEMENT,
+      PERMISSIONS.DELETE_CALL_MANAGEMENT,
     ],
   },
 
@@ -559,7 +566,10 @@ const MODULES = {
     description: "Track system activity and user reports",
     category: "core",
     alwaysEnabled: true,
-    permissions: ["view_activity_logs", "view_user_activity_report"],
+    permissions: [
+      PERMISSIONS.VIEW_ACTIVITY_LOGS,
+      PERMISSIONS.VIEW_USER_ACTIVITY_REPORT,
+    ],
   },
 };
 

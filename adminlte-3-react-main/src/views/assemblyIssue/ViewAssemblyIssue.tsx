@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 
 import { Button } from "@app/components/ui/button";
 import { Badge } from "@app/components/ui/badge";
 import { ContentHeader } from "@app/components";
 import { RouteGuard } from "@app/components/RouteGuard";
+import { PERMISSIONS } from "@app/config/permissions";
 
 interface ViewAssemblyIssueProps {
   issueType?: string;
@@ -22,7 +24,7 @@ const ViewAssemblyIssue = ({
   basePath = "/assembly-issue",
 }: ViewAssemblyIssueProps) => {
   return (
-    <RouteGuard requiredPermissions={["view_assembly_issues"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_ASSEMBLY_ISSUES]}>
       <ViewAssemblyIssueContent
         issueType={issueType}
         title={title}
@@ -42,6 +44,8 @@ import { ViewPageActions } from "@app/components/ViewPageActions";
 import { ArrowLeft, Edit, FileImage } from "lucide-react";
 import { API_BASE_URL } from "@app/utils/api";
 
+import { IAssemblyIssue } from "@app/types/assemblyIssue";
+
 const ViewAssemblyIssueContent = ({
   issueType,
   title,
@@ -55,9 +59,8 @@ const ViewAssemblyIssueContent = ({
   const params = useParams();
   const { id } = params;
 
-  const [issue, setIssue] = useState<any>(null);
+  const [issue, setIssue] = useState<IAssemblyIssue | null>(null);
   const [loading, setLoading] = useState(true);
-  const [imageOpen, setImageOpen] = useState(false);
 
   useEffect(() => {
     const fetchIssue = async () => {
@@ -65,11 +68,7 @@ const ViewAssemblyIssueContent = ({
         const { data } = await axios.get(`/assembly-issues/${id}`);
         setIssue(data.data || null);
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(
-          err.response?.data?.message ||
-            "Failed to load assembly issue details",
-        );
+        handleError(error, "Failed to load assembly issue details");
         router.push(basePath);
       } finally {
         setLoading(false);
@@ -79,7 +78,7 @@ const ViewAssemblyIssueContent = ({
     if (id) {
       fetchIssue();
     }
-  }, [id, router]);
+  }, [id, router, basePath]);
 
   if (loading) {
     return (
@@ -96,14 +95,20 @@ const ViewAssemblyIssueContent = ({
     return <div className="p-8 text-center">Issue not found</div>;
   }
 
-  const DetailItem = ({ label, value }: { label: string; value: any }) => (
+  const DetailItem = ({
+    label,
+    value,
+  }: {
+    label: string;
+    value: React.ReactNode;
+  }) => (
     <div className="p-4 bg-gray-50/50 dark:bg-gray-800/20 rounded-lg border border-gray-100 dark:border-gray-800/50 transition-all hover:shadow-sm">
       <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">
         {label}
       </h3>
-      <p className="text-base font-semibold text-gray-800 dark:text-gray-100 wrap-break-words line-clamp-3">
+      <div className="text-base font-semibold text-gray-800 dark:text-gray-100 wrap-break-words line-clamp-3">
         {value || "-"}
-      </p>
+      </div>
     </div>
   );
 
@@ -335,27 +340,6 @@ const ViewAssemblyIssueContent = ({
           </div>
         </div>
       </section>
-
-      {/* Image Dialog */}
-      <Dialog open={imageOpen} onOpenChange={setImageOpen}>
-        <DialogContent className="max-w-4xl w-full p-0 bg-transparent border-0 shadow-none">
-          <div className="relative w-full h-full flex items-center justify-center">
-            <img
-              src={issue.file}
-              alt="Full Preview"
-              className="max-h-[90vh] w-auto rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <button
-              onClick={() => setImageOpen(false)}
-              className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 backdrop-blur-sm transition-colors"
-              type="button"
-            >
-              <span className="text-xl px-2">×</span>
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

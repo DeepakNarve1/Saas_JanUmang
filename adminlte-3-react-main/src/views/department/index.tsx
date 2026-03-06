@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { ContentHeader } from "@app/components";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 import { useQueryClient } from "@tanstack/react-query";
 import { useListManagement } from "@app/hooks/useListManagement";
 import { Pagination } from "@app/components/common/Pagination";
@@ -185,7 +186,7 @@ const DepartmentList = () => {
                   onChange={handleImport}
                   className="hidden"
                 />
-                {hasPermission("create_departments") && (
+                {hasPermission(PERMISSIONS.CREATE_DEPARTMENTS) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all"
                     onClick={() => router.push("/department/create")}
@@ -349,7 +350,9 @@ const DepartmentList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_departments") && (
+                                {hasPermission(
+                                  PERMISSIONS.VIEW_DEPARTMENTS,
+                                ) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -360,7 +363,9 @@ const DepartmentList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_departments") && (
+                                {hasPermission(
+                                  PERMISSIONS.EDIT_DEPARTMENTS,
+                                ) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -371,7 +376,9 @@ const DepartmentList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_departments") && (
+                                {hasPermission(
+                                  PERMISSIONS.DELETE_DEPARTMENTS,
+                                ) && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600 focus:bg-red-50"
                                     onClick={() =>

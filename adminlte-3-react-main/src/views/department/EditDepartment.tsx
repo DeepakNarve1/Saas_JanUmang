@@ -31,10 +31,7 @@ const EditDepartment = () => {
           });
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(
-          err.response?.data?.message || "Failed to load Department data",
-        );
+        handleError(error, "Failed to load Department data");
         router.push("/department");
       } finally {
         setLoading(false);
@@ -50,7 +47,7 @@ const EditDepartment = () => {
       await axios.put(`/departments/${id}`, values);
       toast.success("Department updated successfully");
       router.push("/department");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to update Department");
     } finally {
       setSaving(false);

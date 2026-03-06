@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "@app/utils/axios";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 
 export interface DashboardStats {
   totalUsers: number;
@@ -61,6 +62,7 @@ export interface MemberBlockSummary {
 
 export const useDashboardData = () => {
   const { hasPermission } = usePermissions();
+  const canViewDashboard = hasPermission(PERMISSIONS.VIEW_DASHBOARD);
 
   // --- Filter State ---
   const [dateFilter, setDateFilter] = useState({ start: "", end: "" });
@@ -70,18 +72,25 @@ export const useDashboardData = () => {
     end: "",
   });
 
-  // --- OPTIMIZED: Single API call for all statistics ---
+  // Shared query options
+  const baseQueryOptions = {
+    enabled: canViewDashboard,
+    staleTime: 60 * 1000, // 1 minute — fresh enough for a dashboard
+    refetchOnWindowFocus: true, // re-fetch when user switches tabs and comes back
+    refetchOnMount: true, // always fetch fresh data when component mounts
+  };
+
+  // --- Stats: total counts for all stat cards ---
   const { data: statsData, isLoading: statsLoading } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
       const res = await axios.get("/dashboard/stats");
       return res.data?.data || {};
     },
-    enabled: hasPermission("view_dashboard"),
-    staleTime: 30000, // Cache for 30 seconds
+    ...baseQueryOptions,
   });
 
-  // --- OPTIMIZED: Department summary with optional filters ---
+  // --- Department summary (re-fetches when block filter changes) ---
   const { data: departmentData, isLoading: departmentLoading } = useQuery({
     queryKey: ["dashboard-department-summary", deptFilter.block],
     queryFn: async () => {
@@ -90,33 +99,30 @@ export const useDashboardData = () => {
       const res = await axios.get(`/dashboard/department-summary?${params}`);
       return res.data?.data || [];
     },
-    enabled: hasPermission("view_dashboard"),
-    staleTime: 30000,
+    ...baseQueryOptions,
   });
 
-  // --- OPTIMIZED: Block summary ---
+  // --- Block summary ---
   const { data: blockData, isLoading: blockLoading } = useQuery({
     queryKey: ["dashboard-block-summary"],
     queryFn: async () => {
       const res = await axios.get("/dashboard/block-summary");
       return res.data?.data || [];
     },
-    enabled: hasPermission("view_dashboard"),
-    staleTime: 30000,
+    ...baseQueryOptions,
   });
 
-  // --- OPTIMIZED: Member block summary ---
+  // --- Member block summary ---
   const { data: memberBlockData, isLoading: memberBlockLoading } = useQuery({
     queryKey: ["dashboard-member-block-summary"],
     queryFn: async () => {
       const res = await axios.get("/dashboard/member-block-summary");
       return res.data?.data || [];
     },
-    enabled: hasPermission("view_dashboard"), // Could also check module access
-    staleTime: 30000,
+    ...baseQueryOptions,
   });
 
-  // --- OPTIMIZED: Chart data with date filters ---
+  // --- Chart data (re-fetches when date filter changes) ---
   const { data: chartData, isLoading: chartLoading } = useQuery({
     queryKey: ["dashboard-charts", dateFilter.start, dateFilter.end],
     queryFn: async () => {
@@ -126,28 +132,29 @@ export const useDashboardData = () => {
       const res = await axios.get(`/dashboard/charts?${params}`);
       return res.data?.data || {};
     },
-    enabled: hasPermission("view_dashboard"),
-    staleTime: 30000,
+    ...baseQueryOptions,
   });
 
-  // --- Fetch blocks for dropdown (lightweight) ---
+  // --- Blocks for dropdown (always enabled for authenticated users) ---
   const { data: blocksData = [] } = useQuery({
     queryKey: ["dashboard-blocks"],
     queryFn: async () => {
-      const res = await axios.get("/blocks?limit=100");
+      const res = await axios.get("/blocks?limit=200");
       return res.data?.data || [];
     },
-    enabled: hasPermission("view_blocks"),
-    staleTime: 60000, // Cache for 1 minute
+    enabled: true, // Don't gate on a specific permission — any authenticated user needs blocks
+    staleTime: 5 * 60 * 1000, // 5 minutes — block list changes rarely
+    refetchOnWindowFocus: false,
   });
 
-  // --- Loading states ---
+  // Granular loading states
+  const loadingStats = statsLoading;
   const loadingCharts =
-    statsLoading ||
+    chartLoading ||
     departmentLoading ||
     blockLoading ||
     memberBlockLoading ||
-    chartLoading;
+    statsLoading;
 
   // --- Stats object ---
   const stats: DashboardStats = useMemo(
@@ -176,9 +183,9 @@ export const useDashboardData = () => {
     [statsData],
   );
 
-  // --- Card stats for problem cards ---
-  const cardStats = useMemo(() => {
-    return {
+  // --- Card stats for problem stat cards ---
+  const cardStats = useMemo(
+    () => ({
       public: {
         total: stats.totalPublicProblems,
         complete: stats.resolvedProblems,
@@ -186,33 +193,31 @@ export const useDashboardData = () => {
         inProgress: stats.inProgressProblems,
       },
       mp: {
-        total: 0, // MP problems need separate endpoint if needed
+        total: 0,
         complete: 0,
         incomplete: 0,
         inProgress: 0,
       },
-    };
-  }, [stats]);
+    }),
+    [stats],
+  );
 
-  // --- Department summary ---
+  // --- Derived data ---
   const departmentSummary: DepartmentSummary[] = useMemo(
     () => departmentData || [],
     [departmentData],
   );
 
-  // --- Block summary ---
   const blockSummary: BlockSummary[] = useMemo(
     () => blockData || [],
     [blockData],
   );
 
-  // --- Member Block Summary ---
   const memberBlockSummary: MemberBlockSummary[] = useMemo(
     () => memberBlockData || [],
     [memberBlockData],
   );
 
-  // --- Chart data ---
   const problemsByDepartment = useMemo(
     () => chartData?.problemsByDepartment || [],
     [chartData],
@@ -223,7 +228,7 @@ export const useDashboardData = () => {
     [chartData],
   );
 
-  // --- Legacy compatibility: Empty arrays for unused data ---
+  // rawData — only blocks list is genuinely fetched; rest are empty placeholders
   const rawData = useMemo(
     () => ({
       publicProblems: [],
@@ -231,7 +236,7 @@ export const useDashboardData = () => {
       assemblyIssues: [],
       events: [],
       departments: [],
-      blocks: blocksData, // ✅ Include blocks for dropdown
+      blocks: blocksData,
       visitors: [],
       members: [],
       inDocs: [],
@@ -251,12 +256,13 @@ export const useDashboardData = () => {
     cardStats,
     departmentSummary,
     blockSummary,
-    memberBlockSummary, // ✅ Exposed here
+    memberBlockSummary,
     problemsByDepartment,
     problemsByStatus,
 
-    // Loading states
-    loadingCharts,
+    // Loading states (granular)
+    loadingStats, // for stat cards only
+    loadingCharts, // for charts + summary tables
 
     // Filters
     dateFilter,
@@ -264,7 +270,7 @@ export const useDashboardData = () => {
     deptFilter,
     setDeptFilter,
 
-    // Legacy compatibility (empty for now)
+    // Raw / legacy compatibility
     rawData,
     filteredProblems: [],
     filteredProjects: [],

@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { useDebounce } from "@app/hooks/useDebounce";
 import {
@@ -54,7 +55,15 @@ import {
 } from "lucide-react";
 import { ContentHeader } from "@app/components";
 import { Pagination } from "@app/components/common/Pagination";
-import { IPanchayatResponse } from "@app/types/panchayat";
+import { IPanchayat, IPanchayatResponse } from "@app/types/panchayat";
+import { PERMISSIONS } from "@app/config/permissions";
+interface IPanchayatColumns {
+  srNo: boolean;
+  name: boolean;
+  block: boolean;
+  booth: boolean;
+  action: boolean;
+}
 
 const Panchayat = () => {
   const { hasPermission } = usePermissions();
@@ -68,7 +77,7 @@ const Panchayat = () => {
     limit: 10,
   });
 
-  const [visibleColumns, setVisibleColumns] = useState({
+  const [visibleColumns, setVisibleColumns] = useState<IPanchayatColumns>({
     srNo: true,
     name: true,
     block: true,
@@ -76,7 +85,7 @@ const Panchayat = () => {
     action: true,
   });
 
-  const toggleColumn = (key: keyof typeof visibleColumns) => {
+  const toggleColumn = (key: keyof IPanchayatColumns) => {
     setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -130,10 +139,8 @@ const Panchayat = () => {
       toast.success("Panchayat deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["panchayat"] });
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to delete panchayat",
-      );
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete panchayat");
     },
   });
 
@@ -154,7 +161,7 @@ const Panchayat = () => {
         "CreatedAt",
         "Actions",
       ];
-      const rows = data.map((item: any, index: number) => [
+      const rows = data.map((item: IPanchayat, index: number) => [
         index + 1,
         item.name,
         typeof item.block === "object" ? item.block?.name : item.block || "-",
@@ -172,8 +179,8 @@ const Panchayat = () => {
       );
       await navigator.clipboard.writeText(text);
       toast.success("Copied to clipboard");
-    } catch (error) {
-      toast.error("Failed to copy data");
+    } catch (error: unknown) {
+      handleError(error, "Failed to copy data");
     }
   };
 
@@ -181,7 +188,7 @@ const Panchayat = () => {
     if (data.length === 0) return toast.warning("No data to export");
     try {
       const XLSX = await import("xlsx");
-      const exportData = data.map((item: any, index: number) => ({
+      const exportData = data.map((item: IPanchayat, index: number) => ({
         ID: index + 1,
         "Panchayat Name": item.name,
         Block:
@@ -201,8 +208,8 @@ const Panchayat = () => {
       XLSX.utils.book_append_sheet(wb, ws, "Panchayats");
       XLSX.writeFile(wb, `panchayats_${Date.now()}.xlsx`);
       toast.success("Excel exported successfully");
-    } catch (error) {
-      toast.error("Failed to export Excel");
+    } catch (error: unknown) {
+      handleError(error, "Failed to export Excel");
     }
   };
 
@@ -215,7 +222,7 @@ const Panchayat = () => {
       const headers = [
         ["ID", "Panchayat Name", "Block", "Booth", "CreatedAt", "Actions"],
       ];
-      const body = data.map((item: any, index: number) => [
+      const body = data.map((item: IPanchayat, index: number) => [
         index + 1,
         item.name,
         typeof item.block === "object" ? item.block?.name : item.block || "-",
@@ -237,8 +244,8 @@ const Panchayat = () => {
       });
       doc.save(`panchayats_${Date.now()}.pdf`);
       toast.success("PDF exported successfully");
-    } catch (error) {
-      toast.error("Failed to export PDF");
+    } catch (error: unknown) {
+      handleError(error, "Failed to export PDF");
     }
   };
 
@@ -263,7 +270,7 @@ const Panchayat = () => {
         let successCount = 0;
         let failureCount = 0;
 
-        for (const row of jsonData as any[]) {
+        for (const row of jsonData as Record<string, string | number>[]) {
           try {
             const payload = {
               name: row["Panchayat Name"] || row["name"] || "",
@@ -281,8 +288,8 @@ const Panchayat = () => {
           `Import complete: ${successCount} added, ${failureCount} failed`,
         );
         queryClient.invalidateQueries({ queryKey: ["panchayat"] });
-      } catch (error) {
-        toast.error("Failed to import file");
+      } catch (error: unknown) {
+        handleError(error, "Failed to import file");
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
@@ -367,7 +374,7 @@ const Panchayat = () => {
                       onChange={handleImport}
                       className="hidden"
                     />
-                    {hasPermission("create_panchayats") && (
+                    {hasPermission(PERMISSIONS.CREATE_PANCHAYATS) && (
                       <Button
                         size="sm"
                         onClick={() => router.push("/panchayat/create")}
@@ -395,7 +402,7 @@ const Panchayat = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Blocks</SelectItem>
-                    {blocks.map((b: any) => (
+                    {blocks.map((b: { _id: string; name: string }) => (
                       <SelectItem key={b._id} value={b.name}>
                         {b.name}
                       </SelectItem>
@@ -446,15 +453,13 @@ const Panchayat = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
-                  {Object.keys(visibleColumns).map((key) => (
+                  {(
+                    Object.keys(visibleColumns) as (keyof IPanchayatColumns)[]
+                  ).map((key) => (
                     <DropdownMenuCheckboxItem
                       key={key}
-                      checked={
-                        visibleColumns[key as keyof typeof visibleColumns]
-                      }
-                      onCheckedChange={() =>
-                        toggleColumn(key as keyof typeof visibleColumns)
-                      }
+                      checked={visibleColumns[key]}
+                      onCheckedChange={() => toggleColumn(key)}
                     >
                       {key
                         .replace(/([A-Z])/g, " $1")
@@ -573,7 +578,7 @@ const Panchayat = () => {
                           <TableCell>
                             <span className="text-gray-700 dark:text-gray-300">
                               {typeof panchayat.block === "object"
-                                ? (panchayat.block as any)?.name
+                                ? (panchayat.block as { name?: string })?.name
                                 : panchayat.block || "-"}
                             </span>
                           </TableCell>
@@ -582,7 +587,7 @@ const Panchayat = () => {
                           <TableCell>
                             <span className="text-gray-700 dark:text-gray-300">
                               {typeof panchayat.booth === "object"
-                                ? (panchayat.booth as any)?.name
+                                ? (panchayat.booth as { name?: string })?.name
                                 : panchayat.booth || "-"}
                             </span>
                           </TableCell>
@@ -600,7 +605,7 @@ const Panchayat = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {hasPermission("view_panchayats") && (
+                                {hasPermission(PERMISSIONS.VIEW_PANCHAYATS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/panchayat/${panchayat._id}`)
@@ -609,7 +614,7 @@ const Panchayat = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_panchayats") && (
+                                {hasPermission(PERMISSIONS.EDIT_PANCHAYATS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -620,7 +625,9 @@ const Panchayat = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_panchayats") && (
+                                {hasPermission(
+                                  PERMISSIONS.DELETE_PANCHAYATS,
+                                ) && (
                                   <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => handleDelete(panchayat._id)}

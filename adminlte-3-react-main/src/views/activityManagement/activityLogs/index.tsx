@@ -33,6 +33,7 @@ import { ContentHeader } from "@app/components";
 import { IActivityLogResponse, IActivityLog } from "@app/types/activityLog";
 import { IUserRow, IRole } from "@app/types/user";
 import { useDebounce } from "@app/hooks/useDebounce";
+import { handleError } from "@app/utils/errorHandler";
 
 const ActivityLogs = () => {
   const router = useRouter();
@@ -116,8 +117,13 @@ const ActivityLogs = () => {
   const { data: usersData } = useQuery<IUserRow[]>({
     queryKey: ["users-dropdown"],
     queryFn: async () => {
-      const usersRes = await axios.get("/auth/users?limit=1000&showAll=true");
-      return usersRes.data.data;
+      try {
+        const usersRes = await axios.get("/auth/users?limit=1000&showAll=true");
+        return usersRes.data.data;
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch users for dropdown");
+        return [];
+      }
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -142,8 +148,13 @@ const ActivityLogs = () => {
   const { data: filterData } = useQuery({
     queryKey: ["activity-filters"],
     queryFn: async () => {
-      const filtersRes = await axios.get("/activity-logs/filters");
-      return filtersRes.data.data;
+      try {
+        const filtersRes = await axios.get("/activity-logs/filters");
+        return filtersRes.data.data;
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch activity filters");
+        return null;
+      }
     },
     staleTime: 10 * 60 * 1000,
   });
@@ -184,14 +195,19 @@ const ActivityLogs = () => {
   } = useQuery<IActivityLogResponse>({
     queryKey: ["activityLogs", pagination.page, pagination.limit, queryFilters],
     queryFn: async () => {
-      const res = await axios.get("/activity-logs", {
-        params: {
-          page: pagination.page,
-          limit: pagination.limit,
-          ...queryFilters,
-        },
-      });
-      return res.data;
+      try {
+        const res = await axios.get("/activity-logs", {
+          params: {
+            page: pagination.page,
+            limit: pagination.limit,
+            ...queryFilters,
+          },
+        });
+        return res.data;
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch activity logs");
+        throw error;
+      }
     },
     placeholderData: keepPreviousData,
   });

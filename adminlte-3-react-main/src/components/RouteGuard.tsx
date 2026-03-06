@@ -4,10 +4,12 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { usePermissions } from "@app/hooks/usePermissions";
 
+import { Permission } from "@app/config/permissions";
+
 interface RouteGuardProps {
   children: React.ReactNode;
-  requiredPermission?: string;
-  requiredPermissions?: string[];
+  requiredPermission?: Permission | string;
+  requiredPermissions?: (Permission | string)[];
   requireAll?: boolean; // If true, user must have ALL permissions. If false, ANY permission is enough
   redirectTo?: string;
   checkSidebarAccess?: boolean; // Optional: check sidebar access (default: false)

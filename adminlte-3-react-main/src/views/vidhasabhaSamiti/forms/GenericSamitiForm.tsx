@@ -10,6 +10,7 @@ import { Button } from "@app/components/ui/button";
 import { Input } from "@app/components/ui/input";
 import { Label } from "@app/components/ui/label";
 import { Loader2 } from "lucide-react";
+import { handleError } from "@app/utils/errorHandler";
 import {
   useBlocks,
   useBooths,
@@ -84,12 +85,8 @@ const GenericSamitiForm = ({
           `${title} ${isEdit ? "updated" : "created"} successfully`,
         );
         router.push(`/vidhasabha-samiti/${apiEndpoint}`);
-      } catch (error: any) {
-        const axiosError = error as AxiosError<{ message?: string }>;
-        toast.error(
-          axiosError.response?.data?.message ||
-            `Failed to ${isEdit ? "update" : "create"} record`,
-        );
+      } catch (error: unknown) {
+        handleError(error, `Failed to ${isEdit ? "update" : "create"} record`);
       } finally {
         setLoading(false);
       }
@@ -136,9 +133,8 @@ const GenericSamitiForm = ({
               fileName: data.data.image ? "Existing Image" : "",
             });
           }
-        } catch (error) {
-          console.error("Failed to fetch initial data", error);
-          toast.error("Failed to load record details");
+        } catch (error: unknown) {
+          handleError(error, "Failed to load record details");
         } finally {
           setPageLoading(false);
         }

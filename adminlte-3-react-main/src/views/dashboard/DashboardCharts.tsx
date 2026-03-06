@@ -34,7 +34,38 @@ ChartJS.register(
   Title,
 );
 
+// Helper for dynamic colors
+const CHART_COLORS = [
+  "rgba(255, 99, 132, 0.7)",
+  "rgba(54, 162, 235, 0.7)",
+  "rgba(255, 206, 86, 0.7)",
+  "rgba(75, 192, 192, 0.7)",
+  "rgba(153, 102, 255, 0.7)",
+  "rgba(255, 159, 64, 0.7)",
+  "rgba(199, 199, 199, 0.7)",
+  "rgba(83, 102, 255, 0.7)",
+  "rgba(40, 159, 64, 0.7)",
+  "rgba(210, 99, 132, 0.7)",
+];
+
+const generateColors = (count: number) =>
+  Array.from(
+    { length: count },
+    (_, i) => CHART_COLORS[i % CHART_COLORS.length],
+  );
+
 interface DashboardChartsProps {
+  // New props from the full dashboard
+  publicProblems?: any[];
+  projects?: any[];
+  assemblyIssues?: any[];
+  events?: any[];
+  visitors?: any[];
+  inDocs?: any[];
+  departments?: any[];
+  blocks?: any[];
+
+  // Legacy props (kept for backward compatibility)
   problemsByDepartment?: Array<{ department: string; count: number }>;
   problemsByStatus?: Array<{ status: string; count: number }>;
   stats?: {
@@ -44,33 +75,23 @@ interface DashboardChartsProps {
   };
 }
 
-// Helper for dynamic colors
-const generateColors = (count: number) => {
-  const colors = [
-    "rgba(255, 99, 132, 0.6)",
-    "rgba(54, 162, 235, 0.6)",
-    "rgba(255, 206, 86, 0.6)",
-    "rgba(75, 192, 192, 0.6)",
-    "rgba(153, 102, 255, 0.6)",
-    "rgba(255, 159, 64, 0.6)",
-    "rgba(199, 199, 199, 0.6)",
-    "rgba(83, 102, 255, 0.6)",
-    "rgba(40, 159, 64, 0.6)",
-    "rgba(210, 99, 132, 0.6)",
-  ];
-  return Array.from({ length: count }).map((_, i) => colors[i % colors.length]);
-};
-
 const DashboardCharts = memo(
   ({
+    publicProblems = [],
+    projects = [],
+    assemblyIssues = [],
+    departments = [],
+    // Legacy
     problemsByDepartment = [],
     problemsByStatus = [],
     stats = {},
   }: DashboardChartsProps) => {
     const { checkModuleAccess } = useModuleAccess();
-    const showMPProblems = checkModuleAccess(MODULE_IDS.MP_PUBLIC_PROBLEMS);
+    const showPublicProblems = true; // Public problems are always shown on the dashboard
     const showProjects = checkModuleAccess(MODULE_IDS.PROJECTS);
     const showAssemblyIssues = checkModuleAccess(MODULE_IDS.ASSEMBLY_ISSUES);
+    const showDepartments =
+      departments.length > 0 || problemsByDepartment.length > 0;
 
     const darkMode = useAppSelector((state) => state.ui.darkMode);
     const textColor = darkMode ? "#e2e8f0" : "#475569";
@@ -79,7 +100,7 @@ const DashboardCharts = memo(
       : "rgba(0, 0, 0, 0.1)";
 
     // Common Chart Options
-    const commonOptions = useMemo(
+    const commonBarOptions = useMemo(
       () => ({
         responsive: true,
         maintainAspectRatio: false,
@@ -100,8 +121,9 @@ const DashboardCharts = memo(
             grid: { color: gridColor, display: false },
           },
           y: {
-            ticks: { color: textColor },
+            ticks: { color: textColor, precision: 0 },
             grid: { color: gridColor },
+            beginAtZero: true,
           },
         },
       }),
@@ -110,80 +132,163 @@ const DashboardCharts = memo(
 
     const pieOptions = useMemo(
       () => ({
-        ...commonOptions,
-        scales: undefined, // Remove scales for circular charts
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "bottom" as const,
+            labels: { color: textColor, font: { size: 11 } },
+          },
+          tooltip: {
+            backgroundColor: darkMode ? "#1e293b" : "#475569",
+            titleColor: "#fff",
+            bodyColor: "#fff",
+          },
+        },
       }),
-      [commonOptions],
+      [textColor, darkMode],
     );
 
-    // Problems by Status Chart Data
-    const problemChartData = useMemo(
+    // --- Public Problems by Status (from live data OR legacy props) ---
+    const problemStatusData = useMemo(() => {
+      // Live data path: aggregate from publicProblems array
+      if (publicProblems.length > 0) {
+        const counts: Record<string, number> = {};
+        publicProblems.forEach((p) => {
+          const status = p.status || "Pending";
+          counts[status] = (counts[status] || 0) + 1;
+        });
+        return Object.entries(counts).map(([status, count]) => ({
+          status,
+          count,
+        }));
+      }
+      // Legacy fallback
+      return problemsByStatus;
+    }, [publicProblems, problemsByStatus]);
+
+    const problemStatusChartData = useMemo(
       () => ({
-        labels: problemsByStatus.map((p) => p.status),
+        labels: problemStatusData.map((p) => p.status),
         datasets: [
           {
-            label: "Number of Problems",
-            data: problemsByStatus.map((p) => p.count),
+            label: "Problems by Status",
+            data: problemStatusData.map((p) => p.count),
             backgroundColor: [
-              "#f59e0b", // Yellow (Pending)
-              "#10b981", // Green (Resolved)
-              "#ef4444", // Red (Rejected)
-              "#3b82f6", // Blue (In Progress)
-              "#8b5cf6", // Purple
+              "#f59e0b",
+              "#10b981",
+              "#ef4444",
+              "#3b82f6",
+              "#8b5cf6",
             ],
             borderColor: darkMode ? "#1e293b" : "#ffffff",
             borderWidth: 2,
           },
         ],
       }),
-      [problemsByStatus, darkMode],
+      [problemStatusData, darkMode],
     );
 
-    // Problems by Department Chart Data
-    const departmentChartData = useMemo(() => {
-      const colors = generateColors(problemsByDepartment.length);
+    // --- Problems by Department (from live departments OR legacy props) ---
+    const deptData = useMemo(() => {
+      if (departments.length > 0 && publicProblems.length > 0) {
+        const counts: Record<string, number> = {};
+        publicProblems.forEach((p) => {
+          const dept = p.department || "Unknown";
+          counts[dept] = (counts[dept] || 0) + 1;
+        });
+        return Object.entries(counts).map(([department, count]) => ({
+          department,
+          count,
+        }));
+      }
+      return problemsByDepartment;
+    }, [departments, publicProblems, problemsByDepartment]);
+
+    const deptChartData = useMemo(() => {
+      const colors = generateColors(deptData.length);
       return {
-        labels: problemsByDepartment.map((d) => d.department),
+        labels: deptData.map((d) => d.department),
         datasets: [
           {
             label: "Problems by Department",
-            data: problemsByDepartment.map((d) => d.count),
+            data: deptData.map((d) => d.count),
             backgroundColor: colors,
-            borderColor: colors.map((c) => c.replace("0.6", "1")),
+            borderColor: colors.map((c) => c.replace("0.7", "1")),
             borderWidth: 1,
           },
         ],
       };
-    }, [problemsByDepartment]);
+    }, [deptData]);
 
-    if (!showMPProblems && !showProjects && !showAssemblyIssues) {
-      return null;
-    }
+    // --- Projects by Status ---
+    const projectStatusData = useMemo(() => {
+      if (projects.length === 0) return null;
+      const counts: Record<string, number> = {};
+      projects.forEach((p) => {
+        const status = p.status || "Active";
+        counts[status] = (counts[status] || 0) + 1;
+      });
+      return {
+        labels: Object.keys(counts),
+        datasets: [
+          {
+            label: "Projects by Status",
+            data: Object.values(counts),
+            backgroundColor: generateColors(Object.keys(counts).length),
+            borderWidth: 1,
+          },
+        ],
+      };
+    }, [projects]);
+
+    // --- Assembly Issues by Status ---
+    const assemblyIssueData = useMemo(() => {
+      if (assemblyIssues.length === 0) return null;
+      const counts: Record<string, number> = {};
+      assemblyIssues.forEach((issue) => {
+        const status = issue.status || "Open";
+        counts[status] = (counts[status] || 0) + 1;
+      });
+      return {
+        labels: Object.keys(counts),
+        datasets: [
+          {
+            label: "Assembly Issues",
+            data: Object.values(counts),
+            backgroundColor: ["#3b82f6", "#f59e0b", "#10b981", "#ef4444"],
+            borderWidth: 1,
+          },
+        ],
+      };
+    }, [assemblyIssues]);
+
+    const hasAnyData =
+      problemStatusData.length > 0 ||
+      deptData.length > 0 ||
+      showProjects ||
+      showAssemblyIssues;
+
+    if (!hasAnyData) return null;
 
     return (
       <div className="flex flex-col gap-6 mt-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Public Problems Chart (Status) */}
-          {showMPProblems && (
+          {/* Public Problems by Status */}
+          {showPublicProblems && problemStatusData.length > 0 && (
             <Card className="dark:bg-[#1e293b] dark:border-gray-800">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold text-gray-700 dark:text-gray-200">
-                  MP Public Problem Overview
+                  Public Problems by Status
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex justify-center h-64">
-                {problemsByStatus.length > 0 ? (
-                  <Doughnut data={problemChartData} options={pieOptions} />
-                ) : (
-                  <div className="flex items-center justify-center text-gray-400 dark:text-gray-500 h-full">
-                    No Data Available
-                  </div>
-                )}
+                <Doughnut data={problemStatusChartData} options={pieOptions} />
               </CardContent>
             </Card>
           )}
 
-          {/* Projects Chart */}
+          {/* Projects Status */}
           {showProjects && (
             <Card className="dark:bg-[#1e293b] dark:border-gray-800">
               <CardHeader>
@@ -192,20 +297,26 @@ const DashboardCharts = memo(
                 </CardTitle>
               </CardHeader>
               <CardContent className="h-64 flex flex-col items-center justify-center">
-                <div className="text-5xl font-bold text-blue-600 dark:text-blue-400">
-                  {stats.totalProjects || 0}
-                </div>
-                <p className="text-gray-500 dark:text-gray-400 mt-2 text-lg">
-                  Total Projects
-                </p>
-                <p className="text-green-600 dark:text-green-400 mt-1 text-sm">
-                  {stats.completedProjects || 0} Completed
-                </p>
+                {projectStatusData ? (
+                  <Doughnut data={projectStatusData} options={pieOptions} />
+                ) : (
+                  <>
+                    <div className="text-5xl font-bold text-blue-600 dark:text-blue-400">
+                      {stats.totalProjects || projects.length || 0}
+                    </div>
+                    <p className="text-gray-500 dark:text-gray-400 mt-2 text-lg">
+                      Total Projects
+                    </p>
+                    <p className="text-green-600 dark:text-green-400 mt-1 text-sm">
+                      {stats.completedProjects || 0} Completed
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
           )}
 
-          {/* Assembly Issues Total */}
+          {/* Assembly Issues */}
           {showAssemblyIssues && (
             <Card className="dark:bg-[#1e293b] dark:border-gray-800">
               <CardHeader>
@@ -214,36 +325,36 @@ const DashboardCharts = memo(
                 </CardTitle>
               </CardHeader>
               <CardContent className="h-64 flex flex-col items-center justify-center">
-                <div className="text-5xl font-bold text-blue-600 dark:text-blue-400">
-                  {stats.totalAssemblyIssues || 0}
-                </div>
-                <p className="text-gray-500 dark:text-gray-400 mt-2 text-lg">
-                  Total Issues
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Problems by Department Chart */}
-          {showMPProblems && (
-            <Card className="col-span-1 md:col-span-2 lg:col-span-3 dark:bg-[#1e293b] dark:border-gray-800">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-700 dark:text-gray-200">
-                  Problems by Department
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="h-80">
-                {problemsByDepartment.length > 0 ? (
-                  <Bar data={departmentChartData} options={commonOptions} />
+                {assemblyIssueData ? (
+                  <Doughnut data={assemblyIssueData} options={pieOptions} />
                 ) : (
-                  <div className="flex items-center justify-center text-gray-400 dark:text-gray-500 h-full">
-                    No Department Data Available
-                  </div>
+                  <>
+                    <div className="text-5xl font-bold text-blue-600 dark:text-blue-400">
+                      {stats.totalAssemblyIssues || assemblyIssues.length || 0}
+                    </div>
+                    <p className="text-gray-500 dark:text-gray-400 mt-2 text-lg">
+                      Total Issues
+                    </p>
+                  </>
                 )}
               </CardContent>
             </Card>
           )}
         </div>
+
+        {/* Problems by Department — full width */}
+        {showDepartments && deptData.length > 0 && (
+          <Card className="dark:bg-[#1e293b] dark:border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-700 dark:text-gray-200">
+                Problems by Department
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-80">
+              <Bar data={deptChartData} options={commonBarOptions} />
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   },

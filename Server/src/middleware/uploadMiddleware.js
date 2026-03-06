@@ -4,7 +4,7 @@
  * Multer configuration for disk-based file uploads.
  *
  * Files are stored in:   <server-root>/uploads/<tenantId>/<YYYY-MM>/<uuid>-<originalname>
- * Served statically via: GET /uploads/<path>
+ * Served via:            GET /api/uploads/files/<tenantId>/<YYYY-MM>/<filename>  (auth-protected)
  *
  * Allowed types:  PDF, JPG, PNG, WEBP (documents and photos for avedan)
  * Max size:       10 MB per file

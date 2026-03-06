@@ -6,6 +6,9 @@ export interface IDistrictFormValues {
 export interface IDistrict {
   _id: string;
   name: string;
+  state?: string | { _id: string; name: string };
+  division?: string | { _id: string; name: string };
+  parliaments?: { _id: string; name: string }[];
   createdAt?: string;
   updatedAt?: string;
 }

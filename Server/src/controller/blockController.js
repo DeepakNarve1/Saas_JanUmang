@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Block = require("../models/blockModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // @desc    Get all blocks
 // @route   GET /api/blocks
@@ -14,7 +15,15 @@ exports.getBlocks = asyncHandler(async (req, res) => {
     district,
   } = req.query;
 
-  const query = {};
+  // Include global blocks (tenantId: null) alongside tenant-specific blocks.
+  // Geographic reference data seeded by system admins has tenantId: null and
+  // should be visible to all tenants, just like States and Districts.
+  const tenantScopeId = req.scopeFilter?.tenantId;
+  const geoScope = tenantScopeId
+    ? { tenantId: { $in: [tenantScopeId, null] } }
+    : {};
+
+  const query = { ...geoScope };
 
   if (search) {
     query.$or = [{ name: { $regex: search, $options: "i" } }];
@@ -75,7 +84,7 @@ exports.getBlocks = asyncHandler(async (req, res) => {
 
   let blocks;
   let filteredCount;
-  let totalCount = await Block.countDocuments({});
+  let totalCount = await Block.countDocuments(geoScope);
 
   if (limitNum === -1) {
     blocks = await Block.find(query)
@@ -111,7 +120,11 @@ exports.getBlocks = asyncHandler(async (req, res) => {
 // @desc    Get single block
 // @route   GET /api/blocks/:id
 exports.getBlockById = asyncHandler(async (req, res) => {
-  const block = await Block.findById(req.params.id)
+  const tenantScopeId = req.scopeFilter?.tenantId;
+  const block = await Block.findOne({
+    _id: req.params.id,
+    ...(tenantScopeId ? { tenantId: { $in: [tenantScopeId, null] } } : {}),
+  })
     .populate("state", "name")
     .populate("division", "name")
     .populate("district", "name")
@@ -152,7 +165,10 @@ exports.createBlock = asyncHandler(async (req, res) => {
     ...(assembly && { assembly }),
   };
 
-  const block = await Block.create(payload);
+  const block = await Block.create({
+    ...payload,
+    tenantId: getCreateTenantId(req),
+  });
 
   if (booths && Array.isArray(booths) && booths.length > 0) {
     const Booth = require("../models/boothModel");
@@ -184,7 +200,11 @@ exports.createBlock = asyncHandler(async (req, res) => {
 // @desc    Update a block
 // @route   PUT /api/blocks/:id
 exports.updateBlock = asyncHandler(async (req, res) => {
-  const block = await Block.findById(req.params.id);
+  const tenantScopeId = req.scopeFilter?.tenantId;
+  const block = await Block.findOne({
+    _id: req.params.id,
+    ...(tenantScopeId ? { tenantId: { $in: [tenantScopeId, null] } } : {}),
+  });
   if (!block) {
     res.status(404);
     throw new Error("Block not found");
@@ -234,7 +254,11 @@ exports.updateBlock = asyncHandler(async (req, res) => {
 // @desc    Delete a block
 // @route   DELETE /api/blocks/:id
 exports.deleteBlock = asyncHandler(async (req, res) => {
-  const block = await Block.findById(req.params.id);
+  const tenantScopeId = req.scopeFilter?.tenantId;
+  const block = await Block.findOne({
+    _id: req.params.id,
+    ...(tenantScopeId ? { tenantId: { $in: [tenantScopeId, null] } } : {}),
+  });
   if (!block) {
     res.status(404);
     throw new Error("Block not found");

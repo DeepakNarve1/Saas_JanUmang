@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import { Edit, ArrowLeft, ShieldCheck } from "lucide-react";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 import { ViewPageActions } from "@app/components/ViewPageActions";
 
 interface IDepartment {
@@ -32,8 +34,7 @@ const ViewDepartment = () => {
         const res = await axios.get(`/departments/${id}`);
         setData(res.data.data);
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(err.response?.data?.message || "Failed to load Department");
+        handleError(error, "Failed to load Department");
         router.push("/department");
       } finally {
         setLoading(false);
@@ -84,7 +85,7 @@ const ViewDepartment = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_department") && (
+                {hasPermission(PERMISSIONS.EDIT_DEPARTMENTS) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 transition-all font-medium border-0"
                     onClick={() => router.push(`/department/${id}/edit`)}

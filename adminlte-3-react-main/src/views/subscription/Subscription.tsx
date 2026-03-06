@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import axios from "@app/utils/axios";
+import { handleError } from "@app/utils/errorHandler";
 import { useAppSelector, ReduxState } from "@app/store/store";
 import { ContentHeader } from "@app/components";
 import {
@@ -49,10 +50,15 @@ const Subscription = () => {
   } = useQuery({
     queryKey: ["my-tenant"],
     queryFn: async () => {
-      const res = await axios.get("/tenants/me");
-      return res.data?.data as ITenant & {
-        userCount?: number;
-      };
+      try {
+        const res = await axios.get("/tenants/me");
+        return res.data?.data as ITenant & {
+          userCount?: number;
+        };
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch subscription details");
+        throw error;
+      }
     },
     enabled: hasAccess,
   });

@@ -4,8 +4,9 @@ import { ContentHeader } from "@components";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { IRole } from "@app/types/user";
-import { useAppSelector } from "@app/store/store";
+import { useAppSelector, RootState } from "@app/store/store";
 import { User as UserIcon, Clock, ArrowLeft, Edit } from "lucide-react";
 
 interface IUser {
@@ -22,7 +23,9 @@ const ViewUser = () => {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
-  const currentUser = useAppSelector((state) => state.auth.currentUser);
+  const currentUser = useAppSelector(
+    (state: RootState) => state.auth.currentUser,
+  );
 
   const [user, setUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,8 +40,7 @@ const ViewUser = () => {
           setUser(res.data.data);
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(err.response?.data?.message || "Failed to load user");
+        handleError(error, "Failed to load user");
         setTimeout(() => router.push("/users"), 2000);
       } finally {
         setLoading(false);

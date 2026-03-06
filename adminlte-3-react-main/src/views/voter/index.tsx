@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "@app/utils/axios";
 import { useDebounce } from "@app/hooks/useDebounce";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { useRouter } from "next/navigation";
 import { IBlock } from "@app/types/block";
 import { IPanchayat } from "@app/types/panchayat";
@@ -55,6 +56,26 @@ import {
 import { ContentHeader } from "@app/components";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { Pagination } from "@app/components/common/Pagination";
+import { PERMISSIONS } from "@app/config/permissions";
+
+interface IVoterColumns {
+  srNo: boolean;
+  name: boolean;
+  fatherName: boolean;
+  mobile: boolean;
+  age: boolean;
+  cast: boolean;
+  subcast: boolean;
+  address: boolean;
+  block: boolean;
+  booth: boolean;
+  boothNo: boolean;
+  panchayat: boolean;
+  village: boolean;
+  fallaMarjra: boolean;
+  voterId: boolean;
+  image: boolean;
+}
 
 const Voter = () => {
   const router = useRouter();
@@ -131,7 +152,7 @@ const Voter = () => {
   const data = response?.data || [];
   const totalCount = response?.filteredCount || response?.total || 0;
 
-  const [visibleColumns, setVisibleColumns] = useState({
+  const [visibleColumns, setVisibleColumns] = useState<IVoterColumns>({
     srNo: true,
     name: true,
     fatherName: true,
@@ -151,9 +172,9 @@ const Voter = () => {
   });
 
   const { hasPermission } = usePermissions();
-  const canDelete = hasPermission("delete_voters");
-  const canCreate = hasPermission("create_voters");
-  const canEdit = hasPermission("edit_voters");
+  const canDelete = hasPermission(PERMISSIONS.DELETE_VOTERS);
+  const canCreate = hasPermission(PERMISSIONS.CREATE_VOTERS);
+  const canEdit = hasPermission(PERMISSIONS.EDIT_VOTERS);
 
   // Mutation
   const deleteMutation = useMutation({
@@ -164,8 +185,8 @@ const Voter = () => {
       toast.success("Voter deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["voters"] });
     },
-    onError: (error: AxiosError<{ message?: string }>) => {
-      toast.error(error.response?.data?.message || "Failed to delete voter");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete voter");
     },
   });
 
@@ -213,8 +234,8 @@ const Voter = () => {
       XLSX.utils.book_append_sheet(wb, ws, "Voters");
       XLSX.writeFile(wb, `Voters_${Date.now()}.xlsx`);
       toast.success("Exported successfully");
-    } catch (error) {
-      toast.error("Failed to load export library");
+    } catch (error: unknown) {
+      handleError(error, "Failed to load export library");
     } finally {
       // setLoading(false);
     }
@@ -291,7 +312,7 @@ const Voter = () => {
         );
         queryClient.invalidateQueries({ queryKey: ["voters"] });
       } catch (error: unknown) {
-        toast.error("Failed to import file");
+        handleError(error, "Failed to import file");
       } finally {
         // setLoading(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -300,7 +321,7 @@ const Voter = () => {
     reader.readAsBinaryString(file);
   };
 
-  const toggleColumn = (key: keyof typeof visibleColumns) => {
+  const toggleColumn = (key: keyof IVoterColumns) => {
     setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -445,19 +466,17 @@ const Voter = () => {
                   align="start"
                   className="w-64 max-h-96 overflow-y-auto"
                 >
-                  {Object.keys(visibleColumns).map((key) => (
-                    <DropdownMenuCheckboxItem
-                      key={key}
-                      checked={
-                        visibleColumns[key as keyof typeof visibleColumns]
-                      }
-                      onCheckedChange={() =>
-                        toggleColumn(key as keyof typeof visibleColumns)
-                      }
-                    >
-                      {key.replace(/([A-Z])/g, " $1").trim()}
-                    </DropdownMenuCheckboxItem>
-                  ))}
+                  {(Object.keys(visibleColumns) as (keyof IVoterColumns)[]).map(
+                    (key) => (
+                      <DropdownMenuCheckboxItem
+                        key={key}
+                        checked={visibleColumns[key]}
+                        onCheckedChange={() => toggleColumn(key)}
+                      >
+                        {key.replace(/([A-Z])/g, " $1").trim()}
+                      </DropdownMenuCheckboxItem>
+                    ),
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -634,10 +653,11 @@ const Voter = () => {
                               // Fallback: Check if it's inside the booth object as 'code'
                               const boothObj = row.booth || row.boothname;
                               if (typeof boothObj === "object" && boothObj) {
-                                return (
-                                  (boothObj as any).code ||
-                                  (boothObj as any).boothNo
-                                );
+                                const bObj = boothObj as {
+                                  code?: string;
+                                  boothNo?: string;
+                                };
+                                return bObj.code || bObj.boothNo;
                               }
                               return "";
                             })()}

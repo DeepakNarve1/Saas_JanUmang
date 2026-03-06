@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
 
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 const Voter = dynamic(() => import("@app/views/voter"), {
   ssr: false,
@@ -17,7 +18,7 @@ const Voter = dynamic(() => import("@app/views/voter"), {
 
 export default function VoterPage() {
   return (
-    <RouteGuard requiredPermission="view_voters">
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_VOTERS]}>
       <Voter />
     </RouteGuard>
   );

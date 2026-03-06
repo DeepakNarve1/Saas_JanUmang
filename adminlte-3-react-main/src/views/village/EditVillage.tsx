@@ -8,12 +8,15 @@ import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import VillageForm from "./VillageForm";
 import { Skeleton } from "@app/components/ui/skeleton";
+import { IVillageFormValues } from "./village.schema";
 
 const EditVillage = () => {
   const router = useRouter();
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
-  const [initialData, setInitialData] = useState<any>(null);
+  const [initialData, setInitialData] = useState<IVillageFormValues | null>(
+    null,
+  );
 
   useEffect(() => {
     const fetchVillage = async () => {
@@ -59,17 +62,17 @@ const EditVillage = () => {
                 formData.booth = bData._id; // Ensure ID
               }
             } catch (error: unknown) {
-              console.error(
-                "Failed to fetch booth details for hierarchy population",
+              handleError(
                 error,
+                "Failed to fetch booth details for hierarchy population",
               );
             }
           }
 
           setInitialData(formData);
         }
-      } catch (error) {
-        toast.error("Failed to fetch village details");
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch village details");
         router.push("/villages");
       }
     };
@@ -79,13 +82,13 @@ const EditVillage = () => {
     }
   }, [id, router]);
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: IVillageFormValues) => {
     try {
       setLoading(true);
       await axios.put(`/villages/${id}`, values);
       toast.success("Village updated successfully");
       router.push("/villages");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to update village");
     } finally {
       setLoading(false);

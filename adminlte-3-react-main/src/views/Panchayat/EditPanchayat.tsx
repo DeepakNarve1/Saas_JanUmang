@@ -8,12 +8,15 @@ import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import PanchayatForm from "./PanchayatForm";
 import { Skeleton } from "@app/components/ui/skeleton";
+import { IPanchayatFormValues } from "./panchayat.schema";
 
 const EditPanchayat = () => {
   const router = useRouter();
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
-  const [initialData, setInitialData] = useState<any>(null);
+  const [initialData, setInitialData] = useState<IPanchayatFormValues | null>(
+    null,
+  );
 
   useEffect(() => {
     const fetchPanchayat = async () => {
@@ -56,10 +59,10 @@ const EditPanchayat = () => {
                   bData.block?._id || bData.block || formData.block;
                 formData.booth = bData._id;
               }
-            } catch (err: unknown) {
-              console.error(
+            } catch (error: unknown) {
+              handleError(
+                error,
                 "Failed to fetch booth details for hierarchy population",
-                err,
               );
             }
           }
@@ -67,7 +70,7 @@ const EditPanchayat = () => {
           setInitialData(formData);
         }
       } catch (error: unknown) {
-        toast.error("Failed to fetch panchayat details");
+        handleError(error, "Failed to fetch panchayat details");
         router.push("/panchayat");
       }
     };
@@ -77,13 +80,13 @@ const EditPanchayat = () => {
     }
   }, [id, router]);
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: IPanchayatFormValues) => {
     try {
       setLoading(true);
       await axios.put(`/panchayat/${id}`, values);
       toast.success("Panchayat updated successfully");
       router.push("/panchayat");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to update panchayat");
     } finally {
       setLoading(false);

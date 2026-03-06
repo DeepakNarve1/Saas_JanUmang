@@ -5,6 +5,7 @@ import NextImage from "next/image";
 import { useState, useRef } from "react";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { RouteGuard } from "@app/components/RouteGuard";
 import { usePermissions } from "@app/hooks/usePermissions";
@@ -171,8 +172,8 @@ const SamitiListContent = ({
       toast.success("Record deleted successfully");
       queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete record");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete record");
     },
   });
 
@@ -254,9 +255,8 @@ const SamitiListContent = ({
       XLSX.utils.book_append_sheet(wb, ws, title);
       XLSX.writeFile(wb, `${title.replace(/\s+/g, "_")}.xlsx`);
       toast.success("Exported successfully");
-    } catch (error) {
-      console.error("Export error:", error);
-      toast.error("Failed to export data");
+    } catch (error: unknown) {
+      handleError(error, "Failed to export data");
     } finally {
       setLoading(false);
     }
@@ -577,9 +577,9 @@ const SamitiListContent = ({
           toast.success(`Successfully imported ${successCount} records`);
         }
         queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
-      } catch (error: any) {
-        console.error("Import error:", error);
-        toast.error(
+      } catch (error: unknown) {
+        handleError(
+          error,
           "Failed to process file. Ensure it's a valid Excel format.",
         );
       } finally {

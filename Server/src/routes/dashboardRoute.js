@@ -6,6 +6,8 @@ const {
   getBlockSummary,
   getChartData,
   getMemberBlockSummary,
+  getMpDepartmentSummary,
+  getMpBlockSummary,
 } = require("../controller/dashboardController");
 const protect = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
@@ -48,6 +50,24 @@ router.get(
   "/member-block-summary",
   checkPermission("view_dashboard"),
   getMemberBlockSummary,
+);
+
+// @route   GET /api/dashboard/mp-department-summary
+// @desc    Get MP public problems department summary
+// @access  Private (requires view_dashboard permission)
+router.get(
+  "/mp-department-summary",
+  checkPermission("view_dashboard"),
+  getMpDepartmentSummary,
+);
+
+// @route   GET /api/dashboard/mp-block-summary
+// @desc    Get MP public problems block (area) summary
+// @access  Private (requires view_dashboard permission)
+router.get(
+  "/mp-block-summary",
+  checkPermission("view_dashboard"),
+  getMpBlockSummary,
 );
 
 module.exports = router;

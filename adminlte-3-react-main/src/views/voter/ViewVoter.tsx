@@ -4,16 +4,20 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 
 import { Button } from "@app/components/ui/button";
 import { Badge } from "@app/components/ui/badge";
 import { ContentHeader } from "@app/components";
 import { RouteGuard } from "@app/components/RouteGuard";
 import { ViewPageActions } from "@app/components/ViewPageActions";
+import { IVoter } from "@app/types/voter";
+import { ArrowLeft, Edit } from "lucide-react";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const ViewVoter = () => {
   return (
-    <RouteGuard requiredPermissions={["view_voter"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_VOTERS]}>
       <ViewVoterContent />
     </RouteGuard>
   );
@@ -24,7 +28,7 @@ const ViewVoterContent = () => {
   const params = useParams();
   const { id } = params;
 
-  const [voter, setVoter] = useState<any>(null);
+  const [voter, setVoter] = useState<IVoter | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,8 +37,7 @@ const ViewVoterContent = () => {
         const { data } = await axios.get(`/voters/${id}`);
         setVoter(data.data || null);
       } catch (error: unknown) {
-        console.error("Failed to fetch voter", error);
-        toast.error("Failed to load voter details");
+        handleError(error, "Failed to load voter details");
         router.push("/voter");
       } finally {
         setLoading(false);
@@ -61,7 +64,13 @@ const ViewVoterContent = () => {
     return <div className="p-8 text-center">Voter not found</div>;
   }
 
-  const DetailItem = ({ label, value }: { label: string; value: any }) => (
+  const DetailItem = ({
+    label,
+    value,
+  }: {
+    label: string;
+    value: string | number | undefined | null;
+  }) => (
     <div className="p-4 bg-gray-50/50 dark:bg-gray-800/20 rounded-lg border border-gray-100 dark:border-gray-800/50 transition-all hover:shadow-sm">
       <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">
         {label}
@@ -85,13 +94,25 @@ const ViewVoterContent = () => {
       Caste: voter.cast,
       "Sub-Caste": voter.subcast,
       "Full Address": voter.fulladdress,
-      Block: voter.blockname,
-      "Booth Name": voter.boothname,
+      Block:
+        typeof voter.blockname === "object"
+          ? voter.blockname?.name
+          : voter.blockname,
+      "Booth Name":
+        typeof voter.boothname === "object"
+          ? voter.boothname?.name
+          : voter.boothname,
       "Booth No": voter.boothno,
-      Panchayat: voter.panchayat,
-      Village: voter.village,
+      Panchayat:
+        typeof voter.panchayat === "object"
+          ? voter.panchayat?.name
+          : voter.panchayat,
+      Village:
+        typeof voter.village === "object" ? voter.village?.name : voter.village,
       "Falla/Marjra": voter.fallaMarjra,
-      "Created On": new Date(voter.createdAt).toLocaleDateString(),
+      "Created On": voter.createdAt
+        ? new Date(voter.createdAt).toLocaleDateString()
+        : "",
     };
   };
 
@@ -161,12 +182,40 @@ const ViewVoterContent = () => {
                 <DetailItem label="Sub-Caste" value={voter.subcast} />
                 <DetailItem label="Full Address" value={voter.fulladdress} />
 
-                <DetailItem label="Block" value={voter.blockname} />
-                <DetailItem label="Booth Name" value={voter.boothname} />
+                <DetailItem
+                  label="Block"
+                  value={
+                    typeof voter.blockname === "object"
+                      ? voter.blockname?.name
+                      : voter.blockname
+                  }
+                />
+                <DetailItem
+                  label="Booth Name"
+                  value={
+                    typeof voter.boothname === "object"
+                      ? voter.boothname?.name
+                      : voter.boothname
+                  }
+                />
                 <DetailItem label="Booth No" value={voter.boothno} />
 
-                <DetailItem label="Panchayat" value={voter.panchayat} />
-                <DetailItem label="Village" value={voter.village} />
+                <DetailItem
+                  label="Panchayat"
+                  value={
+                    typeof voter.panchayat === "object"
+                      ? voter.panchayat?.name
+                      : voter.panchayat
+                  }
+                />
+                <DetailItem
+                  label="Village"
+                  value={
+                    typeof voter.village === "object"
+                      ? voter.village?.name
+                      : voter.village
+                  }
+                />
                 <DetailItem label="Falla/Marjra" value={voter.fallaMarjra} />
 
                 <div className="col-span-1 md:col-span-2 lg:col-span-3">
@@ -197,19 +246,24 @@ const ViewVoterContent = () => {
               <div className="pt-6 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-400 dark:text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-2">
                 <span>
                   Profile Created:{" "}
-                  {new Date(voter.createdAt).toLocaleDateString("en-IN", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}
+                  {voter.createdAt &&
+                    new Date(voter.createdAt).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
                 </span>
                 <span>
                   Last Information Update:{" "}
-                  {new Date(voter.updatedAt).toLocaleDateString("en-IN", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}
+                  {voter.updatedAt &&
+                    new Date(voter.updatedAt as string).toLocaleDateString(
+                      "en-IN",
+                      {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      },
+                    )}
                 </span>
               </div>
 

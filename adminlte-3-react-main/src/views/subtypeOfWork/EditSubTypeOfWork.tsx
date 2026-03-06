@@ -33,11 +33,7 @@ const EditSubTypeOfWork = () => {
           });
         }
       } catch (err: unknown) {
-        const error = err as { response?: { data?: { message?: string } } };
-        toast.error(
-          error.response?.data?.message ||
-            "Failed to load Sub Type of Work data",
-        );
+        handleError(err, "Failed to load Sub Type of Work data");
         router.push("/sub-type-of-work");
       } finally {
         setLoading(false);
@@ -56,7 +52,7 @@ const EditSubTypeOfWork = () => {
       await axios.put(`/sub-type-of-work/${id}`, values);
       toast.success("Sub Type of Work updated successfully");
       router.push("/sub-type-of-work");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to update Sub Type of Work");
     } finally {
       setSaving(false);

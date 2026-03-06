@@ -1,6 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { usePermissions } from "../usePermissions";
 import { useAppSelector } from "@app/store/store";
+import { PERMISSIONS } from "@app/config/permissions";
 
 // Mock the Redux store
 jest.mock("@app/store/store", () => ({
@@ -22,7 +23,7 @@ describe("usePermissions", () => {
 
       const { result } = renderHook(() => usePermissions());
 
-      expect(result.current.hasPermission("view_users")).toBe(false);
+      expect(result.current.hasPermission(PERMISSIONS.VIEW_USERS)).toBe(false);
     });
 
     it("should return false when user has no role", () => {
@@ -33,7 +34,7 @@ describe("usePermissions", () => {
 
       const { result } = renderHook(() => usePermissions());
 
-      expect(result.current.hasPermission("view_users")).toBe(false);
+      expect(result.current.hasPermission(PERMISSIONS.VIEW_USERS)).toBe(false);
     });
 
     it("should return true for superadmin with string role", () => {
@@ -44,8 +45,8 @@ describe("usePermissions", () => {
 
       const { result } = renderHook(() => usePermissions());
 
-      expect(result.current.hasPermission("view_users")).toBe(true);
-      expect(result.current.hasPermission("delete_users")).toBe(true);
+      expect(result.current.hasPermission(PERMISSIONS.VIEW_USERS)).toBe(true);
+      expect(result.current.hasPermission(PERMISSIONS.DELETE_USERS)).toBe(true);
     });
 
     it("should return true for superadmin with object role", () => {
@@ -59,7 +60,7 @@ describe("usePermissions", () => {
 
       const { result } = renderHook(() => usePermissions());
 
-      expect(result.current.hasPermission("view_users")).toBe(true);
+      expect(result.current.hasPermission(PERMISSIONS.VIEW_USERS)).toBe(true);
     });
 
     it("should return true when user has the specific permission (string format)", () => {
@@ -67,14 +68,14 @@ describe("usePermissions", () => {
         name: "Regular User",
         role: {
           name: "user",
-          permissions: ["view_users", "edit_users"],
+          permissions: [PERMISSIONS.VIEW_USERS, PERMISSIONS.EDIT_USERS],
         },
       } as any);
 
       const { result } = renderHook(() => usePermissions());
 
-      expect(result.current.hasPermission("view_users")).toBe(true);
-      expect(result.current.hasPermission("edit_users")).toBe(true);
+      expect(result.current.hasPermission(PERMISSIONS.VIEW_USERS)).toBe(true);
+      expect(result.current.hasPermission(PERMISSIONS.EDIT_USERS)).toBe(true);
     });
 
     it("should return true when user has the specific permission (object format)", () => {
@@ -82,14 +83,17 @@ describe("usePermissions", () => {
         name: "Regular User",
         role: {
           name: "user",
-          permissions: [{ name: "view_users" }, { name: "edit_users" }],
+          permissions: [
+            { name: PERMISSIONS.VIEW_USERS },
+            { name: PERMISSIONS.EDIT_USERS },
+          ],
         },
       } as any);
 
       const { result } = renderHook(() => usePermissions());
 
-      expect(result.current.hasPermission("view_users")).toBe(true);
-      expect(result.current.hasPermission("edit_users")).toBe(true);
+      expect(result.current.hasPermission(PERMISSIONS.VIEW_USERS)).toBe(true);
+      expect(result.current.hasPermission(PERMISSIONS.EDIT_USERS)).toBe(true);
     });
 
     it("should return false when user does not have the permission", () => {
@@ -97,13 +101,15 @@ describe("usePermissions", () => {
         name: "Regular User",
         role: {
           name: "user",
-          permissions: ["view_users"],
+          permissions: [PERMISSIONS.VIEW_USERS],
         },
       } as any);
 
       const { result } = renderHook(() => usePermissions());
 
-      expect(result.current.hasPermission("delete_users")).toBe(false);
+      expect(result.current.hasPermission(PERMISSIONS.DELETE_USERS)).toBe(
+        false,
+      );
     });
 
     it("should return false when permissions array is empty", () => {
@@ -117,7 +123,7 @@ describe("usePermissions", () => {
 
       const { result } = renderHook(() => usePermissions());
 
-      expect(result.current.hasPermission("view_users")).toBe(false);
+      expect(result.current.hasPermission(PERMISSIONS.VIEW_USERS)).toBe(false);
     });
   });
 
@@ -127,14 +133,17 @@ describe("usePermissions", () => {
         name: "Regular User",
         role: {
           name: "user",
-          permissions: ["view_users"],
+          permissions: [PERMISSIONS.VIEW_USERS],
         },
       } as any);
 
       const { result } = renderHook(() => usePermissions());
 
       expect(
-        result.current.hasAnyPermission(["view_users", "delete_users"]),
+        result.current.hasAnyPermission([
+          PERMISSIONS.VIEW_USERS,
+          PERMISSIONS.DELETE_USERS,
+        ]),
       ).toBe(true);
     });
 
@@ -143,14 +152,17 @@ describe("usePermissions", () => {
         name: "Regular User",
         role: {
           name: "user",
-          permissions: ["view_users"],
+          permissions: [PERMISSIONS.VIEW_USERS],
         },
       } as any);
 
       const { result } = renderHook(() => usePermissions());
 
       expect(
-        result.current.hasAnyPermission(["delete_users", "create_users"]),
+        result.current.hasAnyPermission([
+          PERMISSIONS.DELETE_USERS,
+          PERMISSIONS.CREATE_USERS,
+        ]),
       ).toBe(false);
     });
   });
@@ -161,14 +173,21 @@ describe("usePermissions", () => {
         name: "Regular User",
         role: {
           name: "user",
-          permissions: ["view_users", "edit_users", "delete_users"],
+          permissions: [
+            PERMISSIONS.VIEW_USERS,
+            PERMISSIONS.EDIT_USERS,
+            PERMISSIONS.DELETE_USERS,
+          ],
         },
       } as any);
 
       const { result } = renderHook(() => usePermissions());
 
       expect(
-        result.current.hasAllPermissions(["view_users", "edit_users"]),
+        result.current.hasAllPermissions([
+          PERMISSIONS.VIEW_USERS,
+          PERMISSIONS.EDIT_USERS,
+        ]),
       ).toBe(true);
     });
 
@@ -177,14 +196,17 @@ describe("usePermissions", () => {
         name: "Regular User",
         role: {
           name: "user",
-          permissions: ["view_users"],
+          permissions: [PERMISSIONS.VIEW_USERS],
         },
       } as any);
 
       const { result } = renderHook(() => usePermissions());
 
       expect(
-        result.current.hasAllPermissions(["view_users", "delete_users"]),
+        result.current.hasAllPermissions([
+          PERMISSIONS.VIEW_USERS,
+          PERMISSIONS.DELETE_USERS,
+        ]),
       ).toBe(false);
     });
   });

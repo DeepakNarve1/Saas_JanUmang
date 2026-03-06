@@ -21,6 +21,12 @@ const assemblySchema = new mongoose.Schema({
     ref: "Parliament",
     required: true,
   },
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Tenant",
+    index: true,
+    default: null,
+  },
 });
 
 // Cascade delete blocks when an assembly is deleted
@@ -33,7 +39,7 @@ assemblySchema.pre(
     for (const block of blocks) {
       await block.deleteOne();
     }
-  }
+  },
 );
 
 module.exports = mongoose.model("Assembly", assemblySchema);

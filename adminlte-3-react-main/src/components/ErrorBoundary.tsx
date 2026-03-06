@@ -96,7 +96,7 @@ class ErrorBoundary extends Component<Props, State> {
                 Oops! Something went wrong
               </h1>
               <p className="text-gray-600 mb-6">
-                We're sorry for the inconvenience. An unexpected error has
+                We&apos;re sorry for the inconvenience. An unexpected error has
                 occurred.
               </p>
             </div>

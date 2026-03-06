@@ -72,7 +72,10 @@ exports.getAssemblyIssues = asyncHandler(async (req, res) => {
 // @route   GET /api/assembly-issues/:id
 // @access  Private
 exports.getAssemblyIssueById = asyncHandler(async (req, res) => {
-  const issue = await AssemblyIssue.findById(req.params.id);
+  const issue = await AssemblyIssue.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!issue) {
     res.status(404);
     throw new Error("Issue not found");
@@ -117,12 +120,15 @@ exports.createAssemblyIssue = asyncHandler(async (req, res) => {
 // @access  Private
 exports.updateAssemblyIssue = asyncHandler(async (req, res) => {
   try {
-    const issue = await AssemblyIssue.findById(req.params.id);
+    const issue = await AssemblyIssue.findOne({
+      _id: req.params.id,
+      ...req.scopeFilter,
+    });
     if (!issue) {
       res.status(404);
       throw new Error("Issue not found");
     }
-    const oldData = await AssemblyIssue.findById(req.params.id);
+    const oldData = issue.toObject();
 
     const updatedIssue = await AssemblyIssue.findByIdAndUpdate(
       req.params.id,
@@ -152,7 +158,10 @@ exports.updateAssemblyIssue = asyncHandler(async (req, res) => {
 // @route   DELETE /api/assembly-issues/:id
 // @access  Private
 exports.deleteAssemblyIssue = asyncHandler(async (req, res) => {
-  const issue = await AssemblyIssue.findById(req.params.id);
+  const issue = await AssemblyIssue.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!issue) {
     res.status(404);
     throw new Error("Issue not found");

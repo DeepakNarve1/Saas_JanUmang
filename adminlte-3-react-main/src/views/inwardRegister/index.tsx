@@ -5,6 +5,7 @@ import axios from "@app/utils/axios";
 import { useDebounce } from "@app/hooks/useDebounce";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { AxiosError } from "axios";
 import {
   useQuery,
@@ -53,6 +54,7 @@ import { ContentHeader } from "@app/components";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { Pagination } from "@app/components/common/Pagination";
 import { IInwardRegisterResponse } from "@app/types/inwardRegister";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const InwardRegisterList = () => {
   const router = useRouter();
@@ -107,14 +109,19 @@ const InwardRegisterList = () => {
       debouncedSearchTerm,
     ],
     queryFn: async () => {
-      const res = await axios.get("/inward-register", {
-        params: {
-          page: pagination.page,
-          limit: pagination.limit,
-          search: debouncedSearchTerm,
-        },
-      });
-      return res.data;
+      try {
+        const res = await axios.get("/inward-register", {
+          params: {
+            page: pagination.page,
+            limit: pagination.limit,
+            search: debouncedSearchTerm,
+          },
+        });
+        return res.data;
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch inward register data");
+        throw error;
+      }
     },
     placeholderData: keepPreviousData,
   });
@@ -155,9 +162,8 @@ const InwardRegisterList = () => {
       XLSX.utils.book_append_sheet(wb, ws, "InwardRegister");
       XLSX.writeFile(wb, `InwardRegister_${Date.now()}.xlsx`);
       toast.success("Exported successfully");
-    } catch (error) {
-      console.error("Export error:", error);
-      toast.error("Failed to export data");
+    } catch (error: unknown) {
+      handleError(error, "Failed to export inward register data");
     } finally {
       setLoading(false);
     }
@@ -326,11 +332,8 @@ const InwardRegisterList = () => {
           toast.success(`Successfully imported ${successCount} records`);
         }
         queryClient.invalidateQueries({ queryKey: ["inwardRegister"] });
-      } catch (error: any) {
-        console.error("Import error:", error);
-        toast.error(
-          "Failed to process file. Ensure it's a valid Excel format.",
-        );
+      } catch (error: unknown) {
+        handleError(error, "Failed to process inward register import file");
       } finally {
         setLoading(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -348,8 +351,8 @@ const InwardRegisterList = () => {
       toast.success("Record deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["inwardRegister"] });
     },
-    onError: (error: AxiosError<{ message?: string }>) => {
-      toast.error(error.response?.data?.message || "Failed to delete record");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete record");
     },
   });
 
@@ -414,7 +417,7 @@ const InwardRegisterList = () => {
                   Import
                 </Button>
 
-                {hasPermission("create_inward_register") && (
+                {hasPermission(PERMISSIONS.CREATE_INWARD_REGISTER) && (
                   <Button
                     size="lg"
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all"
@@ -745,7 +748,9 @@ const InwardRegisterList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_inward_register") && (
+                                {hasPermission(
+                                  PERMISSIONS.VIEW_INWARD_REGISTER,
+                                ) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -756,7 +761,9 @@ const InwardRegisterList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_inward_register") && (
+                                {hasPermission(
+                                  PERMISSIONS.EDIT_INWARD_REGISTER,
+                                ) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -767,7 +774,9 @@ const InwardRegisterList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_inward_register") && (
+                                {hasPermission(
+                                  PERMISSIONS.DELETE_INWARD_REGISTER,
+                                ) && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600 focus:bg-red-50"
                                     onClick={() => handleDelete(item._id)}

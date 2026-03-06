@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { ContentHeader } from "@app/components";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { handleError } from "@app/utils/errorHandler";
 import { Pagination } from "@app/components/common/Pagination";
 import {
   useQuery,
@@ -99,16 +100,21 @@ const CallManagementList = () => {
       selectedCategory,
     ],
     queryFn: async () => {
-      const res = await axios.get("/call-management", {
-        params: {
-          page: pagination.page,
-          limit: pagination.limit,
-          search: debouncedSearchTerm,
-          category:
-            selectedCategory === "All Categories" ? "" : selectedCategory,
-        },
-      });
-      return res.data;
+      try {
+        const res = await axios.get("/call-management", {
+          params: {
+            page: pagination.page,
+            limit: pagination.limit,
+            search: debouncedSearchTerm,
+            category:
+              selectedCategory === "All Categories" ? "" : selectedCategory,
+          },
+        });
+        return res.data;
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch call management data");
+        throw error;
+      }
     },
     placeholderData: keepPreviousData,
   });
@@ -122,8 +128,8 @@ const CallManagementList = () => {
       toast.success("Record deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["call-management"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete record");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete record");
     },
   });
 

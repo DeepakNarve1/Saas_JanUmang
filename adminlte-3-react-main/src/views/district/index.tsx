@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { useDebounce } from "@app/hooks/useDebounce";
 import {
@@ -51,6 +52,7 @@ import {
 import { ContentHeader } from "@app/components";
 import { Pagination } from "@app/components/common/Pagination";
 import { IDistrictResponse } from "@app/types/district";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const District = () => {
   const { hasPermission } = usePermissions();
@@ -109,8 +111,8 @@ const District = () => {
       toast.success("District deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["districts"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete district");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete district");
     },
   });
 
@@ -152,7 +154,7 @@ const District = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  {hasPermission("create_districts") && (
+                  {hasPermission(PERMISSIONS.CREATE_DISTRICTS) && (
                     <Button
                       size="lg"
                       onClick={() => router.push("/districts/create")}
@@ -321,7 +323,7 @@ const District = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {hasPermission("view_districts") && (
+                                {hasPermission(PERMISSIONS.VIEW_DISTRICTS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/districts/${district._id}`)
@@ -330,7 +332,7 @@ const District = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_districts") && (
+                                {hasPermission(PERMISSIONS.EDIT_DISTRICTS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -341,7 +343,9 @@ const District = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_districts") && (
+                                {hasPermission(
+                                  PERMISSIONS.DELETE_DISTRICTS,
+                                ) && (
                                   <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => handleDelete(district._id)}

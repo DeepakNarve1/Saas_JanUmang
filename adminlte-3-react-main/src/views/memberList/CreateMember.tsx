@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 
 import { ContentHeader } from "@app/components";
 import { RouteGuard } from "@app/components/RouteGuard";
+import { PERMISSIONS } from "@app/config/permissions";
 import { Button } from "@app/components/ui/button";
 import { Input } from "@app/components/ui/input";
 import { Label } from "@app/components/ui/label";
@@ -170,7 +171,7 @@ const CreateMember = () => {
   };
 
   return (
-    <RouteGuard requiredPermissions={["create_members"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.CREATE_MEMBERS]}>
       <ContentHeader title="Add Member Details" />
       <section className="content pb-10">
         <div className="container-fluid px-4">
@@ -402,7 +403,7 @@ const CreateMember = () => {
                 {/* Father's Name */}
                 <div className="space-y-1.5">
                   <Label className="font-bold text-gray-700 dark:text-gray-300">
-                    Father's Name
+                    Father&apos;s Name
                   </Label>
                   <Input
                     name="fatherName"

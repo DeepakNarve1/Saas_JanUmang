@@ -10,6 +10,8 @@ import { Edit, ArrowLeft, ShieldCheck, Hash } from "lucide-react";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { ViewPageActions } from "@app/components/ViewPageActions";
+import { IState } from "@app/types/state";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const ViewState = () => {
   const router = useRouter();
@@ -17,7 +19,7 @@ const ViewState = () => {
   const id = params.id as string;
   const { hasPermission } = usePermissions();
 
-  const [stateData, setStateData] = useState<any>(null);
+  const [stateData, setStateData] = useState<IState | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,8 +27,9 @@ const ViewState = () => {
       try {
         const res = await axios.get(`/states/${id}`);
         setStateData(res.data.data);
-      } catch (err: any) {
-        toast.error(err.response?.data?.message || "Failed to load state");
+      } catch (err: unknown) {
+        const error = err as { response?: { data?: { message?: string } } };
+        toast.error(error.response?.data?.message || "Failed to load state");
         router.push("/states");
       } finally {
         setLoading(false);
@@ -53,7 +56,9 @@ const ViewState = () => {
     return {
       "State Name": stateData.name,
       "System ID": stateData._id,
-      Divisions: stateData.divisions?.map((d: any) => d.name).join(", ") || "",
+      Divisions:
+        stateData.divisions?.map((d: { name: string }) => d.name).join(", ") ||
+        "",
     };
   };
 
@@ -85,7 +90,7 @@ const ViewState = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_states") && (
+                {hasPermission(PERMISSIONS.EDIT_STATES) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20"
                     onClick={() => router.push(`/states/${id}/edit`)}
@@ -138,16 +143,18 @@ const ViewState = () => {
                 </div>
                 <div className="divide-y divide-gray-100 dark:divide-gray-800">
                   {stateData?.divisions && stateData.divisions.length > 0 ? (
-                    stateData.divisions.map((div: any) => (
-                      <div
-                        key={div._id}
-                        className="px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                      >
-                        <span className="text-gray-700 dark:text-gray-300 font-medium">
-                          {div.name}
-                        </span>
-                      </div>
-                    ))
+                    stateData.divisions.map(
+                      (div: { _id: string; name: string }) => (
+                        <div
+                          key={div._id}
+                          className="px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                        >
+                          <span className="text-gray-700 dark:text-gray-300 font-medium">
+                            {div.name}
+                          </span>
+                        </div>
+                      ),
+                    )
                   ) : (
                     <div className="px-6 py-4 text-gray-500 dark:text-gray-400 italic">
                       No divisions found for this state.

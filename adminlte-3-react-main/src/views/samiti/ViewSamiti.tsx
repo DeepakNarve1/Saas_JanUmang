@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import { Edit, ArrowLeft, ShieldCheck, Hash } from "lucide-react";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { ViewPageActions } from "@app/components/ViewPageActions";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const ViewSamiti = () => {
   const router = useRouter();
@@ -25,8 +27,8 @@ const ViewSamiti = () => {
       try {
         const res = await axios.get(`/samiti/${id}`);
         setSamitiData(res.data.data);
-      } catch (err: any) {
-        toast.error(err.response?.data?.message || "Failed to load Samiti");
+      } catch (err: unknown) {
+        handleError(err, "Failed to load Samiti");
         router.push("/samiti");
       } finally {
         setLoading(false);
@@ -84,7 +86,7 @@ const ViewSamiti = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_samiti") && (
+                {hasPermission(PERMISSIONS.EDIT_SAMITI) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white"
                     onClick={() => router.push(`/samiti/${id}/edit`)}

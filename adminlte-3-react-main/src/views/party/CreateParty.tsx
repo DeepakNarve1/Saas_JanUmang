@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import PartyForm from "./PartyForm";
 
@@ -18,8 +19,7 @@ const CreateParty = () => {
       toast.success("Party created successfully");
       router.push("/party");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to create Party");
+      handleError(error, "Failed to create Party");
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import StateForm from "./StateForm";
 
@@ -18,8 +19,7 @@ const CreateState = () => {
       toast.success("State created successfully");
       router.push("/states");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to create state");
+      handleError(error, "Failed to create state");
     } finally {
       setLoading(false);
     }

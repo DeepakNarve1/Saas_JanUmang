@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import SamitiForm from "./SamitiForm";
 import { Skeleton } from "@app/components/ui/skeleton";
@@ -29,8 +30,8 @@ const EditSamiti = () => {
             name: data.name,
           });
         }
-      } catch (err: any) {
-        toast.error(err.response?.data?.message || "Failed to load Samiti");
+      } catch (err: unknown) {
+        handleError(err, "Failed to load Samiti");
         router.push("/samiti");
       } finally {
         setLoading(false);
@@ -46,8 +47,8 @@ const EditSamiti = () => {
       await axios.put(`/samiti/${id}`, values);
       toast.success("Samiti updated successfully");
       router.push("/samiti");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to update Samiti");
+    } catch (err: unknown) {
+      handleError(err, "Failed to update Samiti");
     } finally {
       setSaving(false);
     }

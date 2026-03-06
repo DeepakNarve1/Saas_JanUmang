@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 import {
   Table,
   TableBody,
@@ -176,8 +177,8 @@ const RoleList = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                  {(hasPermission("manage_roles") ||
-                    hasPermission("create_roles")) && (
+                  {(hasPermission(PERMISSIONS.MANAGE_ROLES) ||
+                    hasPermission(PERMISSIONS.CREATE_ROLES)) && (
                     <Button
                       size="lg"
                       onClick={() => router.push("/roles/create")}
@@ -421,8 +422,8 @@ const RoleList = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {(hasPermission("manage_roles") ||
-                                  hasPermission("view_roles")) && (
+                                {(hasPermission(PERMISSIONS.MANAGE_ROLES) ||
+                                  hasPermission(PERMISSIONS.VIEW_ROLES)) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/roles/${role._id}`)
@@ -431,8 +432,8 @@ const RoleList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {(hasPermission("manage_roles") ||
-                                  hasPermission("edit_roles")) &&
+                                {(hasPermission(PERMISSIONS.MANAGE_ROLES) ||
+                                  hasPermission(PERMISSIONS.EDIT_ROLES)) &&
                                   (!role.isSystem || isGlobalAdmin) && (
                                     <DropdownMenuItem
                                       onClick={() =>
@@ -442,8 +443,8 @@ const RoleList = () => {
                                       <Edit className="mr-2 h-4 w-4" /> Edit
                                     </DropdownMenuItem>
                                   )}
-                                {(hasPermission("manage_roles") ||
-                                  hasPermission("delete_roles")) &&
+                                {(hasPermission(PERMISSIONS.MANAGE_ROLES) ||
+                                  hasPermission(PERMISSIONS.DELETE_ROLES)) &&
                                   (!role.isSystem || isGlobalAdmin) && (
                                     <DropdownMenuItem
                                       className="text-red-600"

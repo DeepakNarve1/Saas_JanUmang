@@ -33,8 +33,7 @@ const EditDistrict = () => {
           });
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(err.response?.data?.message || "Failed to load district");
+        handleError(error, "Failed to load district");
         router.push("/districts");
       } finally {
         setLoading(false);
@@ -50,7 +49,7 @@ const EditDistrict = () => {
       await axios.put(`/districts/${id}`, values);
       toast.success("District updated successfully");
       router.push("/districts");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to update district");
     } finally {
       setSaving(false);

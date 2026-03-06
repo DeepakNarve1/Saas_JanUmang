@@ -2,13 +2,15 @@ const asyncHandler = require("express-async-handler");
 const Assembly = require("../models/assemblyModel");
 const Block = require("../models/blockModel");
 const { logActivity } = require("./activityLogController");
+const { getCreateTenantId } = require("../utils/authHelpers");
 
 // @desc    Get all assemblies
 // @route   GET /api/assemblies
 exports.getAssemblies = asyncHandler(async (req, res) => {
   const { search, page = 1, limit = 10, parliament, district } = req.query;
 
-  const query = {};
+  // Always start from the tenant-scoped filter
+  const query = { ...req.scopeFilter };
 
   if (search) {
     query.$or = [{ name: { $regex: search, $options: "i" } }];
@@ -27,7 +29,7 @@ exports.getAssemblies = asyncHandler(async (req, res) => {
 
   let assemblies;
   let filteredCount;
-  let totalCount = await Assembly.countDocuments({});
+  let totalCount = await Assembly.countDocuments({ ...req.scopeFilter });
 
   if (limitNum === -1) {
     assemblies = await Assembly.find(query)
@@ -61,7 +63,10 @@ exports.getAssemblies = asyncHandler(async (req, res) => {
 // @desc    Get single assembly
 // @route   GET /api/assemblies/:id
 exports.getAssemblyById = asyncHandler(async (req, res) => {
-  const assembly = await Assembly.findById(req.params.id)
+  const assembly = await Assembly.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  })
     .populate("state", "name")
     .populate("division", "name")
     .populate("district", "name")
@@ -85,7 +90,7 @@ exports.createAssembly = asyncHandler(async (req, res) => {
     division,
     ...(district && { district }),
     parliament,
-    blocks, // Mongoose ignores extra fields if not in schema, but good to be explicit/clean usually
+    tenantId: getCreateTenantId(req),
   });
 
   if (blocks && Array.isArray(blocks) && blocks.length > 0) {
@@ -118,7 +123,10 @@ exports.createAssembly = asyncHandler(async (req, res) => {
 // @desc    Update an assembly
 // @route   PUT /api/assemblies/:id
 exports.updateAssembly = asyncHandler(async (req, res) => {
-  const assembly = await Assembly.findById(req.params.id);
+  const assembly = await Assembly.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!assembly) {
     res.status(404);
     throw new Error("Assembly not found");
@@ -167,7 +175,10 @@ exports.updateAssembly = asyncHandler(async (req, res) => {
 // @desc    Delete an assembly
 // @route   DELETE /api/assemblies/:id
 exports.deleteAssembly = asyncHandler(async (req, res) => {
-  const assembly = await Assembly.findById(req.params.id);
+  const assembly = await Assembly.findOne({
+    _id: req.params.id,
+    ...req.scopeFilter,
+  });
   if (!assembly) {
     res.status(404);
     throw new Error("Assembly not found");

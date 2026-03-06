@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import {
@@ -13,26 +14,12 @@ import {
 import { Skeleton } from "@app/components/ui/skeleton";
 import { ArrowLeft, Edit } from "lucide-react";
 import { ViewPageActions } from "@app/components/ViewPageActions";
-
-interface IAssemblyDetails {
-  _id: string;
-  name: string;
-  parliament: {
-    _id: string;
-    name: string;
-  };
-  blocks: {
-    _id: string;
-    name: string;
-  }[];
-  createdAt: string;
-  updatedAt: string;
-}
+import { IAssembly } from "@app/types/assembly";
 
 const ViewAssembly = () => {
   const { id } = useParams();
   const router = useRouter();
-  const [assembly, setAssembly] = useState<IAssemblyDetails | null>(null);
+  const [assembly, setAssembly] = useState<IAssembly | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,7 +32,7 @@ const ViewAssembly = () => {
       const { data } = await axios.get(`/assemblies/${id}`);
       setAssembly(data.data);
     } catch (error: unknown) {
-      toast.error("Failed to fetch assembly details");
+      handleError(error, "Failed to fetch assembly details");
       router.push("/assemblies");
     } finally {
       setLoading(false);
@@ -55,12 +42,12 @@ const ViewAssembly = () => {
   /* Define export data */
   const getExportData = () => {
     if (!assembly) return {};
-    const blocks = assembly.blocks?.map((b) => b.name).join(", ") || "";
     return {
       "Assembly Name": assembly.name,
-      Parliament: assembly.parliament?.name || "",
+      Parliament: (assembly.parliament as { name?: string })?.name || "",
       "Total Blocks": assembly.blocks?.length || 0,
-      Blocks: blocks,
+      Blocks:
+        assembly.blocks?.map((b: { name: string }) => b.name).join(", ") || "",
       "Created At": assembly.createdAt,
     };
   };
@@ -138,7 +125,8 @@ const ViewAssembly = () => {
                       Parliament
                     </p>
                     <p className="text-lg font-bold text-gray-800 dark:text-gray-100">
-                      {assembly.parliament?.name || "N/A"}
+                      {(assembly.parliament as { name?: string })?.name ||
+                        "N/A"}
                     </p>
                   </div>
                 </div>
@@ -155,17 +143,19 @@ const ViewAssembly = () => {
               <CardContent className="pt-6">
                 {assembly.blocks && assembly.blocks.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {assembly.blocks.map((block) => (
-                      <div
-                        key={block._id}
-                        className="bg-gray-50/50 dark:bg-gray-800/20 p-4 rounded-xl border border-gray-100 dark:border-gray-800/50 flex items-center justify-between group hover:border-[#368F8B] dark:hover:border-[#368F8B] transition-all"
-                      >
-                        <span className="font-bold text-gray-700 dark:text-gray-200">
-                          {block.name}
-                        </span>
-                        <div className="w-2 h-2 rounded-full bg-[#368F8B] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      </div>
-                    ))}
+                    {assembly.blocks.map(
+                      (block: { _id: string; name: string }) => (
+                        <div
+                          key={block._id}
+                          className="bg-gray-50/50 dark:bg-gray-800/20 p-4 rounded-xl border border-gray-100 dark:border-gray-800/50 flex items-center justify-between group hover:border-[#368F8B] dark:hover:border-[#368F8B] transition-all"
+                        >
+                          <span className="font-bold text-gray-700 dark:text-gray-200">
+                            {block.name}
+                          </span>
+                          <div className="w-2 h-2 rounded-full bg-[#368F8B] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        </div>
+                      ),
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-400 dark:text-gray-500 bg-gray-50/50 dark:bg-gray-800/10 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 italic">

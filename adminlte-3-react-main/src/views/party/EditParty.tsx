@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import PartyForm from "./PartyForm";
 import { Skeleton } from "@app/components/ui/skeleton";
@@ -30,8 +31,7 @@ const EditParty = () => {
           });
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(err.response?.data?.message || "Failed to load Party");
+        handleError(error, "Failed to load Party");
         router.push("/party");
       } finally {
         setLoading(false);
@@ -48,8 +48,7 @@ const EditParty = () => {
       toast.success("Party updated successfully");
       router.push("/party");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to update Party");
+      handleError(error, "Failed to update Party");
     } finally {
       setSaving(false);
     }

@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { useDebounce } from "@app/hooks/useDebounce";
 import {
@@ -54,7 +55,8 @@ import {
 } from "lucide-react";
 import { ContentHeader } from "@app/components";
 import { Pagination } from "@app/components/common/Pagination";
-import { IBoothResponse } from "@app/types/booth";
+import { IBooth, IBoothResponse } from "@app/types/booth";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const Booth = () => {
   const { hasPermission } = usePermissions();
@@ -131,8 +133,8 @@ const Booth = () => {
       toast.success("Booth deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["booths"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete booth");
+    onError: (error: unknown) => {
+      handleError(error, "Failed to delete booth");
     },
   });
 
@@ -153,12 +155,12 @@ const Booth = () => {
         "CreatedAt",
         "Actions",
       ];
-      const rows = data.map((item: any, index: number) => [
+      const rows = data.map((item: IBooth, index: number) => [
         index + 1,
         item.name,
         item.code || "-",
         typeof item.block === "object" ? item.block?.name : item.block || "-",
-        (item.block as any)?.year || "-",
+        (item.block as { year?: string })?.year || "-",
         item.createdAt
           ? new Date(item.createdAt)
               .toISOString()
@@ -172,8 +174,8 @@ const Booth = () => {
       );
       await navigator.clipboard.writeText(text);
       toast.success("Copied to clipboard");
-    } catch (error) {
-      toast.error("Failed to copy data");
+    } catch (error: unknown) {
+      handleError(error, "Failed to copy data");
     }
   };
 
@@ -181,13 +183,13 @@ const Booth = () => {
     if (data.length === 0) return toast.warning("No data to export");
     try {
       const XLSX = await import("xlsx");
-      const exportData = data.map((item: any, index: number) => ({
+      const exportData = data.map((item: IBooth, index: number) => ({
         ID: index + 1,
         "Booth Name": item.name,
         Code: item.code || "-",
         Block:
           typeof item.block === "object" ? item.block?.name : item.block || "-",
-        Year: (item.block as any)?.year || "-",
+        Year: (item.block as { year?: string })?.year || "-",
         CreatedAt: item.createdAt
           ? new Date(item.createdAt)
               .toISOString()
@@ -201,8 +203,8 @@ const Booth = () => {
       XLSX.utils.book_append_sheet(wb, ws, "Booths");
       XLSX.writeFile(wb, `booths_${Date.now()}.xlsx`);
       toast.success("Excel exported successfully");
-    } catch (error) {
-      toast.error("Failed to export Excel");
+    } catch (error: unknown) {
+      handleError(error, "Failed to export Excel");
     }
   };
 
@@ -215,12 +217,12 @@ const Booth = () => {
       const headers = [
         ["ID", "Booth Name", "Code", "Block", "Year", "CreatedAt", "Actions"],
       ];
-      const body = data.map((item: any, index: number) => [
+      const body = data.map((item: IBooth, index: number) => [
         index + 1,
         item.name,
         item.code || "-",
         typeof item.block === "object" ? item.block?.name : item.block || "-",
-        (item.block as any)?.year || "-",
+        (item.block as { year?: string })?.year || "-",
         item.createdAt
           ? new Date(item.createdAt)
               .toISOString()
@@ -238,8 +240,8 @@ const Booth = () => {
       });
       doc.save(`booths_${Date.now()}.pdf`);
       toast.success("PDF exported successfully");
-    } catch (error) {
-      toast.error("Failed to export PDF");
+    } catch (error: unknown) {
+      handleError(error, "Failed to export PDF");
     }
   };
 
@@ -264,7 +266,7 @@ const Booth = () => {
         let successCount = 0;
         let failureCount = 0;
 
-        for (const row of jsonData as any[]) {
+        for (const row of jsonData as Record<string, string | number>[]) {
           try {
             const payload = {
               name: row["Booth Name"] || row["name"] || "",
@@ -282,8 +284,8 @@ const Booth = () => {
           `Import complete: ${successCount} added, ${failureCount} failed`,
         );
         queryClient.invalidateQueries({ queryKey: ["booths"] });
-      } catch (error) {
-        toast.error("Failed to import file");
+      } catch (error: unknown) {
+        handleError(error, "Failed to import file");
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
@@ -368,7 +370,7 @@ const Booth = () => {
                       onChange={handleImport}
                       className="hidden"
                     />
-                    {hasPermission("create_booths") && (
+                    {hasPermission(PERMISSIONS.CREATE_BOOTHS) && (
                       <Button
                         size="sm"
                         onClick={() => router.push("/booths/create")}
@@ -396,7 +398,7 @@ const Booth = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Blocks</SelectItem>
-                    {blocks.map((b: any) => (
+                    {blocks.map((b: { _id: string; name: string }) => (
                       <SelectItem key={b._id} value={b.name}>
                         {b.name}
                       </SelectItem>
@@ -498,7 +500,7 @@ const Booth = () => {
                         Block
                       </TableHead>
                     )}
-                    {(visibleColumns as any).year && (
+                    {visibleColumns.year && (
                       <TableHead className="font-semibold text-white dark:text-white uppercase tracking-wider text-xs">
                         Year
                       </TableHead>
@@ -534,7 +536,7 @@ const Booth = () => {
                             <Skeleton className="h-12 w-48 dark:bg-gray-800" />
                           </TableCell>
                         )}
-                        {(visibleColumns as any).year && (
+                        {visibleColumns.year && (
                           <TableCell>
                             <Skeleton className="h-12 w-24 dark:bg-gray-800" />
                           </TableCell>
@@ -600,10 +602,10 @@ const Booth = () => {
                             </span>
                           </TableCell>
                         )}
-                        {(visibleColumns as any).year && (
+                        {visibleColumns.year && (
                           <TableCell>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border border-blue-200 dark:border-blue-800">
-                              {(booth.block as any)?.year || "-"}
+                              {(booth.block as { year?: string })?.year || "-"}
                             </span>
                           </TableCell>
                         )}
@@ -620,7 +622,7 @@ const Booth = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {hasPermission("view_booths") && (
+                                {hasPermission(PERMISSIONS.VIEW_BOOTHS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/booths/${booth._id}`)
@@ -629,7 +631,7 @@ const Booth = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_booths") && (
+                                {hasPermission(PERMISSIONS.EDIT_BOOTHS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/booths/${booth._id}/edit`)
@@ -638,7 +640,7 @@ const Booth = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_booths") && (
+                                {hasPermission(PERMISSIONS.DELETE_BOOTHS) && (
                                   <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => handleDelete(booth._id)}

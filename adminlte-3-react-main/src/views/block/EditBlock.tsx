@@ -6,12 +6,13 @@ import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import BlockForm from "./BlockForm";
 import { Skeleton } from "@app/components/ui/skeleton";
+import { IBlockFormValues } from "./block.schema";
 
 const EditBlock = () => {
   const router = useRouter();
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
-  const [initialValues, setInitialValues] = useState({
+  const [initialValues, setInitialValues] = useState<IBlockFormValues>({
     name: "",
     state: "",
     division: "",
@@ -50,24 +51,22 @@ const EditBlock = () => {
         year: block.year || "",
       });
     } catch (error: unknown) {
-      toast.error("Failed to fetch block details");
+      handleError(error, "Failed to fetch block details");
       router.push("/blocks");
     } finally {
       setIsFetching(false);
     }
   };
 
-  const handleSubmit = async (values: {
-    name: string;
-    assembly: string;
-    booths: string[];
-  }) => {
+  const handleSubmit = async (
+    values: IBlockFormValues & { booths: string[] },
+  ) => {
     try {
       setLoading(true);
       await axios.put(`/blocks/${id}`, values);
       toast.success("Block updated successfully");
       router.push("/blocks");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to update block");
     } finally {
       setLoading(false);

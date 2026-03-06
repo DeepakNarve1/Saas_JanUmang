@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { ContentHeader } from "@app/components";
 import { RouteGuard } from "@app/components/RouteGuard";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 import { Pagination } from "@app/components/common/Pagination";
 import {
   Table,
@@ -58,7 +59,7 @@ import { IEventResponse } from "@app/types/events";
 
 const EventList = () => {
   return (
-    <RouteGuard requiredPermissions={["view_events"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_EVENTS]}>
       <EventListContent />
     </RouteGuard>
   );
@@ -419,7 +420,7 @@ const EventListContent = () => {
                     <Calendar1 className="w-5 h-5 mr-2" /> Calendar
                   </Button>
 
-                  {hasPermission("create_events") && (
+                  {hasPermission(PERMISSIONS.CREATE_EVENTS) && (
                     <Button
                       size="lg"
                       onClick={() => router.push("/events/create")}
@@ -899,7 +900,7 @@ const EventListContent = () => {
                                 >
                                   <Eye className="mr-2 h-4 w-4" /> View
                                 </DropdownMenuItem>
-                                {hasPermission("edit_events") && (
+                                {hasPermission(PERMISSIONS.EDIT_EVENTS) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(`/events/${event._id}/edit`)
@@ -908,7 +909,7 @@ const EventListContent = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_events") && (
+                                {hasPermission(PERMISSIONS.DELETE_EVENTS) && (
                                   <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => handleDelete(event._id)}

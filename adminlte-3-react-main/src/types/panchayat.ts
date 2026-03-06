@@ -13,7 +13,11 @@ export interface IPanchayatFormValues {
 export interface IPanchayat {
   _id: string;
   name: string;
+  state?: string | { _id: string; name: string };
+  division?: string | { _id: string; name: string };
   district?: string | { _id: string; name: string };
+  parliament?: string | { _id: string; name: string };
+  assembly?: string | { _id: string; name: string };
   block?: string | { _id: string; name: string };
   booth?: string | { _id: string; name: string };
   year?: string;

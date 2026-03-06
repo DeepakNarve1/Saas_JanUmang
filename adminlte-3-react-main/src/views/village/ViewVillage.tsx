@@ -8,14 +8,17 @@ import { Button } from "@app/components/ui/button";
 import { ArrowLeft, Edit } from "lucide-react";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { Skeleton } from "@app/components/ui/skeleton";
+import { handleError } from "@app/utils/errorHandler";
 import { Card, CardContent, CardHeader } from "@app/components/ui/card";
 import { ViewPageActions } from "@app/components/ViewPageActions";
+import { IVillage } from "@app/types/village";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const ViewVillage = () => {
   const { id } = useParams();
   const router = useRouter();
   const { hasPermission } = usePermissions();
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<IVillage | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,7 +29,7 @@ const ViewVillage = () => {
         const res = await axios.get(`/villages/${id}`);
         setData(res.data.data);
       } catch (error: unknown) {
-        console.error(error);
+        handleError(error, "Failed to load village details");
       } finally {
         setLoading(false);
       }
@@ -55,14 +58,15 @@ const ViewVillage = () => {
     if (!data) return {};
     return {
       "Village Name": data.name,
-      State: data.state?.name || "",
-      Division: data.division?.name || "",
-      District: data.district?.name || "",
-      Parliament: data.parliament?.name || "",
-      Assembly: data.assembly?.name || "",
-      Block: data.block?.name || "",
-      Booth: data.booth?.name || "",
-      Panchayat: data.panchayat?.name || "",
+      State: typeof data.state === "object" ? data.state.name : "",
+      Division: typeof data.division === "object" ? data.division.name : "",
+      District: typeof data.district === "object" ? data.district.name : "",
+      Parliament:
+        typeof data.parliament === "object" ? data.parliament.name : "",
+      Assembly: typeof data.assembly === "object" ? data.assembly.name : "",
+      Block: typeof data.block === "object" ? data.block.name : "",
+      Booth: typeof data.booth === "object" ? data.booth.name : "",
+      Panchayat: typeof data.panchayat === "object" ? data.panchayat.name : "",
     };
   };
 
@@ -94,7 +98,7 @@ const ViewVillage = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_villages") && (
+                {hasPermission(PERMISSIONS.EDIT_VILLAGES) && (
                   <Button
                     onClick={() => router.push(`/villages/${id}/edit`)}
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white dark:bg-[#368F8B] dark:hover:bg-[#2d7a76] rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
@@ -108,28 +112,63 @@ const ViewVillage = () => {
             <div className="p-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <ViewField label="Village Name" value={data.name} />
-                <ViewField label="State" value={data.state?.name || "N/A"} />
+                <ViewField
+                  label="State"
+                  value={
+                    typeof data.state === "object" ? data.state.name : "N/A"
+                  }
+                />
                 <ViewField
                   label="Division"
-                  value={data.division?.name || "N/A"}
+                  value={
+                    typeof data.division === "object"
+                      ? data.division.name
+                      : "N/A"
+                  }
                 />
                 <ViewField
                   label="District"
-                  value={data.district?.name || "N/A"}
+                  value={
+                    typeof data.district === "object"
+                      ? data.district.name
+                      : "N/A"
+                  }
                 />
                 <ViewField
                   label="Parliament"
-                  value={data.parliament?.name || "N/A"}
+                  value={
+                    typeof data.parliament === "object"
+                      ? data.parliament.name
+                      : "N/A"
+                  }
                 />
                 <ViewField
                   label="Assembly"
-                  value={data.assembly?.name || "N/A"}
+                  value={
+                    typeof data.assembly === "object"
+                      ? data.assembly.name
+                      : "N/A"
+                  }
                 />
-                <ViewField label="Block" value={data.block?.name || "N/A"} />
-                <ViewField label="Booth" value={data.booth?.name || "N/A"} />
+                <ViewField
+                  label="Block"
+                  value={
+                    typeof data.block === "object" ? data.block.name : "N/A"
+                  }
+                />
+                <ViewField
+                  label="Booth"
+                  value={
+                    typeof data.booth === "object" ? data.booth.name : "N/A"
+                  }
+                />
                 <ViewField
                   label="Panchayat"
-                  value={data.panchayat?.name || "N/A"}
+                  value={
+                    typeof data.panchayat === "object"
+                      ? data.panchayat.name
+                      : "N/A"
+                  }
                 />
               </div>
             </div>
@@ -151,7 +190,7 @@ const ViewField = ({
     <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">
       {label}
     </h3>
-    <p className="text-base font-semibold text-gray-800 dark:text-gray-100 break-words line-clamp-2">
+    <p className="text-base font-semibold text-gray-800 dark:text-gray-100 wrap-break-word line-clamp-2">
       {value || "-"}
     </p>
   </div>

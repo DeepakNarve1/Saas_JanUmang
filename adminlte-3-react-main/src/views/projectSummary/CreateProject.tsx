@@ -20,11 +20,12 @@ import {
 import { Button } from "@app/components/ui/button";
 import { Label } from "@app/components/ui/label";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 const CreateProject = () => {
   return (
-    <RouteGuard requiredPermissions={["manage_roles", "create_projects"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.MANAGE_ROLES, PERMISSIONS.CREATE_PROJECTS]}>
       <CreateProjectContent />
     </RouteGuard>
   );
@@ -57,7 +58,7 @@ const CreateProjectContent = () => {
         await axios.post("/projects", payload);
         toast.success("Project created successfully!");
         router.push("/project-summary");
-      } catch (error: any) {
+      } catch (error: unknown) {
         handleError(error, "Failed to create project");
       } finally {
         setLoading(false);
@@ -93,8 +94,8 @@ const CreateProjectContent = () => {
     try {
       const { data } = await axios.get("/states");
       setStatesList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch states", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch states");
     }
   };
 
@@ -102,8 +103,8 @@ const CreateProjectContent = () => {
     try {
       const { data } = await axios.get(`/divisions?state=${stateId}&limit=-1`);
       setDivisionsList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch divisions", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch divisions");
     }
   };
 
@@ -113,8 +114,8 @@ const CreateProjectContent = () => {
         `/districts?division=${divisionId}&limit=-1`,
       );
       setDistrictsList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch districts", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch districts");
     }
   };
 
@@ -122,8 +123,8 @@ const CreateProjectContent = () => {
     try {
       const { data } = await axios.get("/blocks?limit=-1");
       setBlocksList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch blocks", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch blocks");
     }
   };
 
@@ -131,8 +132,8 @@ const CreateProjectContent = () => {
     try {
       const { data } = await axios.get("/departments?limit=-1");
       setDepartmentsList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch departments", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch departments");
     }
   };
 

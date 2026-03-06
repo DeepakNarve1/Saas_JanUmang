@@ -20,8 +20,6 @@ exports.getMembers = asyncHandler(async (req, res) => {
       code,
     } = req.query;
 
-    console.log("Fetching members with params:", req.query);
-
     const query = { ...req.scopeFilter };
 
     // Text Search
@@ -59,8 +57,6 @@ exports.getMembers = asyncHandler(async (req, res) => {
       }
     }
 
-    console.log("Constructed query:", JSON.stringify(query));
-
     let queryBuilder = Member.find(query)
       .sort({ createdAt: -1 })
       .allowDiskUse(true);
@@ -75,8 +71,6 @@ exports.getMembers = asyncHandler(async (req, res) => {
       Member.countDocuments({ ...req.scopeFilter }),
       Member.countDocuments(query),
     ]);
-
-    console.log(`Found ${count} members`);
 
     const formattedMembers = members.map((m) => {
       const obj = m.toObject();

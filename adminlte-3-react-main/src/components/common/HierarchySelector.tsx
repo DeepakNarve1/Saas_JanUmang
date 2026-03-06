@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import axios from "@app/utils/axios";
+import { handleError } from "@app/utils/errorHandler";
+import { FormikProps } from "formik";
 import { Label } from "@app/components/ui/label";
 import { Input } from "@app/components/ui/input";
 import {
@@ -12,7 +14,7 @@ import {
 } from "@app/components/ui/select";
 
 interface HierarchySelectorProps {
-  formik: any;
+  formik: FormikProps<any>;
   targetLevel?:
     | "state"
     | "division"
@@ -60,9 +62,12 @@ const HierarchySelector = ({
     const fetchInit = async () => {
       try {
         const { data } = await axios.get("/states?limit=-1");
-        setLists((prev) => ({ ...prev, states: data.data || [] }));
-      } catch (error) {
-        console.error("Failed to fetch states", error);
+        setLists((prev: Record<string, any[]>) => ({
+          ...prev,
+          states: data.data || [],
+        }));
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch states");
       }
     };
     fetchInit();
@@ -75,9 +80,12 @@ const HierarchySelector = ({
   ) => {
     try {
       const { data } = await axios.get(`/${endpoint}?limit=-1`, { params });
-      setLists((prev) => ({ ...prev, [listKey]: data.data || [] }));
-    } catch (error) {
-      console.error(`Failed to fetch ${listKey}`, error);
+      setLists((prev: Record<string, any[]>) => ({
+        ...prev,
+        [listKey]: data.data || [],
+      }));
+    } catch (error: unknown) {
+      handleError(error, `Failed to fetch ${listKey}`);
     }
   };
 
@@ -157,8 +165,8 @@ const HierarchySelector = ({
                 formik.setFieldValue("panchayat", p._id);
                 // No longer fetching villages as it is now a text input
               }
-            } catch (error) {
-              console.error("Failed to auto-select panchayat", error);
+            } catch (error: unknown) {
+              handleError(error, "Failed to auto-select panchayat");
             }
           };
           fetchLinkedPanchayat();
@@ -243,7 +251,7 @@ const HierarchySelector = ({
             <SelectValue placeholder={`Select ${label}`} />
           </SelectTrigger>
           <SelectContent>
-            {options.map((item) => (
+            {options.map((item: any) => (
               <SelectItem key={item._id} value={item._id}>
                 {item.name}
               </SelectItem>
@@ -252,7 +260,7 @@ const HierarchySelector = ({
         </Select>
         {formik.touched[level] && formik.errors[level] && (
           <p className="text-[10px] text-red-500 font-bold uppercase">
-            {formik.errors[level]}
+            {formik.errors[level] as string}
           </p>
         )}
       </div>
@@ -286,7 +294,7 @@ const HierarchySelector = ({
         />
         {formik.touched[level] && formik.errors[level] && (
           <p className="text-[10px] text-red-500 font-bold uppercase">
-            {formik.errors[level]}
+            {formik.errors[level] as string}
           </p>
         )}
       </div>

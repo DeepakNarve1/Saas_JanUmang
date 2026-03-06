@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import axios from "@app/utils/axios";
 import { useFormik } from "formik";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { Button } from "@app/components/ui/button";
 import { Input } from "@app/components/ui/input";
 import { Label } from "@app/components/ui/label";
@@ -29,20 +30,25 @@ interface VillageFormProps {
   isEdit?: boolean;
 }
 
+interface OptionItem {
+  _id: string;
+  name: string;
+}
+
 const VillageForm = ({
   initialValues = villageInitialValues,
   onSubmit,
   loading = false,
   isEdit = false,
 }: VillageFormProps) => {
-  const [statesList, setStatesList] = useState<any[]>([]);
-  const [divisionsList, setDivisionsList] = useState<any[]>([]);
-  const [districtsList, setDistrictsList] = useState<any[]>([]);
-  const [parliamentsList, setParliamentsList] = useState<any[]>([]);
-  const [assembliesList, setAssembliesList] = useState<any[]>([]);
-  const [blocksList, setBlocksList] = useState<any[]>([]);
-  const [boothsList, setBoothsList] = useState<any[]>([]);
-  const [panchayatsList, setPanchayatsList] = useState<any[]>([]);
+  const [statesList, setStatesList] = useState<OptionItem[]>([]);
+  const [divisionsList, setDivisionsList] = useState<OptionItem[]>([]);
+  const [districtsList, setDistrictsList] = useState<OptionItem[]>([]);
+  const [parliamentsList, setParliamentsList] = useState<OptionItem[]>([]);
+  const [assembliesList, setAssembliesList] = useState<OptionItem[]>([]);
+  const [blocksList, setBlocksList] = useState<OptionItem[]>([]);
+  const [boothsList, setBoothsList] = useState<OptionItem[]>([]);
+  const [panchayatsList, setPanchayatsList] = useState<OptionItem[]>([]);
 
   useEffect(() => {
     fetchStates();
@@ -75,8 +81,8 @@ const VillageForm = ({
     try {
       const { data } = await axios.get("/states?limit=-1");
       setStatesList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch states", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch states");
     }
   };
 
@@ -88,8 +94,8 @@ const VillageForm = ({
     try {
       const { data } = await axios.get(`/divisions?limit=-1&state=${stateId}`);
       setDivisionsList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch divisions", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch divisions");
     }
   };
 
@@ -103,8 +109,8 @@ const VillageForm = ({
         `/districts?limit=-1&division=${divisionId}`,
       );
       setDistrictsList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch districts", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch districts");
     }
   };
 
@@ -118,8 +124,8 @@ const VillageForm = ({
         `/parliaments?limit=-1&division=${divisionId}`,
       );
       setParliamentsList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch parliaments", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch parliaments");
     }
   };
 
@@ -133,8 +139,8 @@ const VillageForm = ({
         `/assemblies?limit=-1&parliament=${parliamentId}`,
       );
       setAssembliesList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch assemblies", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch assemblies");
     }
   };
 
@@ -144,8 +150,8 @@ const VillageForm = ({
       if (assemblyId) url += `&assembly=${assemblyId}`;
       const { data } = await axios.get(url);
       setBlocksList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch blocks", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch blocks");
     }
   };
 
@@ -157,8 +163,8 @@ const VillageForm = ({
     try {
       const { data } = await axios.get(`/booths?limit=-1&block=${blockId}`);
       setBoothsList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch booths", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch booths");
     }
   };
 
@@ -170,8 +176,8 @@ const VillageForm = ({
     try {
       const { data } = await axios.get(`/panchayat?limit=-1&block=${blockId}`);
       setPanchayatsList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch panchayats", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch panchayats");
     }
   };
 

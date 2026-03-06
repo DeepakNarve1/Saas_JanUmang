@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
 
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 const District = dynamic(() => import("@app/views/district"), {
   ssr: false,
@@ -17,7 +18,7 @@ const District = dynamic(() => import("@app/views/district"), {
 
 export default function DistrictPage() {
   return (
-    <RouteGuard requiredPermission="view_districts">
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_DISTRICTS]}>
       <District />
     </RouteGuard>
   );

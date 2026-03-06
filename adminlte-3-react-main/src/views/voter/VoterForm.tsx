@@ -59,7 +59,7 @@ const VoterForm = ({
   onSubmit,
   loading = false,
 }: VoterFormProps) => {
-  const formik = useFormik({
+  const formik = useFormik<IVoterFormValues>({
     initialValues,
     enableReinitialize: true,
     validationSchema: Yup.object({
@@ -139,7 +139,7 @@ const VoterForm = ({
                   htmlFor="fatherName"
                   className="text-gray-700 dark:text-gray-300 font-medium"
                 >
-                  Father's Name <span className="text-red-500">*</span>
+                  Father&apos;s Name <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="fatherName"
@@ -176,11 +176,11 @@ const VoterForm = ({
                       const value = e.target.value.replace(/\D/g, "");
                       if (value.length <= 10) {
                         formik.setFieldValue("mobileNumber", value);
-                        // Also update formik.handleChange(e) not needed if we setFieldValue directly, 
-                        // but Formik might need the event for touched state. 
-                        // Actually setFieldValue is enough for value. 
+                        // Also update formik.handleChange(e) not needed if we setFieldValue directly,
+                        // but Formik might need the event for touched state.
+                        // Actually setFieldValue is enough for value.
                         // To properly trigger validation and touched, strictly we might want to also call handleBlur.
-                        // But setFieldValue commonly works. 
+                        // But setFieldValue commonly works.
                       }
                     }}
                     onBlur={formik.handleBlur}
@@ -244,6 +244,9 @@ const VoterForm = ({
                   id="cast"
                   name="cast"
                   placeholder="Enter caste"
+                  value={formik.values.cast}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"
                 />
               </div>
@@ -259,6 +262,9 @@ const VoterForm = ({
                   id="subcast"
                   name="subcast"
                   placeholder="Enter sub-caste"
+                  value={formik.values.subcast}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"
                 />
               </div>
@@ -274,6 +280,9 @@ const VoterForm = ({
                   id="fallaMarjra"
                   name="fallaMarjra"
                   placeholder="Enter locality"
+                  value={formik.values.fallaMarjra}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"
                 />
               </div>

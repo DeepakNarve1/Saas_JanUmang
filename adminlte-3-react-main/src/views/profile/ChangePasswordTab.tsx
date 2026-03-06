@@ -27,7 +27,7 @@ const ChangePasswordTab = ({ isActive }: { isActive: boolean }) => {
           toast.success("Password updated successfully");
           resetForm();
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         handleError(error, "Failed to update password");
       } finally {
         setSubmitting(false);

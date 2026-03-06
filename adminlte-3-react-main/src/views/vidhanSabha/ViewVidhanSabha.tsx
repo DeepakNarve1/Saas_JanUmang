@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import { Edit, ArrowLeft, ShieldCheck, Hash } from "lucide-react";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { ViewPageActions } from "@app/components/ViewPageActions";
+import { IVidhanSabha } from "@app/types/vidhanSabha";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const ViewVidhanSabha = () => {
   const router = useRouter();
@@ -17,7 +20,9 @@ const ViewVidhanSabha = () => {
   const id = params.id as string;
   const { hasPermission } = usePermissions();
 
-  const [vidhanSabhaData, setVidhanSabhaData] = useState<any>(null);
+  const [vidhanSabhaData, setVidhanSabhaData] = useState<IVidhanSabha | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,10 +30,8 @@ const ViewVidhanSabha = () => {
       try {
         const res = await axios.get(`/vidhan-sabha/${id}`);
         setVidhanSabhaData(res.data.data);
-      } catch (err: any) {
-        toast.error(
-          err.response?.data?.message || "Failed to load VidhanSabha",
-        );
+      } catch (error: unknown) {
+        handleError(error, "Failed to load VidhanSabha");
         router.push("/vidhansabha");
       } finally {
         setLoading(false);
@@ -87,7 +90,7 @@ const ViewVidhanSabha = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_assemblies") && (
+                {hasPermission(PERMISSIONS.EDIT_ASSEMBLIES) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white dark:bg-[#368F8B] dark:hover:bg-[#2d7a76] rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
                     onClick={() => router.push(`/vidhansabha/${id}/edit`)}

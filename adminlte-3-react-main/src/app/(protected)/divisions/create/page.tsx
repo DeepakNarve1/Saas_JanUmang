@@ -1,11 +1,12 @@
 "use client";
 
 import CreateDivision from "@app/views/division/CreateDivision";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 export default function CreateDivisionPage() {
   return (
-    <RouteGuard requiredPermission="create_divisions">
+    <RouteGuard requiredPermissions={[PERMISSIONS.CREATE_DIVISIONS]}>
       <CreateDivision />
     </RouteGuard>
   );

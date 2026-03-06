@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import EventForm from "./EventForm";
 import { IEventFormValues } from "./event.schema";
 
@@ -22,23 +24,14 @@ const CreateEvent = () => {
       toast.success("Event created successfully");
       router.push("/events");
     } catch (error: unknown) {
-      console.error("Event creation error:", error);
-      const err = error as {
-        response?: { data?: { message?: string; error?: string } };
-      };
-      const errorMessage =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Failed to create event";
-      console.error("Error message:", errorMessage);
-      toast.error(errorMessage);
+      handleError(error, "Failed to create event");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <RouteGuard requiredPermissions={["create_events"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.CREATE_EVENTS]}>
       <ContentHeader title="Create Event" />
       <section className="content">
         <div className="container-fluid px-4">

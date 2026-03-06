@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import {
@@ -29,10 +30,8 @@ const ActivityLogView = () => {
       try {
         const res = await axios.get(`/activity-logs/${id}`);
         setLog(res.data.data);
-      } catch (error: any) {
-        toast.error(
-          error.response?.data?.message || "Failed to load activity log",
-        );
+      } catch (error: unknown) {
+        handleError(error, "Failed to load activity log");
         router.push("/activity-management/activity-logs");
       } finally {
         setLoading(false);

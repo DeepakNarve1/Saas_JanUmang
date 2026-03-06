@@ -7,18 +7,19 @@ import { toast } from "react-toastify";
 import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import PanchayatForm from "./PanchayatForm";
+import { IPanchayatFormValues } from "./panchayat.schema";
 
 const CreatePanchayat = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: IPanchayatFormValues) => {
     try {
       setLoading(true);
       await axios.post("/panchayat", values);
       toast.success("Panchayat created successfully");
       router.push("/panchayat");
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, "Failed to create panchayat");
     } finally {
       setLoading(false);

@@ -37,4 +37,6 @@ export interface IVoter {
   block?: string | { name: string; _id: string };
   booth?: string | { name: string; _id: string };
   boothNo?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

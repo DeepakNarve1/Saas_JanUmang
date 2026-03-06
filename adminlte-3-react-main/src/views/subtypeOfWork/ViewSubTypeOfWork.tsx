@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import { Button } from "@app/components/ui/button";
 import { Edit, ArrowLeft, ShieldCheck, Hash } from "lucide-react";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { usePermissions } from "@app/hooks/usePermissions";
 import { ViewPageActions } from "@app/components/ViewPageActions";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const ViewSubTypeOfWork = () => {
   const router = useRouter();
@@ -23,13 +25,11 @@ const ViewSubTypeOfWork = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
         const res = await axios.get(`/sub-type-of-work/${id}`);
         setData(res.data.data);
       } catch (err: unknown) {
-        const error = err as { response?: { data?: { message?: string } } };
-        toast.error(
-          error.response?.data?.message || "Failed to load Sub Type of Work",
-        );
+        handleError(err, "Failed to load Sub Type of Work");
         router.push("/sub-type-of-work");
       } finally {
         setLoading(false);
@@ -88,7 +88,7 @@ const ViewSubTypeOfWork = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back to List
                 </Button>
-                {hasPermission("edit_sub_work_types") && (
+                {hasPermission(PERMISSIONS.EDIT_SUB_WORK_TYPES) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
                     onClick={() => router.push(`/sub-type-of-work/${id}/edit`)}

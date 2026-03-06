@@ -35,6 +35,7 @@ import { Skeleton } from "@app/components/ui/skeleton";
 
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { IUserRow, IRole } from "@app/types/user";
+import { PERMISSIONS } from "@app/config/permissions";
 
 interface IUserCountRow {
   _id: string;
@@ -69,7 +70,7 @@ const UserCount = () => {
         const res = await axios.get("/auth/users?limit=-1");
         return res.data?.data || [];
       },
-      enabled: hasPermission("view_user_count"),
+      enabled: hasPermission(PERMISSIONS.VIEW_USER_COUNT),
     },
   );
 
@@ -80,7 +81,7 @@ const UserCount = () => {
       const res = await axios.get("/rbac/roles?limit=-1");
       return res.data?.data || [];
     },
-    enabled: hasPermission("view_user_count"),
+    enabled: hasPermission(PERMISSIONS.VIEW_USER_COUNT),
   });
 
   const loading = usersLoading || rolesLoading;
@@ -111,7 +112,7 @@ const UserCount = () => {
   const totalUserCount = usersRaw.length;
 
   useEffect(() => {
-    if (!hasPermission("view_user_count")) {
+    if (!hasPermission(PERMISSIONS.VIEW_USER_COUNT)) {
       router.push("/");
     }
   }, [hasPermission, router]);
@@ -165,7 +166,7 @@ const UserCount = () => {
     toast.success("Exported successfully");
   };
 
-  if (!hasPermission("view_user_count")) {
+  if (!hasPermission(PERMISSIONS.VIEW_USER_COUNT)) {
     return null;
   }
 

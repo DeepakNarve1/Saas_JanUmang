@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 import { Button } from "@app/components/ui/button";
 import { Label } from "@app/components/ui/label";
 import {
@@ -43,7 +45,7 @@ const ViewEvent = () => {
         const { data } = await axios.get(`/events/${id}`);
         setEvent(data.data);
       } catch (error: unknown) {
-        toast.error("Failed to fetch event details");
+        handleError(error, "Failed to fetch event details");
         router.push("/events");
       } finally {
         setLoading(false);
@@ -75,7 +77,7 @@ const ViewEvent = () => {
   };
 
   return (
-    <RouteGuard requiredPermissions={["view_events"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_EVENTS]}>
       <ContentHeader title="View Event" />
       <section className="content">
         <div className="container-fluid px-4">

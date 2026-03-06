@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import ParliamentForm from "./ParliamentForm";
 
@@ -21,8 +22,7 @@ const CreateParliament = () => {
       toast.success("Parliament created successfully");
       router.push("/parliaments");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to create parliament");
+      handleError(error, "Failed to create parliament");
     } finally {
       setLoading(false);
     }

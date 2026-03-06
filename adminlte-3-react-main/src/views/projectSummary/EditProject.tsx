@@ -20,11 +20,12 @@ import {
 import { Button } from "@app/components/ui/button";
 import { Label } from "@app/components/ui/label";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from "@app/components/RouteGuard";
+import { RouteGuard } from '@app/components/RouteGuard';
+import { PERMISSIONS } from "@app/config/permissions";
 
 const EditProject = () => {
   return (
-    <RouteGuard requiredPermissions={["manage_roles", "edit_projects"]}>
+    <RouteGuard requiredPermissions={[PERMISSIONS.MANAGE_ROLES, PERMISSIONS.EDIT_PROJECTS]}>
       <EditProjectContent />
     </RouteGuard>
   );
@@ -59,7 +60,7 @@ const EditProjectContent = () => {
         await axios.put(`/projects/${id}`, payload);
         toast.success("Project updated successfully!");
         router.push("/project-summary");
-      } catch (error: any) {
+      } catch (error: unknown) {
         handleError(error, "Failed to update project");
       } finally {
         setLoading(false);
@@ -132,8 +133,8 @@ const EditProjectContent = () => {
             }
           }
         }
-      } catch (error) {
-        toast.error("Failed to fetch project details");
+      } catch (error: unknown) {
+        handleError(error, "Failed to fetch project details");
         router.push("/project-summary");
       } finally {
         setFetching(false);
@@ -146,8 +147,8 @@ const EditProjectContent = () => {
     try {
       const { data } = await axios.get("/states");
       setStatesList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch states", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch states");
     }
   };
 
@@ -155,8 +156,8 @@ const EditProjectContent = () => {
     try {
       const { data } = await axios.get(`/divisions?state=${stateId}&limit=-1`);
       setDivisionsList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch divisions", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch divisions");
     }
   };
 
@@ -166,8 +167,8 @@ const EditProjectContent = () => {
         `/districts?division=${divisionId}&limit=-1`,
       );
       setDistrictsList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch districts", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch districts");
     }
   };
 
@@ -175,8 +176,8 @@ const EditProjectContent = () => {
     try {
       const { data } = await axios.get("/blocks?limit=-1");
       setBlocksList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch blocks", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch blocks");
     }
   };
 
@@ -184,8 +185,8 @@ const EditProjectContent = () => {
     try {
       const { data } = await axios.get("/departments?limit=-1");
       setDepartmentsList(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch departments", error);
+    } catch (error: unknown) {
+      handleError(error, "Failed to fetch departments");
     }
   };
 

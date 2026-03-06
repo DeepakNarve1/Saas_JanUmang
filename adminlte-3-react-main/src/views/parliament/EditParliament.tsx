@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { handleError } from "@app/utils/errorHandler";
 import { ContentHeader } from "@app/components";
 import ParliamentForm from "./ParliamentForm";
 import { Skeleton } from "@app/components/ui/skeleton";
@@ -37,8 +38,7 @@ const EditParliament = () => {
         district: parliament.district?._id || parliament.district || "",
       });
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error("Failed to fetch parliament details");
+      handleError(error, "Failed to fetch parliament details");
       router.push("/parliaments");
     } finally {
       setIsFetching(false);
@@ -57,8 +57,7 @@ const EditParliament = () => {
       toast.success("Parliament updated successfully");
       router.push("/parliaments");
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to update parliament");
+      handleError(error, "Failed to update parliament");
     } finally {
       setLoading(false);
     }

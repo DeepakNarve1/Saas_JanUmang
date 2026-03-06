@@ -43,6 +43,18 @@ import { usePermissions } from "@app/hooks/usePermissions";
 import { Pagination } from "@app/components/common/Pagination";
 import { IVidhanSabhaResponse, IVidhanSabha } from "@app/types/vidhanSabha";
 import { useListManagement } from "@app/hooks/useListManagement";
+import { PERMISSIONS } from "@app/config/permissions";
+
+interface IVidhanSabhaColumns {
+  id: boolean;
+  name: boolean;
+  year: boolean;
+  createdBy: boolean;
+  addedBy: boolean;
+  createdAt: boolean;
+  updatedAt: boolean;
+  action: boolean;
+}
 
 const VidhanSabhaList = () => {
   const router = useRouter();
@@ -60,7 +72,11 @@ const VidhanSabhaList = () => {
     isError,
     handleDelete,
     handleExport,
-  } = useListManagement<IVidhanSabha, IVidhanSabhaResponse>({
+  } = useListManagement<
+    IVidhanSabha,
+    IVidhanSabhaResponse,
+    IVidhanSabhaColumns
+  >({
     queryKey: "vidhan-sabha",
     endpoint: "/vidhan-sabha",
     initialVisibleColumns: {
@@ -106,7 +122,7 @@ const VidhanSabhaList = () => {
                 />
               </div>
               <div className="flex items-center gap-3">
-                {hasPermission("export_assemblies") && (
+                {hasPermission(PERMISSIONS.VIEW_ASSEMBLIES) && (
                   <Button
                     variant="outline"
                     onClick={handleExport}
@@ -115,7 +131,7 @@ const VidhanSabhaList = () => {
                     <Download className="w-4 h-4 mr-2 text-blue-500" /> Export
                   </Button>
                 )}
-                {hasPermission("create_assemblies") && (
+                {hasPermission(PERMISSIONS.CREATE_ASSEMBLIES) && (
                   <Button
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white dark:bg-[#368F8B] dark:hover:bg-[#2d7a76] rounded-lg shadow-lg shadow-[#368F8B]/20 border-0 transition-all font-medium"
                     onClick={() => router.push("/vidhansabha/create")}
@@ -164,7 +180,9 @@ const VidhanSabhaList = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
-                  {Object.keys(visibleColumns).map((key) => (
+                  {(
+                    Object.keys(visibleColumns) as (keyof IVidhanSabhaColumns)[]
+                  ).map((key) => (
                     <DropdownMenuCheckboxItem
                       key={key}
                       checked={visibleColumns[key]}
@@ -197,12 +215,12 @@ const VidhanSabhaList = () => {
                         Year
                       </TableHead>
                     )}
-                    {(visibleColumns as any).createdBy && (
+                    {visibleColumns.createdBy && (
                       <TableHead className="text-white dark:text-white font-semibold uppercase tracking-wider text-xs">
                         Created By
                       </TableHead>
                     )}
-                    {(visibleColumns as any).addedBy && (
+                    {visibleColumns.addedBy && (
                       <TableHead className="text-white dark:text-white font-semibold uppercase tracking-wider text-xs">
                         Added By
                       </TableHead>
@@ -212,7 +230,7 @@ const VidhanSabhaList = () => {
                         Created Time
                       </TableHead>
                     )}
-                    {(visibleColumns as any).updatedAt && (
+                    {visibleColumns.updatedAt && (
                       <TableHead className="text-white dark:text-white font-semibold uppercase tracking-wider text-xs">
                         Updated Time
                       </TableHead>
@@ -265,12 +283,12 @@ const VidhanSabhaList = () => {
                             </span>
                           </TableCell>
                         )}
-                        {(visibleColumns as any).createdBy && (
+                        {visibleColumns.createdBy && (
                           <TableCell className="text-gray-600 dark:text-gray-400">
                             {item.createdBy || "-"}
                           </TableCell>
                         )}
-                        {(visibleColumns as any).addedBy && (
+                        {visibleColumns.addedBy && (
                           <TableCell className="text-gray-600 dark:text-gray-400">
                             {item.addedBy || "-"}
                           </TableCell>
@@ -282,7 +300,7 @@ const VidhanSabhaList = () => {
                               : "-"}
                           </TableCell>
                         )}
-                        {(visibleColumns as any).updatedAt && (
+                        {visibleColumns.updatedAt && (
                           <TableCell className="text-gray-600 dark:text-gray-400">
                             {item.updatedAt
                               ? new Date(item.updatedAt).toLocaleString()
@@ -299,7 +317,7 @@ const VidhanSabhaList = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuSeparator />
-                                {hasPermission("view_assemblies") && (
+                                {hasPermission(PERMISSIONS.VIEW_ASSEMBLIES) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -310,7 +328,7 @@ const VidhanSabhaList = () => {
                                     <Eye className="mr-2 h-4 w-4" /> View
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("edit_assemblies") && (
+                                {hasPermission(PERMISSIONS.EDIT_ASSEMBLIES) && (
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -321,7 +339,9 @@ const VidhanSabhaList = () => {
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
                                 )}
-                                {hasPermission("delete_assemblies") && (
+                                {hasPermission(
+                                  PERMISSIONS.DELETE_ASSEMBLIES,
+                                ) && (
                                   <DropdownMenuItem
                                     className="text-red-600 focus:text-red-600"
                                     onClick={() =>

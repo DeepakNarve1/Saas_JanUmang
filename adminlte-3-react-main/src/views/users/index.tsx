@@ -6,6 +6,7 @@ import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
 import { IUserResponse, IUserRow, IRole } from "@app/types/user";
 import { usePermissions } from "@app/hooks/usePermissions";
+import { PERMISSIONS } from "@app/config/permissions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -57,6 +58,16 @@ import { ContentHeader } from "@app/components";
 import { Pagination } from "@app/components/common/Pagination";
 import { useDebounce } from "@app/hooks/useDebounce";
 
+interface IUserColumns {
+  srNo: boolean;
+  name: boolean;
+  email: boolean;
+  mobile: boolean;
+  role: boolean;
+  createdOn: boolean;
+  action: boolean;
+}
+
 const Users = () => {
   const {
     hasPermission,
@@ -88,7 +99,7 @@ const Users = () => {
     userEmail: "",
   });
 
-  const [visibleColumns, setVisibleColumns] = useState({
+  const [visibleColumns, setVisibleColumns] = useState<IUserColumns>({
     srNo: true,
     name: true,
     email: true,
@@ -98,7 +109,7 @@ const Users = () => {
     action: true,
   });
 
-  const toggleColumn = (key: keyof typeof visibleColumns) => {
+  const toggleColumn = (key: keyof IUserColumns) => {
     setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -190,8 +201,9 @@ const Users = () => {
       toast.success("User deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Could not delete user");
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || "Could not delete user");
     },
   });
 
@@ -295,7 +307,7 @@ const Users = () => {
                     <Upload className="w-5 h-5 mr-2 text-orange-500" /> Import
                   </Button>
 
-                  {hasPermission("create_users") && (
+                  {hasPermission(PERMISSIONS.CREATE_USERS) && (
                     <Button
                       size="lg"
                       onClick={() => router.push("/users/create")}
@@ -370,28 +382,26 @@ const Users = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
-                  {Object.keys(visibleColumns).map((key) => (
-                    <DropdownMenuCheckboxItem
-                      key={key}
-                      checked={
-                        visibleColumns[key as keyof typeof visibleColumns]
-                      }
-                      onCheckedChange={() =>
-                        toggleColumn(key as keyof typeof visibleColumns)
-                      }
-                    >
-                      {key
-                        .replace(/([A-Z])/g, " $1")
-                        .trim()
-                        .replace("srNo", "Sr. No.")
-                        .replace("name", "Name")
-                        .replace("email", "Email")
-                        .replace("mobile", "Mobile")
-                        .replace("role", "Role")
-                        .replace("createdOn", "Created On")
-                        .replace("action", "Actions")}
-                    </DropdownMenuCheckboxItem>
-                  ))}
+                  {(Object.keys(visibleColumns) as (keyof IUserColumns)[]).map(
+                    (key) => (
+                      <DropdownMenuCheckboxItem
+                        key={key}
+                        checked={visibleColumns[key]}
+                        onCheckedChange={() => toggleColumn(key)}
+                      >
+                        {key
+                          .replace(/([A-Z])/g, " $1")
+                          .trim()
+                          .replace("srNo", "Sr. No.")
+                          .replace("name", "Name")
+                          .replace("email", "Email")
+                          .replace("mobile", "Mobile")
+                          .replace("role", "Role")
+                          .replace("createdOn", "Created On")
+                          .replace("action", "Actions")}
+                      </DropdownMenuCheckboxItem>
+                    ),
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -578,7 +588,7 @@ const Users = () => {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  {hasPermission("view_users") && (
+                                  {hasPermission(PERMISSIONS.VIEW_USERS) && (
                                     <DropdownMenuItem
                                       onClick={() =>
                                         router.push(`/users/${user._id}/view`)
@@ -587,7 +597,7 @@ const Users = () => {
                                       <Eye className="mr-2 h-4 w-4" /> View
                                     </DropdownMenuItem>
                                   )}
-                                  {hasPermission("edit_users") &&
+                                  {hasPermission(PERMISSIONS.EDIT_USERS) &&
                                     (user.level !== "tenant_admin" ||
                                       isGlobalAdmin) && (
                                       <DropdownMenuItem
@@ -619,7 +629,7 @@ const Users = () => {
                                       Reset Password
                                     </DropdownMenuItem>
                                   )}
-                                  {hasPermission("delete_users") &&
+                                  {hasPermission(PERMISSIONS.DELETE_USERS) &&
                                     (user.level !== "tenant_admin" ||
                                       isGlobalAdmin) && (
                                       <DropdownMenuItem
@@ -630,7 +640,9 @@ const Users = () => {
                                         Delete
                                       </DropdownMenuItem>
                                     )}
-                                  {hasPermission("view_activity_logs") && (
+                                  {hasPermission(
+                                    PERMISSIONS.VIEW_ACTIVITY_LOGS,
+                                  ) && (
                                     <DropdownMenuItem
                                       onClick={() =>
                                         router.push(
