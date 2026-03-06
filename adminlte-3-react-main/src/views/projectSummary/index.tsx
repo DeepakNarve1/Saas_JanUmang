@@ -22,6 +22,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
 } from "@app/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@app/components/common/ConfirmDialog";
+
 import {
   Select,
   SelectContent,
@@ -162,8 +164,7 @@ const ProjectSummary = () => {
   });
 
   const handleDelete = (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this project?"))
-      return;
+    
     deleteMutation.mutate(id);
   };
 

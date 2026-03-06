@@ -31,6 +31,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
 } from "@app/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@app/components/common/ConfirmDialog";
+
 import {
   Select,
   SelectContent,
@@ -116,8 +118,7 @@ const Parliament = () => {
   });
 
   const handleDelete = (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this parliament?"))
-      return;
+    
     deleteMutation.mutate(id);
   };
 

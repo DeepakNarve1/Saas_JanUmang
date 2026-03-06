@@ -82,7 +82,6 @@ const EditVoterContent = () => {
     validationSchema: voterSchema,
     enableReinitialize: true,
     onSubmit: async (values) => {
-      console.log("Submitting Voter Update...", values);
       setLoading(true);
       try {
         // Resolve ObjectIDs for relational fields

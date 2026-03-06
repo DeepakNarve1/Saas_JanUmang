@@ -205,7 +205,6 @@ const UserCount = () => {
                     className="bg-[#368F8B] hover:bg-[#2d7a76] text-white px-6 h-10 rounded-lg shadow-lg shadow-[#368F8B]/20"
                     onClick={() => {
                       // Trigger filter or refresh if needed
-                      console.log("Filtering by date:", selectedDate);
                     }}
                   >
                     Filter

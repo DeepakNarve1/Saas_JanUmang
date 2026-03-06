@@ -13,14 +13,9 @@ const { scopeQuery } = require("../middleware/scopeMiddleware");
 const { checkModuleAccess } = require("../middleware/moduleAccessMiddleware");
 
 const router = express.Router();
-console.log("Event routes initialized");
 
 router.post(
   "/sync",
-  (req, res, next) => {
-    console.log("Sync route hit");
-    next();
-  },
   protect,
   checkModuleAccess("events"),
   checkPermission("edit_events"),

@@ -46,6 +46,8 @@ const sendErrorProd = (err, res) => {
   else {
     // 1) Log error
     console.error("ERROR 💥", err);
+    const Sentry = require("@sentry/node");
+    Sentry.captureException(err);
 
     // 2) Send generic message
     res.status(500).json({
@@ -63,10 +65,16 @@ module.exports = (err, req, res, next) => {
   if (process.env.NODE_ENV === "development") {
     sendErrorDev(err, res);
   } else {
-    // We shouldn't use { ...err } because it doesn't copy non-enumerable properties like 'name' from Error objects
+    // For production AND test environments
+    if (err.isOperational) {
+      sendErrorProd(err, res);
+      return;
+    }
+
     let error = Object.assign(Object.create(Object.getPrototypeOf(err)), err);
     error.message = err.message;
     error.stack = err.stack;
+    error.isOperational = err.isOperational;
 
     if (error.name === "CastError") error = handleCastErrorDB(error);
     if (error.code === 11000) error = handleDuplicateFieldsDB(error);

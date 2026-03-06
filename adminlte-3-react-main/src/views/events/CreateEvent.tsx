@@ -18,9 +18,7 @@ const CreateEvent = () => {
   const handleSubmit = async (values: IEventFormValues) => {
     try {
       setIsSubmitting(true);
-      console.log("Submitting event data:", values);
       const response = await axios.post("/events", values);
-      console.log("Event created successfully:", response.data);
       toast.success("Event created successfully");
       router.push("/events");
     } catch (error: unknown) {

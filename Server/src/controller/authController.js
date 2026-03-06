@@ -71,145 +71,113 @@ const getTenantData = async (tenantId) => {
 
 // Register User
 exports.registerUser = asyncHandler(async (req, res) => {
-  try {
-    let { name, email, password, role, mobile, userType } = req.body;
+  const {
+    name,
+    email,
+    password,
+    role,
+    mobile,
+    userType,
+    level,
+    state,
+    division,
+    district,
+    assembly,
+    block,
+    panchayat,
+    village,
+    booth,
+  } = req.body;
 
-    // ... (rest of registration logic)
-    if (role && typeof role === "object" && (role._id || role.value)) {
-      role = role._id || role.value;
-    }
+  // Handle object-style roles from frontend
+  let roleId = role;
+  if (role && typeof role === "object" && (role._id || role.value)) {
+    roleId = role._id || role.value;
+  }
 
-    const { checkUsageLimit } = require("../utils/usageGuard");
+  const { checkUsageLimit } = require("../utils/usageGuard");
 
-    if (!name || !email || !role) {
-      res.status(400);
-      throw new Error("Please fill all required fields (Name, Email, Role)");
-    }
+  if (!name || !email || !role) {
+    throw new AppError("Name, Email, and Role are required", 400);
+  }
 
-    if (!password) {
-      res.status(400);
-      throw new Error("Password is required");
-    }
+  if (!password) {
+    throw new AppError("Password is required", 400);
+  }
 
-    // SaaS: Check Usage Limit (Max Users)
-    // Global admins (no tenantId) are exempt from tenant usage limits.
-    if (req.user && !isGlobalAdmin(req.user)) {
-      await checkUsageLimit(req.tenantId, "users");
-    }
+  const isAdmin = isGlobalAdmin(req.user);
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      res.status(400);
-      throw new Error("User already exists");
-    }
+  // SaaS: Check Usage Limit (Max Users)
+  if (req.user && !isAdmin) {
+    await checkUsageLimit(req.tenantId, "users");
+  }
 
-    // SaaS: Allow System Admin to override tenant, otherwise use context.
-    // Use isGlobalAdmin() which enforces: no tenantId + system-level = true global admin.
-    const { isGlobalAdmin: checkIsGlobal } = require("../utils/authHelpers");
-    const isAdmin = checkIsGlobal(req.user);
+  const userExists = await User.findOne({ email });
+  if (userExists) {
+    throw new AppError("User already exists", 400);
+  }
 
-    const tenantId =
-      isAdmin && req.body.tenantId ? req.body.tenantId : req.tenantId;
+  const tenantId =
+    isAdmin && req.body.tenantId ? req.body.tenantId : req.tenantId;
 
-    const {
-      level,
-      state,
-      division,
-      district,
-      assembly,
-      block,
-      panchayat,
-      village,
-      booth,
-    } = req.body;
+  // LEVEL ASSIGNMENT RULES
+  let effectiveLevel = level;
+  if (!effectiveLevel) {
+    effectiveLevel = tenantId
+      ? isAdmin
+        ? "tenant_admin"
+        : "regularUser"
+      : isAdmin
+        ? "superadmin"
+        : "regularUser";
+  }
 
-    // LEVEL ASSIGNMENT RULES:
-    // - Global admins (no tenantId): can assign any level including system_admin/superadmin
-    // - Tenant admins (have tenantId): can only assign levels below their own:
-    //   They can create users with levels: tenant_admin, custom, or geographic levels.
-    //   They CANNOT assign system_admin or superadmin (platform levels).
-    let effectiveLevel = level;
+  const newUser = await User.create({
+    name,
+    email,
+    password,
+    role: roleId,
+    mobile: mobile || "",
+    userType: userType || "regularUser",
+    level: effectiveLevel,
+    state: state || null,
+    division: division || null,
+    district: district || null,
+    assembly: assembly || null,
+    block: block || null,
+    panchayat: panchayat || null,
+    village: village || null,
+    booth: booth || null,
+    tenantId: tenantId || null,
+  });
 
-    const isGlobalLevel = ["system_admin", "superadmin"].includes(level);
-    if (!isAdmin) {
-      if (isGlobalLevel) {
-        // Tenant creators cannot grant platform-level access — downgrade silently
-        effectiveLevel = "regularUser";
-      }
-    }
+  req.user = newUser;
+  req.tenantId = newUser.tenantId;
+  await logActivity(
+    req,
+    "CREATE",
+    "UserManagement",
+    `Registered new user: ${newUser.name} (${newUser.email})`,
+    {
+      recordId: newUser._id,
+      newData: newUser,
+    },
+  );
 
-    if (!effectiveLevel) {
-      if (tenantId) {
-        effectiveLevel = isAdmin ? "tenant_admin" : "regularUser";
-      } else {
-        effectiveLevel = isAdmin ? "superadmin" : "regularUser";
-      }
-    }
+  const token = generateAccessToken(newUser._id);
+  setRefreshCookie(res, generateRefreshToken(newUser._id));
 
-    const newUser = await User.create({
-      name,
-      email,
-      password,
-      role,
-      mobile: mobile || "",
-      userType: userType || "regularUser",
-      level: effectiveLevel,
-      state: state || null,
-      division: division || null,
-      district: district || null,
-      assembly: assembly || null,
-      block: block || null,
-      panchayat: panchayat || null,
-      village: village || null,
-      booth: booth || null,
-      tenantId: tenantId || null,
-      permissions: {},
-    });
-
-    if (newUser.role && mongoose.Types.ObjectId.isValid(newUser.role)) {
-      const roleDoc = await Role.findById(newUser.role).populate(
-        "permissions",
-        "name displayName",
-      );
-      if (roleDoc) newUser.role = roleDoc;
-    }
-
-    req.user = newUser;
-    req.tenantId = newUser.tenantId; // SaaS: Set tenantId for logging
-    await logActivity(
-      req,
-      "CREATE",
-      "UserManagement",
-      `Registered new user: ${newUser.name} (${newUser.email})`,
-      { recordId: newUser._id, newData: newUser },
-    );
-
-    const userObj = {
+  res.status(201).json({
+    success: true,
+    data: {
       _id: newUser._id,
       name: newUser.name,
       email: newUser.email,
       role: newUser.role,
-      mobile: newUser.mobile,
-      userType: newUser.userType,
-      level: newUser.level,
       tenantId: newUser.tenantId,
-      token: generateAccessToken(newUser._id),
-    };
-
-    if (newUser.tenantId) {
-      userObj.tenant = await getTenantData(newUser.tenantId);
-    }
-
-    setRefreshCookie(res, generateRefreshToken(newUser._id));
-
-    res.status(201).json({
-      success: true,
-      data: userObj,
-    });
-  } catch (error) {
-    res.status(error.statusCode || 500);
-    throw new Error(error.message || "Server Error during registration");
-  }
+      token,
+    },
+  });
 });
 
 // Get all users (exclude superadmin accounts unless showAll=true)
@@ -643,9 +611,19 @@ exports.loginUser = asyncHandler(async (req, res) => {
     }
   }
 
-  if (!user || !(await user.matchPassword(password))) {
-    res.status(401);
-    throw new Error("Wrong email or password");
+  // Check if user exists and password is correct
+  let isMatch = false;
+  if (user) {
+    try {
+      isMatch = await user.matchPassword(password);
+    } catch (err) {
+      console.error("[AUTH] Password match failed:", err);
+      throw new AppError("Wrong email or password", 401);
+    }
+  }
+
+  if (!user || !isMatch) {
+    throw new AppError("Wrong email or password", 401);
   }
 
   // SaaS: Block login if organization is suspended (skip for users without tenant, e.g. legacy superadmin)

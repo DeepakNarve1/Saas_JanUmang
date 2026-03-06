@@ -31,6 +31,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
 } from "@app/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@app/components/common/ConfirmDialog";
+
 import {
   Select,
   SelectContent,
@@ -165,7 +167,7 @@ const Block = () => {
   });
 
   const handleDelete = (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this block?")) return;
+    
     deleteMutation.mutate(id);
   };
 
@@ -457,12 +459,14 @@ const Block = () => {
                                   </DropdownMenuItem>
                                 )}
                                 {hasPermission(PERMISSIONS.DELETE_BLOCKS) && (
-                                  <DropdownMenuItem
-                                    className="text-red-600"
-                                    onClick={() => handleDelete(block._id)}
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                  </DropdownMenuItem>
+                                  <ConfirmDialog
+                                    onConfirm={() => handleDelete(block._id)}
+                                    trigger={
+                                      <div className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-red-50 focus:bg-red-50 text-red-600 hover:text-red-700 w-full">
+                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                      </div>
+                                    }
+                                  />
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>

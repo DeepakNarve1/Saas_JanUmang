@@ -31,6 +31,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
 } from "@app/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@app/components/common/ConfirmDialog";
+
 import {
   Select,
   SelectContent,
@@ -145,8 +147,7 @@ const Panchayat = () => {
   });
 
   const handleDelete = (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this panchayat?"))
-      return;
+    
     deleteMutation.mutate(id);
   };
 
@@ -628,12 +629,14 @@ const Panchayat = () => {
                                 {hasPermission(
                                   PERMISSIONS.DELETE_PANCHAYATS,
                                 ) && (
-                                  <DropdownMenuItem
-                                    className="text-red-600"
-                                    onClick={() => handleDelete(panchayat._id)}
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                  </DropdownMenuItem>
+                                  <ConfirmDialog
+                                    onConfirm={() => handleDelete(panchayat._id)}
+                                    trigger={
+                                      <div className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-red-50 focus:bg-red-50 text-red-600 hover:text-red-700 w-full">
+                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                      </div>
+                                    }
+                                  />
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>

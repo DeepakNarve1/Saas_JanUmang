@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@app/components/ui/select";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from '@app/components/RouteGuard';
+import { RouteGuard } from "@app/components/RouteGuard";
 import { PERMISSIONS } from "@app/config/permissions";
 import {
   voterSchema,
@@ -79,13 +79,7 @@ const CreateVoterContent = () => {
     onSubmit: async (values) => {
       setLoading(true);
       try {
-        console.log("Form values:", values);
-        console.log("Selected IDs:", {
-          block: selectedBlockId,
-          panchayat: selectedPanchayatId,
-          village: selectedVillageId,
-          booth: selectedBoothId,
-        });
+        // Validate all required selections
 
         // Validate all required selections
         if (!selectedBlockId) {
@@ -115,9 +109,6 @@ const CreateVoterContent = () => {
         // Fetch block details to get state, division, district, parliament, assembly
         const blockRes = await axios.get(`/blocks/${selectedBlockId}`);
         const blockData = blockRes.data.data;
-
-        console.log("Block data:", blockData);
-
         // Validate that block has all required hierarchy data
         if (
           !blockData.state ||
@@ -158,9 +149,6 @@ const CreateVoterContent = () => {
           voterId: values.voterId,
           image: values.image || undefined,
         };
-
-        console.log("Payload being sent:", payload);
-
         await axios.post("/voters", payload);
         toast.success("Voter created successfully!");
         router.push("/voter");

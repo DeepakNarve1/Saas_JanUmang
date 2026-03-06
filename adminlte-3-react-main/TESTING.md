@@ -467,11 +467,35 @@ await waitFor(
 - [Testing Library Queries](https://testing-library.com/docs/queries/about)
 - [Common Mistakes](https://kentcdodds.com/blog/common-mistakes-with-react-testing-library)
 
+### 4. End-to-End (E2E) Tests
+
+We use **Cypress** for E2E testing to verify complete user journeys.
+
+#### Running E2E Tests
+
+```bash
+# Open Cypress Test Runner (Interactive)
+npm run cypress:open
+
+# Run all E2E tests (Headless)
+npm run cypress:run
+```
+
+#### E2E Best Practices
+
+- Use `data-testid` for stable selectors where ARIA roles are insufficient.
+- Focus on critical paths: Login, Organization Creation, Data Entry.
+- Do not test implementation details; test what the user sees.
+
+## 📊 Test Coverage
+
+...
+
 ## 🎯 Next Steps
 
 1. Write tests for critical user flows
 2. Achieve 70% code coverage
-3. Add E2E tests with Playwright
+3. Add E2E tests for all complex modules
 4. Set up CI/CD to run tests automatically
 5. Add visual regression testing
 

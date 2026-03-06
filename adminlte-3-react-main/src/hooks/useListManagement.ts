@@ -97,11 +97,7 @@ export const useListManagement = <
     },
   });
 
-  const handleDelete = (
-    id: string,
-    confirmMessage: string = "Are you sure you want to delete this record?",
-  ) => {
-    if (!window.confirm(confirmMessage)) return;
+  const handleDelete = (id: string) => {
     deleteMutation.mutate(id);
   };
 

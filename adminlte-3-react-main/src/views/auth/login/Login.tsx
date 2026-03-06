@@ -181,6 +181,32 @@ const Login = () => {
               )}
             </Button>
 
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-[#368F8B] focus:ring-[#368F8B] border-gray-300 rounded cursor-pointer"
+                />
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
+                >
+                  Remember me
+                </label>
+              </div>
+
+              <div className="text-sm">
+                <a
+                  href="/forgot-password"
+                  className="font-semibold text-[#368F8B] hover:text-[#2d7a76] transition-colors"
+                >
+                  Forgot password?
+                </a>
+              </div>
+            </div>
+
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-gray-200 dark:border-gray-800" />
@@ -193,35 +219,41 @@ const Login = () => {
             </div>
 
             <div className="flex justify-center">
-              <GoogleOAuthProvider
-                clientId={process.env.GOOGLE_CLIENT_ID || ""}
-              >
-                <GoogleLogin
-                  onSuccess={async (credentialResponse: any) => {
-                    try {
-                      setLoading(true);
-                      const { credential } = credentialResponse;
-                      const res = await axios.post("/auth/google-login", {
-                        token: credential,
-                      });
+              {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
+                <GoogleOAuthProvider
+                  clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+                >
+                  <GoogleLogin
+                    onSuccess={async (credentialResponse: any) => {
+                      try {
+                        setLoading(true);
+                        const { credential } = credentialResponse;
+                        const res = await axios.post("/auth/google-login", {
+                          token: credential,
+                        });
 
-                      const { token, user } = res.data.data;
-                      localStorage.setItem("token", token);
-                      localStorage.setItem("user", JSON.stringify(user));
-                      dispatch(setCurrentUser(user));
-                      toast.success("Login successful!");
-                      router.push("/");
-                    } catch (error: any) {
-                      handleError(error, "Google Login failed");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  onError={() => {
-                    toast.error("Google Login Failed");
-                  }}
-                />
-              </GoogleOAuthProvider>
+                        const { token, user } = res.data.data;
+                        localStorage.setItem("token", token);
+                        localStorage.setItem("user", JSON.stringify(user));
+                        dispatch(setCurrentUser(user));
+                        toast.success("Login successful!");
+                        router.push("/");
+                      } catch (error: any) {
+                        handleError(error, "Google Login failed");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    onError={() => {
+                      toast.error("Google Login Failed");
+                    }}
+                  />
+                </GoogleOAuthProvider>
+              ) : (
+                <div className="text-xs text-gray-500 italic">
+                  Google Login unavailable (No Client ID)
+                </div>
+              )}
             </div>
           </form>
         </div>

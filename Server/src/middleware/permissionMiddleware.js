@@ -29,12 +29,6 @@ const checkPermission = (permissionName) => {
       ? permissions.map((p) => p.name)
       : [];
 
-    // Debug logging only in development
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[RBAC] User Permissions: ${userPermNames.join(", ")}`);
-      console.log(`[RBAC] Checking for: ${permissionName}`);
-    }
-
     if (!userPermNames.includes(permissionName)) {
       const roleName = getUserRoleName(req.user);
 

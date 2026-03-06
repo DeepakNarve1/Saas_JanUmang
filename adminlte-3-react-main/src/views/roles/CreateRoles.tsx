@@ -36,8 +36,6 @@ const CreateRoleContent = () => {
         tenantId: values.tenantId,
         sidebarAccess: [], // Maintained for backend compatibility
       };
-
-      console.log("Submitting role payload:", payload);
       await axios.post("/rbac/roles", payload);
 
       toast.success("Role created successfully!");

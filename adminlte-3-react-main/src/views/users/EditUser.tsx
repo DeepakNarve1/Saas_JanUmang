@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from '@app/components/RouteGuard';
+import { RouteGuard } from "@app/components/RouteGuard";
 import { PERMISSIONS } from "@app/config/permissions";
 import UserForm from "./UserForm";
 import { IUserFormValues, userInitialValues } from "./user.schema";
@@ -13,7 +13,9 @@ import { handleError } from "@app/utils/errorHandler";
 
 const EditUser = () => {
   return (
-    <RouteGuard requiredPermissions={[PERMISSIONS.MANAGE_ROLES, PERMISSIONS.EDIT_USERS]}>
+    <RouteGuard
+      requiredPermissions={[PERMISSIONS.MANAGE_ROLES, PERMISSIONS.EDIT_USERS]}
+    >
       <EditUserContent />
     </RouteGuard>
   );
@@ -31,19 +33,13 @@ const EditUserContent = () => {
     const fetchUser = async () => {
       try {
         setPageLoading(true);
-        console.log("Fetching user data for ID:", id);
-
         const res = await axios.get(`/auth/users/${id}`);
-        console.log("User data received:", res.data);
-
         if (res.data?.data) {
           const user = res.data.data;
 
           // Extract role ID properly
           const roleId =
             user.role?._id || (typeof user.role === "string" ? user.role : "");
-          console.log("Extracted role ID:", roleId, "from role:", user.role);
-
           const formValues = {
             name: user.name || "",
             email: user.email || "",
@@ -87,8 +83,6 @@ const EditUserContent = () => {
               "",
             tenantId: user.tenantId || "",
           };
-
-          console.log("Setting initial form values:", formValues);
           setInitialValues(formValues);
         } else {
           throw new Error("No user data in response");
@@ -135,15 +129,7 @@ const EditUserContent = () => {
         payload.password = values.password;
       }
 
-      console.log("Updating user with payload:", {
-        ...payload,
-        password: payload.password ? "***" : undefined,
-      });
-
       const response = await axios.put(`/auth/users/${id}`, payload);
-
-      console.log("Update response:", response.data);
-
       toast.success("User updated successfully!");
       router.push("/users");
     } catch (error: unknown) {

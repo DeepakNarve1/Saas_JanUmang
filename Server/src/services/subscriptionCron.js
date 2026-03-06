@@ -157,13 +157,11 @@ const runSubscriptionEnforcement = async () => {
 const startSubscriptionCron = () => {
   // Warning emails — every day at 9:00 AM
   cron.schedule("0 9 * * *", async () => {
-    console.log("[CRON] Running trial expiry warning job...");
     await runTrialExpiryWarnings();
   });
 
   // Enforcement — every day at midnight
   cron.schedule("0 0 * * *", async () => {
-    console.log("[CRON] Running subscription enforcement job...");
     await runTrialEnforcement();
     await runSubscriptionEnforcement();
   });

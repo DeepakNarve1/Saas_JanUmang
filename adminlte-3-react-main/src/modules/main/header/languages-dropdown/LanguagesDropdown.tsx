@@ -58,7 +58,6 @@ const LanguagesDropdown = () => {
         const checkCombo = () => {
           const combo = document.querySelector(".goog-te-combo");
           if (combo) {
-            console.log("✅ Google Translate Widget Ready (Combo detected)");
             setStatus("ready");
             if (observerRef.current) observerRef.current.disconnect();
             return true;
@@ -104,7 +103,6 @@ const LanguagesDropdown = () => {
 
     setStatus("loading");
     window.googleTranslateElementInit = () => {
-      console.log("🟢 googleTranslateElementInit called");
       initGoogleWidget();
     };
 
