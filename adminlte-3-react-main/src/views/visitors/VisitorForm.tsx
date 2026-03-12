@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useFormik } from "formik";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { useAppSelector } from "@app/store/store";
 
 import { Button } from "@app/components/ui/button";
 import { Input } from "@app/components/ui/input";
@@ -35,6 +36,7 @@ const VisitorForm = ({
   onSubmit,
   loading = false,
 }: VisitorFormProps) => {
+  const currentUser = useAppSelector((state) => state.auth.currentUser);
   const [districts, setDistricts] = useState<IDistrict[]>([]);
   const [assemblies, setAssemblies] = useState<IAssembly[]>([]);
   const [blocks, setBlocks] = useState<IBlock[]>([]);
@@ -105,8 +107,8 @@ const VisitorForm = ({
 
     const init = async () => {
       try {
-        const userStr = localStorage.getItem("user");
-        const user = userStr ? JSON.parse(userStr) : null;
+        // Read user scope from Redux store (always fresh, never stale localStorage)
+        const user = currentUser;
 
         // Default: Unlock everything & Load Districts
         setLockedFields({ district: false, vidhansabha: false, block: false });

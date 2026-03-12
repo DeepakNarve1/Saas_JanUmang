@@ -42,8 +42,8 @@ const Register = () => {
 
       // SAVE USER & TOKEN
       if (data) {
+        // Store ONLY the opaque access token — user data stays in Redux memory.
         localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data));
         dispatch(setCurrentUser(data));
       }
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
+import { useAppSelector } from "@app/store/store";
 
 import { Input } from "@app/components/ui/input";
 import { Button } from "@app/components/ui/button";
@@ -58,6 +59,7 @@ const CreateVoter = () => {
 
 const CreateVoterContent = () => {
   const router = useRouter();
+  const currentUser = useAppSelector((state) => state.auth.currentUser);
   const [loading, setLoading] = useState(false);
 
   // Hierarchy Data
@@ -167,8 +169,8 @@ const CreateVoterContent = () => {
   useEffect(() => {
     const fetchBlocksData = async () => {
       try {
-        const userStr = localStorage.getItem("user");
-        const user = userStr ? JSON.parse(userStr) : null;
+        // Read user scope from Redux store (always fresh, never stale localStorage)
+        const user = currentUser;
 
         const res = await axios.get("/blocks?limit=-1");
 

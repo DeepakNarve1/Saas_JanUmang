@@ -72,9 +72,10 @@ const Login = () => {
 
       const { token, user } = res.data.data;
 
-      // Save to localStorage
+      // Store ONLY the opaque access token in localStorage (needed to
+      // re-bootstrap auth on page reload via /auth/refresh-token).
+      // The user object lives in Redux memory only — never in localStorage.
       localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
 
       // Dispatch to Redux store (IMPORTANT for protected routes)
       dispatch(setCurrentUser(user));
@@ -233,8 +234,8 @@ const Login = () => {
                         });
 
                         const { token, user } = res.data.data;
+                        // Store ONLY the token in localStorage — user data stays in Redux memory.
                         localStorage.setItem("token", token);
-                        localStorage.setItem("user", JSON.stringify(user));
                         dispatch(setCurrentUser(user));
                         toast.success("Login successful!");
                         router.push("/");

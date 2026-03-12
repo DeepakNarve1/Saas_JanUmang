@@ -22,6 +22,9 @@ exports.getPanchayats = asyncHandler(async (req, res) => {
   } = req.query;
 
   const query = { ...req.scopeFilter };
+  if (query.tenantId) {
+    query.tenantId = { $in: [query.tenantId, null] };
+  }
 
   if (search) {
     query.name = { $regex: search, $options: "i" };
@@ -123,8 +126,12 @@ exports.getPanchayats = asyncHandler(async (req, res) => {
   let panchayats;
   let filteredCount;
 
-  // Total count restricted by tenant
-  let totalCount = await Panchayat.countDocuments({ ...req.scopeFilter });
+  // Total count uses the same scope as the data query
+  const baseScope = { ...req.scopeFilter };
+  if (baseScope.tenantId) {
+    baseScope.tenantId = { $in: [baseScope.tenantId, null] };
+  }
+  let totalCount = await Panchayat.countDocuments(baseScope);
 
   if (limitNum === -1) {
     panchayats = await Panchayat.find(query)
@@ -164,10 +171,14 @@ exports.getPanchayats = asyncHandler(async (req, res) => {
 // @desc    Get single panchayat
 // @route   GET /api/panchayat/:id
 exports.getPanchayatById = asyncHandler(async (req, res) => {
-  const panchayat = await Panchayat.findOne({
+  const getQuery = {
     _id: req.params.id,
     ...req.scopeFilter,
-  })
+  };
+  if (getQuery.tenantId) {
+    getQuery.tenantId = { $in: [getQuery.tenantId, null] };
+  }
+  const panchayat = await Panchayat.findOne(getQuery)
     .populate("state", "name")
     .populate("division", "name")
     .populate("district", "name")
@@ -324,7 +335,7 @@ exports.createPanchayat = asyncHandler(async (req, res) => {
 
   const panchayat = await Panchayat.create({
     name: panchayatData.name,
-    tenantId: tenantId, // Enforce Tenant
+    tenantId: tenantId || null, // null = global-admin orphan record
     state: panchayatData.state,
     division: panchayatData.division,
     district: panchayatData.district,

@@ -5,7 +5,7 @@ import { useMemo } from "react";
 export const useAuthorization = () => {
   const currentUser = useAppSelector((state) => state.auth.currentUser);
   const sidebarAccessByRole = useAppSelector(
-    (state) => state.auth.sidebarAccessByRole
+    (state) => state.auth.sidebarAccessByRole,
   );
 
   const userRoles = useMemo(() => {
@@ -29,21 +29,10 @@ export const useAuthorization = () => {
     const normalized = Array.from(
       new Set(
         [...rolesFromUser, ...roleFromUser, ...rolesFromMetadata].filter(
-          Boolean
-        ) as string[]
-      )
+          Boolean,
+        ) as string[],
+      ),
     );
-
-    // Frontend fallback: treat known superadmin account as superadmin
-    if (
-      normalized.length === 0 &&
-      currentUser &&
-      typeof (currentUser as any).email === "string" &&
-      (currentUser as any).email.toLowerCase() === "superadmin@example.com"
-    ) {
-      return ["superadmin"];
-    }
-
     return normalized;
   }, [currentUser]);
 
@@ -52,15 +41,15 @@ export const useAuthorization = () => {
       ? currentUser?.permissions
       : [];
     const permissionsFromMetadata = Array.isArray(
-      currentUser?.metadata?.permissions
+      currentUser?.metadata?.permissions,
     )
       ? currentUser?.metadata?.permissions
       : [];
 
     return Array.from(
       new Set(
-        [...permissionsFromUser, ...permissionsFromMetadata].filter(Boolean)
-      )
+        [...permissionsFromUser, ...permissionsFromMetadata].filter(Boolean),
+      ),
     );
   }, [currentUser]);
 
@@ -101,7 +90,7 @@ export const useAuthorization = () => {
     // Flatten menu to find item
     const findItem = (
       items: IMenuItem[],
-      path: string
+      path: string,
     ): IMenuItem | undefined => {
       for (const item of items) {
         // Handle parameterized routes: e.g. /users/:id/edit logic
@@ -145,7 +134,7 @@ export const useAuthorization = () => {
 
     const matchItem = (
       items: IMenuItem[],
-      path: string
+      path: string,
     ): IMenuItem | undefined => {
       // Find the most specific match (longest path prefix)
       let bestMatch: IMenuItem | undefined;
@@ -184,7 +173,7 @@ export const useAuthorization = () => {
       !matchedItem.allowedPermissions ||
       matchedItem.allowedPermissions.length === 0 ||
       matchedItem.allowedPermissions.some((permission) =>
-        userPermissions.includes(permission)
+        userPermissions.includes(permission),
       );
 
     if (roleAllowed && permissionAllowed) return true;

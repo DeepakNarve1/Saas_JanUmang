@@ -58,9 +58,7 @@ const EditBlock = () => {
     }
   };
 
-  const handleSubmit = async (
-    values: IBlockFormValues & { booths: string[] },
-  ) => {
+  const handleSubmit = async (values: IBlockFormValues) => {
     try {
       setLoading(true);
       await axios.put(`/blocks/${id}`, values);

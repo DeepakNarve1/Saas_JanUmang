@@ -45,8 +45,8 @@ const boothSchema = new mongoose.Schema(
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tenant",
-      required: [true, "Tenant ID is required"],
       index: true,
+      default: null,
     },
   },
   { timestamps: true },

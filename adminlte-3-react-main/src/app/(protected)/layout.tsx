@@ -27,7 +27,8 @@ export default function ProtectedLayout({
         return;
       }
 
-      // Fetch fresh user data with populated role and permissions
+      // Fetch fresh user data with populated role and permissions.
+      // The axios interceptor handles silent token refresh if needed.
       const response = await axios.get(`/auth/me`);
 
       const userData = response.data.data;
@@ -43,8 +44,9 @@ export default function ProtectedLayout({
       dispatch(setCurrentUser(userData));
       setLoading(false);
     } catch (error) {
-      console.error("Failed to fetch user data:", error);
-      // Don't log out immediately on error (network blip), but maybe handle it
+      // If we get a 401 even after the refresh interceptor tried, force logout
+      localStorage.removeItem("token");
+      router.push("/login");
     }
   };
 

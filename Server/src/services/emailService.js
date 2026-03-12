@@ -180,10 +180,51 @@ const sendSubscriptionExpiredEmail = async ({ to, name, orgName }) => {
   });
 };
 
+// ── Template: Admin-Initiated Password Reset ───────────────────────────────────
+const sendAdminPasswordResetEmail = async ({
+  to,
+  name,
+  temporaryPassword,
+  adminName,
+}) => {
+  const loginUrl = `${process.env.FRONTEND_URL}/login`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f9f9f9;">
+      <div style="background: #008080; padding: 24px; border-radius: 8px 8px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">JanUmang</h1>
+      </div>
+      <div style="background: white; padding: 32px; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0;">
+        <h2 style="color: #333; margin-top: 0;">Your Password Has Been Reset</h2>
+        <p style="color: #555;">Hi <strong>${name}</strong>,</p>
+        <p style="color: #555;">An administrator (<strong>${adminName}</strong>) has reset your password. Use the temporary password below to log in and you will be prompted to set a new password immediately.</p>
+        <div style="background: #f4f4f4; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; margin: 24px 0; text-align: center;">
+          <p style="margin: 0; font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 1px;">Temporary Password</p>
+          <p style="margin: 8px 0 0; font-size: 22px; font-weight: bold; color: #008080; letter-spacing: 2px; font-family: monospace;">${temporaryPassword}</p>
+        </div>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${loginUrl}"
+             style="background: #008080; color: white; padding: 14px 32px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
+            Log In Now
+          </a>
+        </div>
+        <p style="color: #888; font-size: 14px;">If you did not expect this, please contact your administrator immediately.</p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject: "Your JanUmang Password Has Been Reset",
+    html,
+  });
+};
+
 module.exports = {
   sendEmail,
   sendPasswordResetEmail,
   sendEmailVerification,
   sendTrialExpiryWarning,
   sendSubscriptionExpiredEmail,
+  sendAdminPasswordResetEmail,
 };

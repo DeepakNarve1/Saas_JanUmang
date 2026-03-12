@@ -36,8 +36,8 @@ const SettingsTab = ({ isActive }: { isActive: boolean }) => {
 
         if (response.data.success) {
           const updatedUser = response.data.data;
+          // Update Redux state only — localStorage no longer holds user data.
           dispatch(setCurrentUser(updatedUser));
-          localStorage.setItem("user", JSON.stringify(updatedUser));
           toast.success("Profile changes saved successfully");
         }
       } catch (error: unknown) {

@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
-import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import React, { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "@app/utils/axios";
 import { handleError } from "@app/utils/errorHandler";
 import { useAppSelector, ReduxState } from "@app/store/store";
@@ -23,45 +23,273 @@ import {
   CreditCard,
   CheckCircle2,
   AlertTriangle,
-  ExternalLink,
   Crown,
   Zap,
   Briefcase,
+  ChevronRight,
+  Calendar,
+  RefreshCw,
+  Loader2,
+  ExternalLink,
+  Receipt,
 } from "lucide-react";
 import { ITenant } from "@app/types/tenant";
 import { Skeleton } from "@app/components/ui/skeleton";
+import { PLANS, IPlan } from "@app/config/plans";
+import {
+  initiateCheckout,
+  openCustomerPortal,
+  verifyPaymentSession,
+  formatPrice,
+  BillingCycle,
+  PlanId,
+} from "@app/utils/stripe";
+import { toast } from "react-toastify";
 
+// ─── Payment History Row ──────────────────────────────────────────────────────
+interface IPaymentRecord {
+  _id: string;
+  plan: string;
+  billingCycle: string;
+  amount: number;
+  currency: string;
+  status: "pending" | "paid" | "failed" | "refunded" | "expired";
+  paidAt?: string;
+  subscriptionEndDate?: string;
+  createdAt: string;
+}
+
+// ─── Plan Card ────────────────────────────────────────────────────────────────
+const PlanCard = ({
+  plan,
+  currentPlan,
+  billingCycle,
+  upgrading,
+  onSelect,
+}: {
+  plan: IPlan;
+  currentPlan?: string;
+  billingCycle: BillingCycle;
+  upgrading: string | null;
+  onSelect: (planId: PlanId) => void;
+}) => {
+  const isCurrentPlan = currentPlan === plan.id;
+  const price =
+    billingCycle === "yearly" ? plan.priceYearly : plan.priceMonthly;
+  const monthlyEquivalent =
+    billingCycle === "yearly"
+      ? Math.round(plan.priceYearly / 12)
+      : plan.priceMonthly;
+  const savings = Math.round(
+    ((plan.priceMonthly * 12 - plan.priceYearly) / (plan.priceMonthly * 12)) *
+      100,
+  );
+
+  return (
+    <div
+      className={`relative rounded-2xl border-2 transition-all duration-300 flex flex-col ${
+        plan.highlighted && !isCurrentPlan
+          ? "border-[#368F8B] shadow-xl shadow-[#368F8B]/15 scale-105"
+          : isCurrentPlan
+            ? "border-emerald-400 shadow-lg shadow-emerald-500/10"
+            : "border-gray-200 dark:border-gray-700 hover:border-[#368F8B]/50"
+      } bg-white dark:bg-[#1e2023] overflow-hidden`}
+    >
+      {/* Badges */}
+      {plan.highlighted && !isCurrentPlan && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <span className="bg-[#368F8B] text-white text-xs font-black px-4 py-1 rounded-full shadow-lg whitespace-nowrap">
+            ⭐ Most Popular
+          </span>
+        </div>
+      )}
+      {isCurrentPlan && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <span className="bg-emerald-500 text-white text-xs font-black px-4 py-1 rounded-full shadow-lg whitespace-nowrap">
+            ✓ Current Plan
+          </span>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="p-6 pt-8">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+          style={{ backgroundColor: `${plan.color}18` }}
+        >
+          {plan.id === "basic" && (
+            <ShieldCheck className="w-5 h-5" style={{ color: plan.color }} />
+          )}
+          {plan.id === "professional" && (
+            <Zap className="w-5 h-5" style={{ color: plan.color }} />
+          )}
+          {plan.id === "enterprise" && (
+            <Crown className="w-5 h-5" style={{ color: plan.color }} />
+          )}
+        </div>
+
+        <h3 className="text-xl font-black text-gray-900 dark:text-white">
+          {plan.name}
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          {plan.description}
+        </p>
+
+        {/* Price */}
+        <div className="mt-4">
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-black text-gray-900 dark:text-white">
+              {formatPrice(monthlyEquivalent)}
+            </span>
+            <span className="text-gray-400 text-sm font-medium">/month</span>
+          </div>
+          {billingCycle === "yearly" && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-gray-400 line-through">
+                {formatPrice(plan.priceMonthly)}/mo
+              </span>
+              <Badge className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold border-0">
+                Save {savings}%
+              </Badge>
+            </div>
+          )}
+          {billingCycle === "yearly" && (
+            <p className="text-xs text-gray-400 mt-1">
+              Billed annually at {formatPrice(plan.priceYearly)}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Features */}
+      <div className="px-6 pb-6 flex-1">
+        <ul className="space-y-3">
+          {plan.features.map((f) => (
+            <li
+              key={f}
+              className="flex items-start gap-2.5 text-sm text-gray-600 dark:text-gray-300"
+            >
+              <CheckCircle2
+                className="w-4 h-4 mt-0.5 shrink-0"
+                style={{ color: plan.color }}
+              />
+              <span>{f}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* CTA */}
+      <div className="px-6 pb-6">
+        <Button
+          className="w-full h-11 font-bold rounded-xl transition-all"
+          disabled={isCurrentPlan || upgrading === plan.id}
+          onClick={() => onSelect(plan.id)}
+          style={
+            !isCurrentPlan
+              ? { backgroundColor: plan.color, color: "white" }
+              : undefined
+          }
+          variant={isCurrentPlan ? "outline" : "default"}
+        >
+          {upgrading === plan.id ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting...
+            </>
+          ) : isCurrentPlan ? (
+            "Current Plan"
+          ) : (
+            <>
+              Upgrade to {plan.name} <ChevronRight className="w-4 h-4 ml-1" />
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 const Subscription = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const currentUser = useAppSelector(
     (state: ReduxState) => state.auth.currentUser,
   );
 
-  // Strict check for Organization Admin (tenant_admin)
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"plans" | "history">("plans");
+
+  // Only tenant_admin can access this page
   const hasAccess = React.useMemo(() => {
     if (!currentUser) return false;
     return currentUser.level === "tenant_admin";
   }, [currentUser]);
 
-  const {
-    data: tenant,
-    isLoading,
-    error,
-  } = useQuery({
+  // Handle post-payment redirect from Stripe
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    const sessionId = searchParams.get("session_id");
+
+    if (payment === "success" && sessionId) {
+      verifyPaymentSession(sessionId)
+        .then((data) => {
+          toast.success(`🎉 Successfully upgraded to ${data.plan} plan!`);
+          // Refresh tenant data so the UI reflects the new plan
+          queryClient.invalidateQueries({ queryKey: ["my-tenant"] });
+          queryClient.invalidateQueries({ queryKey: ["payment-history"] });
+        })
+        .catch(() => {
+          toast.info("Payment received! It may take a moment to reflect.");
+        });
+      // Clean the URL
+      router.replace("/subscription");
+    } else if (payment === "cancelled") {
+      toast.info("Payment cancelled. Your current plan remains active.");
+      router.replace("/subscription");
+    }
+  }, [searchParams, queryClient, router]);
+
+  // Fetch tenant
+  const { data: tenant, isLoading } = useQuery({
     queryKey: ["my-tenant"],
     queryFn: async () => {
-      try {
-        const res = await axios.get("/tenants/me");
-        return res.data?.data as ITenant & {
-          userCount?: number;
-        };
-      } catch (error: unknown) {
-        handleError(error, "Failed to fetch subscription details");
-        throw error;
-      }
+      const res = await axios.get("/tenants/me");
+      return res.data?.data as ITenant & { userCount?: number };
     },
     enabled: hasAccess,
   });
+
+  // Fetch payment history
+  const { data: historyData, isLoading: historyLoading } = useQuery({
+    queryKey: ["payment-history"],
+    queryFn: async () => {
+      const res = await axios.get("/payment/history?limit=10");
+      return res.data;
+    },
+    enabled: hasAccess && activeTab === "history",
+  });
+
+  const handleUpgrade = async (planId: PlanId) => {
+    try {
+      setUpgrading(planId);
+      await initiateCheckout(planId, billingCycle);
+      // Will redirect — no need to reset upgrading state
+    } catch (error) {
+      handleError(error, "Failed to start checkout");
+      setUpgrading(null);
+    }
+  };
+
+  const handleManageBilling = async () => {
+    try {
+      await openCustomerPortal();
+    } catch (error) {
+      handleError(error, "Could not open billing portal");
+    }
+  };
 
   if (!hasAccess) {
     return (
@@ -73,8 +301,7 @@ const Subscription = () => {
               Access Restricted
             </h2>
             <p className="text-gray-500 dark:text-gray-400 mb-6">
-              Only the Organization Administrator has permission to view
-              subscription details.
+              Only the Organization Administrator can manage subscriptions.
             </p>
             <Button
               onClick={() => router.push("/dashboard")}
@@ -91,14 +318,14 @@ const Subscription = () => {
   if (isLoading) {
     return (
       <div className="content-wrapper">
-        <ContentHeader title="Subscription Details" />
+        <ContentHeader title="Subscription" />
         <section className="content p-4 md:p-6">
-          <div className="max-w-5xl mx-auto space-y-6">
-            <Skeleton className="h-48 w-full rounded-2xl" />
+          <div className="max-w-6xl mx-auto space-y-6">
+            <Skeleton className="h-40 w-full rounded-2xl" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Skeleton className="h-32 w-full rounded-xl" />
-              <Skeleton className="h-32 w-full rounded-xl" />
-              <Skeleton className="h-32 w-full rounded-xl" />
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-96 w-full rounded-2xl" />
+              ))}
             </div>
           </div>
         </section>
@@ -106,190 +333,310 @@ const Subscription = () => {
     );
   }
 
-  const planName =
-    (tenant?.plan || "Basic").charAt(0).toUpperCase() +
-    (tenant?.plan || "Basic").slice(1);
-  const isCustom = tenant?.plan === "custom";
+  const currentPlan = tenant?.plan || "basic";
+  const isActive = tenant?.subscriptionStatus === "active";
+  const isTrial = tenant?.subscriptionStatus === "trial";
   const isUnlimited = tenant?.maxUsers === -1;
-
-  const getPlanIcon = (plan?: string) => {
-    switch (plan?.toLowerCase()) {
-      case "enterprise":
-        return <Crown className="text-amber-500" />;
-      case "professional":
-        return <Zap className="text-blue-500" />;
-      case "custom":
-        return <Briefcase className="text-[#368F8B]" />;
-      default:
-        return <ShieldCheck className="text-emerald-500" />;
-    }
-  };
+  const userUsage = tenant?.userCount || 0;
+  const userLimit = tenant?.maxUsers || 10;
+  const usagePct = isUnlimited
+    ? 0
+    : Math.min((userUsage / userLimit) * 100, 100);
 
   return (
     <div className="content-wrapper">
-      <ContentHeader title="Manage Subscription" />
+      <ContentHeader title="Subscription & Billing" />
       <section className="content p-4 md:p-6 bg-gray-50/50 dark:bg-[#1a1b1e]">
         <div className="container mx-auto max-w-6xl space-y-6">
-          {/* Current Plan Card */}
-          <div className="relative overflow-hidden bg-white dark:bg-card rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 transition-all hover:shadow-2xl">
+          {/* Current Plan Summary Banner */}
+          <div className="relative overflow-hidden bg-white dark:bg-[#1e2023] rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800">
             <div className="absolute top-0 right-0 p-8 opacity-5">
-              <Building2 size={120} />
+              <Building2 size={100} />
             </div>
-
-            <div className="p-8 md:p-10 relative z-10">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-[#368F8B]/10 flex items-center justify-center border border-[#368F8B]/20">
-                    <div className="scale-125">{getPlanIcon(tenant?.plan)}</div>
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                      {planName} Plan
-                      <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                        Active
-                      </Badge>
+            <div className="p-6 md:p-8 relative z-10">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <h2 className="text-xl font-black text-gray-900 dark:text-white capitalize">
+                      {currentPlan} Plan
                     </h2>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium mt-1">
-                      Organization:{" "}
-                      <span className="text-[#368F8B] font-bold">
-                        {tenant?.name}
-                      </span>
-                    </p>
+                    <Badge
+                      className={`text-[10px] font-black uppercase tracking-wider border-0 ${
+                        isActive
+                          ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700"
+                          : isTrial
+                            ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700"
+                            : "bg-red-100 dark:bg-red-900/30 text-red-700"
+                      }`}
+                    >
+                      {tenant?.subscriptionStatus}
+                    </Badge>
                   </div>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    {tenant?.name}
+                    {tenant?.subscriptionEndDate && (
+                      <span className="ml-2 text-xs">
+                        · Renews{" "}
+                        {new Date(
+                          tenant.subscriptionEndDate,
+                        ).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    )}
+                    {isTrial && tenant?.trialEndsAt && (
+                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        · Trial ends{" "}
+                        {new Date(tenant.trialEndsAt).toLocaleDateString(
+                          "en-IN",
+                        )}
+                      </span>
+                    )}
+                  </p>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    className="bg-[#368F8B] hover:bg-[#2d7a76] text-white px-8 rounded-xl h-12 font-bold shadow-lg shadow-[#368F8B]/20 group transition-all"
-                    onClick={() =>
-                      window.open("https://jitalsolution.com/contact", "_blank")
-                    }
-                  >
-                    Upgrade Plan
-                    <ExternalLink className="ml-2 w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                  </Button>
+                <div className="flex items-center gap-3">
+                  {tenant?.stripeCustomerId && (
+                    <Button
+                      variant="outline"
+                      onClick={handleManageBilling}
+                      className="h-10 text-sm font-bold rounded-xl border-gray-200 dark:border-gray-700"
+                    >
+                      <Receipt className="w-4 h-4 mr-2" />
+                      Manage Billing
+                      <ExternalLink className="w-3 h-3 ml-1 opacity-60" />
+                    </Button>
+                  )}
                 </div>
               </div>
-            </div>
 
-            <div className="bg-[#368F8B]/5 dark:bg-[#368F8B]/10 px-8 py-6 border-t border-[#368F8B]/10">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                    User Allocation
-                  </p>
-                  <div className="flex items-end gap-2">
-                    <span className="text-2xl font-black text-gray-800 dark:text-gray-200">
-                      {tenant?.userCount ?? 0}
+              {/* Usage Bar */}
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex justify-between text-xs text-gray-400 mb-1.5">
+                    <span className="font-bold uppercase tracking-wider">
+                      User Allocation
                     </span>
-                    <span className="text-sm font-bold text-gray-400 mb-1">
-                      / {isUnlimited ? "∞" : tenant?.maxUsers ?? "—"} limit
+                    <span className="font-bold">
+                      {userUsage} / {isUnlimited ? "∞" : userLimit}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full mt-2 overflow-hidden">
+                  <div className="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-1000 ${
-                        (tenant?.userCount || 0) / (tenant?.maxUsers || 1) > 0.9
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        usagePct > 90
                           ? "bg-red-500"
-                          : "bg-[#368F8B]"
+                          : usagePct > 70
+                            ? "bg-amber-500"
+                            : "bg-[#368F8B]"
                       }`}
-                      style={{
-                        width: `${Math.min(((tenant?.userCount || 0) / (tenant?.maxUsers || 1)) * 100, 100)}%`,
-                      }}
+                      style={{ width: `${usagePct}%` }}
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                    Status
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <CheckCircle2 className="text-emerald-500 w-5 h-5" />
-                    <span className="text-lg font-bold text-emerald-600">
-                      Active Subscription
+                <div>
+                  <div className="flex justify-between text-xs text-gray-400 mb-1.5">
+                    <span className="font-bold uppercase tracking-wider">
+                      Enabled Modules
+                    </span>
+                    <span className="font-bold">
+                      {tenant?.enabledModules?.length || 0}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 font-medium">
-                    Auto-renewal enabled
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                    Storage
-                  </p>
-                  <div className="flex items-end gap-2">
-                    <span className="text-2xl font-black text-gray-800 dark:text-gray-200">
-                      5.2
-                    </span>
-                    <span className="text-sm font-bold text-gray-400 mb-1">
-                      / 10 GB
-                    </span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {tenant?.enabledModules?.slice(0, 4).map((m) => (
+                      <span
+                        key={m}
+                        className="text-[10px] px-2 py-0.5 bg-[#368F8B]/10 text-[#368F8B] dark:text-[#4EADA9] rounded-full font-bold capitalize"
+                      >
+                        {m.replace(/_/g, " ")}
+                      </span>
+                    ))}
+                    {(tenant?.enabledModules?.length || 0) > 4 && (
+                      <span className="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-full font-bold">
+                        +{(tenant?.enabledModules?.length || 0) - 4} more
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs text-gray-400 font-medium italic">
-                    Estimated usage
-                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Features List */}
-            <Card className="lg:col-span-12 border-0 shadow-lg bg-white dark:bg-card">
-              <CardHeader className="border-b border-gray-100 dark:border-gray-800 pb-4">
-                <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <ShieldCheck className="text-[#368F8B] w-5 h-5" />
-                  Enabled Modules
+          {/* Tabs */}
+          <div className="flex gap-1 bg-gray-100 dark:bg-gray-800/60 p-1 rounded-xl w-fit">
+            {(["plans", "history"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-6 py-2 rounded-lg text-sm font-bold transition-all capitalize ${
+                  activeTab === tab
+                    ? "bg-white dark:bg-[#1e2023] text-gray-900 dark:text-white shadow-sm"
+                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                {tab === "plans" ? "Upgrade Plan" : "Payment History"}
+              </button>
+            ))}
+          </div>
+
+          {/* Plans Tab */}
+          {activeTab === "plans" && (
+            <>
+              {/* Billing Cycle Toggle */}
+              <div className="flex items-center justify-center gap-4">
+                <span
+                  className={`text-sm font-bold ${billingCycle === "monthly" ? "text-gray-900 dark:text-white" : "text-gray-400"}`}
+                >
+                  Monthly
+                </span>
+                <button
+                  onClick={() =>
+                    setBillingCycle((c) =>
+                      c === "monthly" ? "yearly" : "monthly",
+                    )
+                  }
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    billingCycle === "yearly"
+                      ? "bg-[#368F8B]"
+                      : "bg-gray-300 dark:bg-gray-600"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                      billingCycle === "yearly"
+                        ? "translate-x-6"
+                        : "translate-x-0"
+                    }`}
+                  />
+                </button>
+                <span
+                  className={`text-sm font-bold ${billingCycle === "yearly" ? "text-gray-900 dark:text-white" : "text-gray-400"}`}
+                >
+                  Yearly
+                  <span className="ml-1.5 text-[10px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-black">
+                    Save 17%
+                  </span>
+                </span>
+              </div>
+
+              {/* Plan Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
+                {PLANS.map((plan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    currentPlan={currentPlan}
+                    billingCycle={billingCycle}
+                    upgrading={upgrading}
+                    onSelect={handleUpgrade}
+                  />
+                ))}
+              </div>
+
+              <p className="text-center text-xs text-gray-400 dark:text-gray-500">
+                All prices in INR. Billed via Stripe — secure, encrypted
+                payments. Cancel anytime from the billing portal.
+              </p>
+            </>
+          )}
+
+          {/* Payment History Tab */}
+          {activeTab === "history" && (
+            <Card className="border-0 shadow-lg bg-white dark:bg-[#1e2023]">
+              <CardHeader className="border-b border-gray-100 dark:border-gray-800">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-[#368F8B]" />
+                  Payment History
                 </CardTitle>
                 <CardDescription>
-                  Your plan currently includes access to the following modules
+                  Your past invoices and payments
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {tenant?.enabledModules?.map((moduleId) => (
-                    <div
-                      key={moduleId}
-                      className="flex items-center gap-3 p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-[#368F8B]/30 hover:bg-[#368F8B]/5 transition-all group"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center group-hover:bg-[#368F8B] group-hover:text-white transition-colors">
-                        <CheckCircle2 size={16} />
+              <CardContent className="p-0">
+                {historyLoading ? (
+                  <div className="p-8 space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <Skeleton key={i} className="h-12 w-full rounded-xl" />
+                    ))}
+                  </div>
+                ) : !historyData?.data?.length ? (
+                  <div className="p-12 text-center">
+                    <Receipt className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">
+                      No payments yet
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Upgrade to a paid plan to see your invoices here
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-50 dark:divide-gray-800">
+                    {historyData.data.map((p: IPaymentRecord) => (
+                      <div
+                        key={p._id}
+                        className="flex items-center justify-between px-6 py-4 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              p.status === "paid"
+                                ? "bg-emerald-100 dark:bg-emerald-900/30"
+                                : "bg-red-100 dark:bg-red-900/30"
+                            }`}
+                          >
+                            {p.status === "paid" ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <AlertTriangle className="w-4 h-4 text-red-500" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-900 dark:text-white capitalize">
+                              {p.plan} Plan · {p.billingCycle}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {p.paidAt
+                                ? new Date(p.paidAt).toLocaleDateString(
+                                    "en-IN",
+                                    {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    },
+                                  )
+                                : new Date(p.createdAt).toLocaleDateString(
+                                    "en-IN",
+                                  )}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-black text-gray-900 dark:text-white">
+                            ₹{(p.amount / 100).toLocaleString("en-IN")}
+                          </p>
+                          <Badge
+                            className={`text-[10px] font-bold border-0 capitalize ${
+                              p.status === "paid"
+                                ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700"
+                                : p.status === "failed"
+                                  ? "bg-red-100 dark:bg-red-900/30 text-red-700"
+                                  : "bg-gray-100 dark:bg-gray-800 text-gray-600"
+                            }`}
+                          >
+                            {p.status}
+                          </Badge>
+                        </div>
                       </div>
-                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300 capitalize">
-                        {moduleId.replace(/_/g, " ")}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
-
-            {/* Support/Upgrade Notice */}
-            <Card className="lg:col-span-12 border-0 shadow-lg bg-linear-to-r from-[#368F8B] to-[#2d7a76] text-white overflow-hidden relative">
-              <div className="absolute top-0 right-0 p-12 opacity-10">
-                <AlertTriangle size={150} />
-              </div>
-              <CardContent className="p-8 relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="space-y-2 text-center md:text-left">
-                  <h3 className="text-2xl font-black">Need More Resources?</h3>
-                  <p className="text-emerald-50 max-w-lg font-medium">
-                    If you are hitting your user limits or need additional
-                    modules, contact our team to customize a plan for you.
-                  </p>
-                </div>
-                <Button
-                  className="bg-white text-[#368F8B] hover:bg-emerald-50 px-10 rounded-xl h-14 font-black text-lg transition-transform hover:scale-105 active:scale-95 shadow-xl shadow-black/10"
-                  onClick={() =>
-                    window.open("https://jitalsolution.com/contact", "_blank")
-                  }
-                >
-                  Contact Support
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+          )}
         </div>
       </section>
     </div>

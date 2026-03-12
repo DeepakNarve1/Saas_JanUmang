@@ -259,12 +259,7 @@ const DivisionList = () => {
                                   ) && (
                                     <DropdownMenuItem
                                       className="text-red-600 focus:text-red-600"
-                                      onClick={() =>
-                                        handleDelete(
-                                          item._id,
-                                          "Are you sure you want to delete this division?",
-                                        )
-                                      }
+                                      onClick={() => handleDelete(item._id)}
                                     >
                                       <Trash2 className="mr-2 h-4 w-4" /> Delete
                                     </DropdownMenuItem>

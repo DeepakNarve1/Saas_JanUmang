@@ -59,7 +59,6 @@ const AUTH_SKIP_URLS = [
 
 const forceLogout = () => {
   localStorage.removeItem("token");
-  localStorage.removeItem("user");
   window.location.href = "/login";
 };
 

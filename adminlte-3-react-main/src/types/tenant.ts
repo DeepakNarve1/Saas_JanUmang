@@ -20,6 +20,9 @@ export interface ITenant {
     | "cancelled"
     | "expired";
   enabledModules?: string[];
+  subscriptionEndDate?: string;
+  stripeCustomerId?: string;
+  trialEndsAt?: string;
 }
 
 export interface ITenantResponse {

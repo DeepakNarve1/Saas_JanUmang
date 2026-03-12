@@ -13,6 +13,16 @@ export interface IUser {
   level?: string;
   metadata?: any;
   tenant?: ITenantShort;
+  // Geographic scope fields — assigned to users for data isolation
+  state?: string;
+  division?: string;
+  district?: string;
+  vidhansabha?: string;
+  assembly?: string;
+  block?: string;
+  panchayat?: string;
+  village?: string;
+  booth?: string;
 }
 
 export interface ITenantShort {

@@ -24,7 +24,7 @@ import {
 
 interface BlockFormProps {
   initialValues?: IBlockFormValues;
-  onSubmit: (values: IBlockFormValues & { booths: string[] }) => void;
+  onSubmit: (values: IBlockFormValues) => void;
   loading?: boolean;
   isEdit?: boolean;
 }
@@ -45,8 +45,6 @@ const BlockForm = ({
   const [districtsList, setDistrictsList] = useState<OptionItem[]>([]);
   const [parliamentsList, setParliamentsList] = useState<OptionItem[]>([]);
   const [assembliesList, setAssembliesList] = useState<OptionItem[]>([]);
-  const [newBooths, setNewBooths] = useState<string[]>([]);
-  const [currentBoothInput, setCurrentBoothInput] = useState("");
 
   useEffect(() => {
     fetchStates();
@@ -156,7 +154,7 @@ const BlockForm = ({
     enableReinitialize: true,
     validationSchema: blockSchema,
     onSubmit: (values) => {
-      onSubmit({ ...values, booths: newBooths });
+      onSubmit(values);
     },
   });
 
@@ -417,71 +415,6 @@ const BlockForm = ({
               />
               {formik.touched.year && formik.errors.year && (
                 <p className="text-sm text-red-500">{formik.errors.year}</p>
-              )}
-            </div>
-
-            {/* Booths Addition */}
-            <div className="grid gap-2 border-t border-gray-100 dark:border-gray-800 pt-4 mt-4">
-              <Label className="text-gray-700 dark:text-gray-300 font-medium">
-                Add Associated Booths
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="Enter booth name and click Add"
-                  value={currentBoothInput}
-                  onChange={(e) => setCurrentBoothInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      if (currentBoothInput.trim()) {
-                        setNewBooths([...newBooths, currentBoothInput.trim()]);
-                        setCurrentBoothInput("");
-                      }
-                    }
-                  }}
-                  className="flex-1 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200"
-                />
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (currentBoothInput.trim()) {
-                      setNewBooths([...newBooths, currentBoothInput.trim()]);
-                      setCurrentBoothInput("");
-                    }
-                  }}
-                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <Plus className="w-4 h-4 mr-1" /> Add
-                </Button>
-              </div>
-
-              {newBooths.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {newBooths.map((booth, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-full text-sm dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800/50"
-                    >
-                      <span className="font-medium">{booth}</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setNewBooths(newBooths.filter((_, i) => i !== idx))
-                        }
-                        className="text-blue-400 hover:text-blue-700 dark:hover:text-blue-200 transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {isEdit && (
-                <p className="text-xs text-blue-500 dark:text-blue-400 mt-1 italic">
-                  Note: Added booths will be appended to the block. To view or
-                  manage existing booths entirely, visit the Block details view
-                  or the Booths module.
-                </p>
               )}
             </div>
           </div>

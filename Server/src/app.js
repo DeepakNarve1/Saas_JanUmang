@@ -7,8 +7,10 @@ const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   integrations: [nodeProfilingIntegration()],
-  tracesSampleRate: 1.0,
-  profilesSampleRate: 1.0,
+  // Sample 10% of traces in production to control quota costs.
+  // Use 100% in development for full visibility during debugging.
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+  profilesSampleRate: process.env.NODE_ENV === "production" ? 0.2 : 1.0,
 });
 
 const express = require("express");
@@ -65,6 +67,7 @@ const parliamentRoutes = require("./routes/parliamentRoute");
 const projectRoutes = require("./routes/projectRoute");
 const publicProblemRoutes = require("./routes/publicProblemRoute");
 const villageRoutes = require("./routes/villageRoute");
+const paymentRoutes = require("./routes/paymentRoute");
 
 const app = express();
 
@@ -88,6 +91,12 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(compression());
+
+// ⚠️  Stripe webhook MUST be registered before express.json() parses the body.
+//    The webhook handler applies express.raw() itself on the route, so the
+//    global express.json() below will NOT affect it.
+app.use("/api/payment", paymentRoutes);
+
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ limit: "5mb", extended: true }));
 

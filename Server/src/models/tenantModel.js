@@ -77,6 +77,17 @@ const tenantSchema = new mongoose.Schema(
     subscriptionEndDate: {
       type: Date,
     },
+    // ─── Stripe Billing ────────────────────────────────────────────────────────
+    stripeCustomerId: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
+    stripeSubscriptionId: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
     trialEndsAt: {
       type: Date,
       default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now

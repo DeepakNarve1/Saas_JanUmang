@@ -74,58 +74,28 @@ const MenuSidebar = () => {
       if (!hasPerm) return false;
     }
 
-    // 4. Check resource-based view permission if defined
+    // 5. Check view permission for the resource if defined
     if (item.resource) {
-      // List of all module IDs to check against for tenant isolation
-      const MODULE_KEYS = [
-        "mp_public_problems",
-        "projects",
-        "assembly_issues",
-        "departments",
-        "blocks",
-        "villages",
-        "panchayats",
-        "booths",
-        "members",
-        "events",
-        "visitors",
-        "states",
-        "divisions",
-        "districts",
-        "parliaments",
-        "assemblies",
-        "samiti",
-        "parties",
-        "work_types",
-        "sub_work_types",
-        "voters",
-        "phone_directory",
-        "call_management",
-        "inward_register",
-        "dispatch_register",
-        "ganesh_samiti",
-        "tenkar_samiti",
-        "dp_samiti",
-        "mandir_samiti",
-        "bhagoria_samiti",
-        "nirman_samiti",
-        "booth_samiti",
-        "block_samiti",
-        "user_count",
-      ];
-
-      // Check module access for tenant users
       if (!isSuperadmin) {
         const tenantModules = (user as any)?.tenant?.enabledModules || [];
+        // Core items that should always be allowed regardless of the subscription configuration
+        // (to prevent accidentally locking out the user from logging in/viewing profiles)
+        const ALWAYS_ALLOWED_RESOURCES = [
+          "dashboard",
+          "users",
+          "roles",
+          "tenants",
+          "activity_management",
+        ];
+
         if (
-          MODULE_KEYS.includes(item.resource) &&
+          !ALWAYS_ALLOWED_RESOURCES.includes(item.resource) &&
           !tenantModules.includes(item.resource)
         ) {
           return false;
         }
       }
 
-      // Check view permission for the resource
       // Handle legacy singular resource names in permissions
       const resourceMap: Record<string, string> = {
         panchayats: "panchayat",
@@ -140,7 +110,8 @@ const MenuSidebar = () => {
         booths: "booth",
       };
 
-      const permissionResource = resourceMap[item.resource] || item.resource;
+      const permissionResource =
+        resourceMap[item.resource as string] || item.resource;
       const viewPermission = `view_${permissionResource}`;
 
       // Check both mapped (singular/legacy) and original (plural/standard) permissions

@@ -11,9 +11,7 @@ const CreateBlock = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (
-    values: IBlockFormValues & { booths: string[] },
-  ) => {
+  const handleSubmit = async (values: IBlockFormValues) => {
     try {
       setLoading(true);
       await axios.post("/blocks", values);

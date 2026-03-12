@@ -16,25 +16,29 @@ export default function AuthLoader({
 
   useEffect(() => {
     const initAuth = async () => {
-      const storedUser = localStorage.getItem("user");
       const storedToken = localStorage.getItem("token");
 
       if (storedToken) {
         try {
-          // Always refresh user from profile endpoint to get fresh SaaS context (tenantId, level, etc.)
-          const res = await axios.get("/auth/profile");
+          // Always fetch fresh user data from the server.
+          // The axios interceptor will silently refresh the access token
+          // via the HttpOnly cookie if it has expired.
+          // We NEVER fall back to a stale localStorage user object —
+          // role/permission changes would not be reflected if we did.
+          const res = await axios.get("/auth/me");
           const freshUser = res.data?.data;
           if (freshUser) {
-            localStorage.setItem("user", JSON.stringify(freshUser));
             dispatch(setCurrentUser(freshUser));
-          } else if (storedUser) {
-            dispatch(setCurrentUser(JSON.parse(storedUser)));
+          } else {
+            // Profile endpoint returned no user → clear stale token
+            localStorage.removeItem("token");
+            dispatch(setCurrentUser(null));
           }
-        } catch (error) {
-          console.error("Failed to sync auth state", error);
-          if (storedUser) {
-            dispatch(setCurrentUser(JSON.parse(storedUser)));
-          }
+        } catch {
+          // Network error or unrecoverable 401 after refresh attempt failed.
+          // Clear the stale token so the user is sent to login.
+          localStorage.removeItem("token");
+          dispatch(setCurrentUser(null));
         }
       } else {
         dispatch(setCurrentUser(null));

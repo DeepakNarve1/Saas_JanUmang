@@ -22,6 +22,9 @@ exports.getVillages = asyncHandler(async (req, res) => {
   } = req.query;
 
   const query = { ...req.scopeFilter };
+  if (query.tenantId) {
+    query.tenantId = { $in: [query.tenantId, null] };
+  }
 
   if (search) {
     query.$or = [{ name: { $regex: search, $options: "i" } }];
@@ -127,7 +130,11 @@ exports.getVillages = asyncHandler(async (req, res) => {
 
   let villages;
   let filteredCount;
-  let totalCount = await Village.countDocuments({ ...req.scopeFilter });
+  const baseScope = { ...req.scopeFilter };
+  if (baseScope.tenantId) {
+    baseScope.tenantId = { $in: [baseScope.tenantId, null] };
+  }
+  let totalCount = await Village.countDocuments(baseScope);
 
   if (limitNum === -1) {
     villages = await Village.find(query)
@@ -171,10 +178,14 @@ exports.getVillages = asyncHandler(async (req, res) => {
 // @desc    Get single village
 // @route   GET /api/villages/:id
 exports.getVillageById = asyncHandler(async (req, res) => {
-  const village = await Village.findOne({
+  const getQuery = {
     _id: req.params.id,
     ...req.scopeFilter,
-  })
+  };
+  if (getQuery.tenantId) {
+    getQuery.tenantId = { $in: [getQuery.tenantId, null] };
+  }
+  const village = await Village.findOne(getQuery)
     .populate("state", "name")
     .populate("division", "name")
     .populate("district", "name")

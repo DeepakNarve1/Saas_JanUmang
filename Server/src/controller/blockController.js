@@ -18,12 +18,10 @@ exports.getBlocks = asyncHandler(async (req, res) => {
   // Include global blocks (tenantId: null) alongside tenant-specific blocks.
   // Geographic reference data seeded by system admins has tenantId: null and
   // should be visible to all tenants, just like States and Districts.
-  const tenantScopeId = req.scopeFilter?.tenantId;
-  const geoScope = tenantScopeId
-    ? { tenantId: { $in: [tenantScopeId, null] } }
-    : {};
-
-  const query = { ...geoScope };
+  const query = { ...req.scopeFilter };
+  if (query.tenantId) {
+    query.tenantId = { $in: [query.tenantId, null] };
+  }
 
   if (search) {
     query.$or = [{ name: { $regex: search, $options: "i" } }];
@@ -84,7 +82,11 @@ exports.getBlocks = asyncHandler(async (req, res) => {
 
   let blocks;
   let filteredCount;
-  let totalCount = await Block.countDocuments(geoScope);
+  const baseScope = { ...req.scopeFilter };
+  if (baseScope.tenantId) {
+    baseScope.tenantId = { $in: [baseScope.tenantId, null] };
+  }
+  let totalCount = await Block.countDocuments(baseScope);
 
   if (limitNum === -1) {
     blocks = await Block.find(query)
@@ -120,11 +122,14 @@ exports.getBlocks = asyncHandler(async (req, res) => {
 // @desc    Get single block
 // @route   GET /api/blocks/:id
 exports.getBlockById = asyncHandler(async (req, res) => {
-  const tenantScopeId = req.scopeFilter?.tenantId;
-  const block = await Block.findOne({
+  const getQuery = {
     _id: req.params.id,
-    ...(tenantScopeId ? { tenantId: { $in: [tenantScopeId, null] } } : {}),
-  })
+    ...req.scopeFilter,
+  };
+  if (getQuery.tenantId) {
+    getQuery.tenantId = { $in: [getQuery.tenantId, null] };
+  }
+  const block = await Block.findOne(getQuery)
     .populate("state", "name")
     .populate("division", "name")
     .populate("district", "name")

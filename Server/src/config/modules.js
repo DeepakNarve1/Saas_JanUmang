@@ -275,7 +275,6 @@ const MODULES = {
     name: "Samiti",
     description: "Samiti management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_SAMITI,
       PERMISSIONS.CREATE_SAMITI,
@@ -291,7 +290,6 @@ const MODULES = {
     name: "District",
     description: "District management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_DISTRICTS,
       PERMISSIONS.CREATE_DISTRICTS,
@@ -306,7 +304,6 @@ const MODULES = {
     name: "Vidhan Sabha",
     description: "Vidhan Sabha management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_ASSEMBLIES,
       PERMISSIONS.CREATE_ASSEMBLIES,
@@ -321,7 +318,6 @@ const MODULES = {
     name: "Block",
     description: "Block/Tehsil management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_BLOCKS,
       PERMISSIONS.CREATE_BLOCKS,
@@ -336,7 +332,6 @@ const MODULES = {
     name: "Booth",
     description: "Polling booth management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_BOOTHS,
       PERMISSIONS.CREATE_BOOTHS,
@@ -351,7 +346,6 @@ const MODULES = {
     name: "Panchayat",
     description: "Panchayat management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_PANCHAYATS,
       PERMISSIONS.CREATE_PANCHAYATS,
@@ -366,7 +360,6 @@ const MODULES = {
     name: "Village",
     description: "Village management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_VILLAGES,
       PERMISSIONS.CREATE_VILLAGES,
@@ -381,7 +374,6 @@ const MODULES = {
     name: "Party",
     description: "Political party management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_PARTIES,
       PERMISSIONS.CREATE_PARTIES,
@@ -410,7 +402,6 @@ const MODULES = {
     name: "Worktype",
     description: "Work type management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_WORK_TYPES,
       PERMISSIONS.CREATE_WORK_TYPES,
@@ -425,7 +416,6 @@ const MODULES = {
     name: "Sub Type of Work",
     description: "Sub work type management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_SUB_WORK_TYPES,
       PERMISSIONS.CREATE_SUB_WORK_TYPES,
@@ -440,7 +430,6 @@ const MODULES = {
     name: "State",
     description: "State management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_STATES,
       PERMISSIONS.CREATE_STATES,
@@ -455,7 +444,6 @@ const MODULES = {
     name: "Division",
     description: "Division management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_DIVISIONS,
       PERMISSIONS.CREATE_DIVISIONS,
@@ -470,28 +458,12 @@ const MODULES = {
     name: "Parliament",
     description: "Parliament management",
     category: "master_data",
-    alwaysEnabled: true,
     permissions: [
       PERMISSIONS.VIEW_PARLIAMENTS,
       PERMISSIONS.CREATE_PARLIAMENTS,
       PERMISSIONS.EDIT_PARLIAMENTS,
       PERMISSIONS.DELETE_PARLIAMENTS,
       PERMISSIONS.MANAGE_PARLIAMENTS,
-    ],
-  },
-
-  ASSEMBLIES_V2: {
-    id: "assemblies",
-    name: "Assembly",
-    description: "Vidhan Sabha management",
-    category: "master_data",
-    alwaysEnabled: true,
-    permissions: [
-      PERMISSIONS.VIEW_ASSEMBLIES,
-      PERMISSIONS.CREATE_ASSEMBLIES,
-      PERMISSIONS.EDIT_ASSEMBLIES,
-      PERMISSIONS.DELETE_ASSEMBLIES,
-      PERMISSIONS.MANAGE_ASSEMBLIES,
     ],
   },
 
@@ -583,7 +555,7 @@ const PLANS = {
     description: "Essential features for small teams",
     price: 999, // per month in INR
     maxUsers: 10,
-    maxStorage: 1024, // 1 GB in MB
+    maxStorage: 5120, // 5 GB in MB
     enabledModules: [
       "dashboard",
       "users",
@@ -600,12 +572,13 @@ const PLANS = {
       "divisions",
       "districts",
       "parliaments",
-      "assemblies",
       "samiti",
 
       "parties",
       "work_types",
       "sub_work_types",
+      "voters",
+      "visitors",
     ],
   },
 
@@ -613,9 +586,9 @@ const PLANS = {
     id: "professional",
     name: "Professional Plan",
     description: "Advanced features for growing organizations",
-    price: 2999,
+    price: 2499,
     maxUsers: 50,
-    maxStorage: 10240, // 10 GB
+    maxStorage: 20480, // 20 GB
     enabledModules: [
       "dashboard",
       "users",
@@ -657,6 +630,7 @@ const PLANS = {
       "nirman_samiti",
       "booth_samiti",
       "block_samiti",
+      "vidhan_sabha_samiti",
     ],
   },
 
@@ -664,7 +638,7 @@ const PLANS = {
     id: "enterprise",
     name: "Enterprise Plan",
     description: "Complete access with unlimited resources",
-    price: 9999,
+    price: 4999,
     maxUsers: -1, // Unlimited
     maxStorage: -1, // Unlimited
     enabledModules: Object.keys(MODULES).map((key) => MODULES[key].id), // All modules

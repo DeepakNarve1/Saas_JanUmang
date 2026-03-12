@@ -8,12 +8,10 @@ const asyncHandler = require("express-async-handler");
 exports.getBooths = asyncHandler(async (req, res) => {
   const { search, page = 1, limit = 10, block, blockName } = req.query;
 
-  const tenantScopeId = req.scopeFilter?.tenantId;
-  const geoScope = tenantScopeId
-    ? { tenantId: { $in: [tenantScopeId, null] } }
-    : {};
-
-  const query = { ...geoScope };
+  const query = { ...req.scopeFilter };
+  if (query.tenantId) {
+    query.tenantId = { $in: [query.tenantId, null] };
+  }
 
   if (search) {
     query.$or = [
@@ -73,7 +71,11 @@ exports.getBooths = asyncHandler(async (req, res) => {
 
   let booths;
   let filteredCount;
-  let totalCount = await Booth.countDocuments(geoScope);
+  const baseScope = { ...req.scopeFilter };
+  if (baseScope.tenantId) {
+    baseScope.tenantId = { $in: [baseScope.tenantId, null] };
+  }
+  let totalCount = await Booth.countDocuments(baseScope);
 
   if (limitNum === -1) {
     booths = await Booth.find(query)
@@ -110,11 +112,14 @@ exports.getBooths = asyncHandler(async (req, res) => {
 // @desc    Get single booth
 // @route   GET /api/booths/:id
 exports.getBoothById = asyncHandler(async (req, res) => {
-  const tenantScopeId = req.scopeFilter?.tenantId;
-  const booth = await Booth.findOne({
+  const getQuery = {
     _id: req.params.id,
-    ...(tenantScopeId ? { tenantId: { $in: [tenantScopeId, null] } } : {}),
-  })
+    ...req.scopeFilter,
+  };
+  if (getQuery.tenantId) {
+    getQuery.tenantId = { $in: [getQuery.tenantId, null] };
+  }
+  const booth = await Booth.findOne(getQuery)
     .populate("state", "name")
     .populate("division", "name")
     .populate("district", "name")

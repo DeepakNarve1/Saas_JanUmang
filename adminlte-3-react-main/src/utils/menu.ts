@@ -1,4 +1,4 @@
-import { PERMISSIONS } from '@app/config/permissions';
+import { PERMISSIONS } from "@app/config/permissions";
 export interface IMenuItem {
   name: string;
   icon?: string;
@@ -178,7 +178,10 @@ export const MENU: IMenuItem[] = [
     name: "District",
     icon: "fas fa-map-marker-alt nav-icon",
     path: "/districts",
-    allowedPermissions: [PERMISSIONS.VIEW_DISTRICTS, PERMISSIONS.MANAGE_DISTRICTS],
+    allowedPermissions: [
+      PERMISSIONS.VIEW_DISTRICTS,
+      PERMISSIONS.MANAGE_DISTRICTS,
+    ],
     resource: "districts",
   },
   {
@@ -206,14 +209,20 @@ export const MENU: IMenuItem[] = [
     name: "Panchayat",
     icon: "fas fa-users nav-icon",
     path: "/panchayat",
-    allowedPermissions: [PERMISSIONS.VIEW_PANCHAYATS, PERMISSIONS.MANAGE_PANCHAYATS],
+    allowedPermissions: [
+      PERMISSIONS.VIEW_PANCHAYATS,
+      PERMISSIONS.MANAGE_PANCHAYATS,
+    ],
     resource: "panchayats",
   },
   {
     name: "Village",
     icon: "fas fa-home nav-icon",
     path: "/villages",
-    allowedPermissions: [PERMISSIONS.VIEW_VILLAGES, PERMISSIONS.MANAGE_VILLAGES],
+    allowedPermissions: [
+      PERMISSIONS.VIEW_VILLAGES,
+      PERMISSIONS.MANAGE_VILLAGES,
+    ],
     resource: "villages",
   },
   {
@@ -255,21 +264,30 @@ export const MENU: IMenuItem[] = [
     name: "Division",
     icon: "fas fa-layer-group nav-icon",
     path: "/divisions",
-    allowedPermissions: [PERMISSIONS.VIEW_DIVISIONS, PERMISSIONS.MANAGE_DIVISIONS],
+    allowedPermissions: [
+      PERMISSIONS.VIEW_DIVISIONS,
+      PERMISSIONS.MANAGE_DIVISIONS,
+    ],
     resource: "divisions",
   },
   {
     name: "Parliament",
     icon: "fas fa-landmark nav-icon",
     path: "/parliaments",
-    allowedPermissions: [PERMISSIONS.VIEW_PARLIAMENTS, PERMISSIONS.MANAGE_PARLIAMENTS],
+    allowedPermissions: [
+      PERMISSIONS.VIEW_PARLIAMENTS,
+      PERMISSIONS.MANAGE_PARLIAMENTS,
+    ],
     resource: "parliaments",
   },
   {
     name: "Assembly",
     icon: "fas fa-columns nav-icon",
     path: "/assemblies",
-    allowedPermissions: [PERMISSIONS.VIEW_ASSEMBLIES, PERMISSIONS.MANAGE_ASSEMBLIES],
+    allowedPermissions: [
+      PERMISSIONS.VIEW_ASSEMBLIES,
+      PERMISSIONS.MANAGE_ASSEMBLIES,
+    ],
     resource: "assemblies",
   },
 
@@ -312,8 +330,11 @@ export const MENU: IMenuItem[] = [
   {
     name: "Activity Management",
     icon: "fas fa-history nav-icon",
-    allowedRoles: ["superadmin", "system_admin"],
-    allowedPermissions: [PERMISSIONS.VIEW_ACTIVITY_LOGS, PERMISSIONS.VIEW_USER_ACTIVITY_REPORT],
+    // allowedRoles removed
+    allowedPermissions: [
+      PERMISSIONS.VIEW_ACTIVITY_LOGS,
+      PERMISSIONS.VIEW_USER_ACTIVITY_REPORT,
+    ],
     resource: "activity_management",
     children: [
       {

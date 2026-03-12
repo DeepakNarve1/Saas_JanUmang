@@ -8,6 +8,7 @@ const { logActivity } = require("./activityLogController");
 const AppError = require("../utils/AppError");
 const { getCoreModuleIds } = require("../config/modules");
 const { isGlobalAdmin } = require("../utils/authHelpers");
+const { sendAdminPasswordResetEmail } = require("../services/emailService");
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -559,7 +560,6 @@ exports.updateUser = asyncHandler(async (req, res) => {
       req,
       "UPDATE",
       "UserManagement",
-      "UserManagement",
       `Updated user: ${updated.name} (ID: ${updated._id})`,
       { recordId: updated._id, newData: updated, oldData },
     );
@@ -888,14 +888,35 @@ exports.resetUserPassword = asyncHandler(async (req, res) => {
     { userId: targetUser._id, resetBy: req.user._id },
   );
 
+  // Send temporary password to the user via email.
+  // The plaintext password is NEVER returned in the API response.
+  let emailSent = false;
+  try {
+    await sendAdminPasswordResetEmail({
+      to: targetUser.email,
+      name: targetUser.name,
+      temporaryPassword,
+      adminName: req.user.name || req.user.email,
+    });
+    emailSent = true;
+  } catch (emailErr) {
+    // Non-fatal: password is reset even if email fails (e.g. SMTP not configured)
+    console.error(
+      "[resetUserPassword] Failed to send notification email:",
+      emailErr.message,
+    );
+  }
+
   res.json({
     success: true,
-    message: "Password reset successfully",
+    message: emailSent
+      ? "Password reset successfully. A notification email has been sent to the user."
+      : "Password reset successfully. However, the notification email could not be sent — please inform the user of their temporary password manually.",
     data: {
       userId: targetUser._id,
       email: targetUser.email,
-      temporaryPassword,
       requirePasswordChange: true,
+      emailSent,
     },
   });
 });
@@ -958,7 +979,7 @@ exports.sanitizeUserLevels = asyncHandler(async (req, res) => {
       email: u.email,
       tenantId: u.tenantId,
       oldLevel,
-      newLevel: "custom",
+      newLevel: "regularUser", // Must match what was actually saved above
     });
   }
 
