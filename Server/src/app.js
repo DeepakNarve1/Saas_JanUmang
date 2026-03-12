@@ -139,7 +139,8 @@ app.use("/api/districts", districtRoutes);
 app.use("/api/divisions", divisionRoutes);
 app.use("/api/assemblies", assemblyRoutes);
 app.use("/api/blocks", blockRoutes);
-app.use("/api/panchayats", panchayatRoutes);
+app.use("/api/panchayat", panchayatRoutes); // matches frontend /api/panchayat
+app.use("/api/panchayats", panchayatRoutes); // alias for backwards compatibility
 app.use("/api/booths", boothRoutes);
 app.use("/api/voters", voterRoutes);
 app.use("/api/visitors", visitorRoutes);
@@ -161,7 +162,8 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/assembly-issues", assemblyIssueRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/members", memberRoutes);
-app.use("/api/parliament", parliamentRoutes);
+app.use("/api/parliaments", parliamentRoutes); // matches frontend /api/parliaments
+app.use("/api/parliament", parliamentRoutes); // alias for backwards compatibility
 app.use("/api/projects", projectRoutes);
 app.use("/api/public-problems", publicProblemRoutes);
 app.use("/api/villages", villageRoutes);

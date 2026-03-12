@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { Skeleton } from "@app/components/ui/skeleton";
+import { RouteGuard } from "@app/components/RouteGuard";
+import { PERMISSIONS } from "@app/config/permissions";
 
 const Parliament = dynamic(() => import("@app/views/parliament"), {
   ssr: false,
@@ -14,5 +16,9 @@ const Parliament = dynamic(() => import("@app/views/parliament"), {
 });
 
 export default function ParliamentsPage() {
-  return <Parliament />;
+  return (
+    <RouteGuard requiredPermissions={[PERMISSIONS.VIEW_PARLIAMENTS]}>
+      <Parliament />
+    </RouteGuard>
+  );
 }

@@ -1,5 +1,6 @@
 const { MODULES } = require("./src/config/modules.js");
-Object.keys(MODULES).forEach((key) => {
-  const mod = MODULES[key];
-  console.log(`${key}: id=${mod.id}, alwaysEnabled=${mod.alwaysEnabled}`);
+console.log("Total Modules Defined: ", Object.keys(MODULES).length);
+Object.keys(MODULES).forEach((key, index) => {
+  console.log(`${index + 1}. ${key} (id: ${MODULES[key].id})`);
 });
+process.exit(0);
