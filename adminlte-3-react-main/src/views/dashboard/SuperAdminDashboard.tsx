@@ -165,7 +165,9 @@ const SuperAdminDashboard = () => {
                 <Zap className="h-5 w-5 text-violet-500" />
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
-                <Badge variant="secondary">{stats?.byPlan?.Basic ?? 0} Basic</Badge>
+                <Badge variant="secondary">
+                  {stats?.byPlan?.Basic ?? 0} Basic
+                </Badge>
                 <Badge variant="secondary">{stats?.byPlan?.Pro ?? 0} Pro</Badge>
                 <Badge className="bg-violet-500/10 text-violet-600">
                   {stats?.byPlan?.Enterprise ?? 0} Enterprise
@@ -199,13 +201,18 @@ const SuperAdminDashboard = () => {
                     <TableHead className="font-semibold">Status</TableHead>
                     <TableHead className="font-semibold">Users</TableHead>
                     <TableHead className="font-semibold">Created</TableHead>
-                    <TableHead className="text-right font-semibold">Actions</TableHead>
+                    <TableHead className="text-right font-semibold">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {                  (!stats?.recentTenants || stats.recentTenants.length === 0) ? (
+                  {!stats?.recentTenants || stats.recentTenants.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                      <TableCell
+                        colSpan={7}
+                        className="text-center py-8 text-gray-500"
+                      >
                         No organizations yet
                       </TableCell>
                     </TableRow>
@@ -224,7 +231,9 @@ const SuperAdminDashboard = () => {
                         <TableCell>{t.plan ?? "—"}</TableCell>
                         <TableCell>
                           <Badge
-                            variant={t.status === "active" ? "default" : "secondary"}
+                            variant={
+                              t.status === "active" ? "default" : "secondary"
+                            }
                             className={
                               t.status === "active"
                                 ? "bg-emerald-500/10 text-emerald-600"
@@ -282,7 +291,10 @@ const SuperAdminDashboard = () => {
                 <TableBody>
                   {recentActivity.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                      <TableCell
+                        colSpan={5}
+                        className="text-center py-8 text-gray-500"
+                      >
                         No recent activity
                       </TableCell>
                     </TableRow>
@@ -300,7 +312,10 @@ const SuperAdminDashboard = () => {
                         <TableCell className="text-gray-600 dark:text-gray-400 text-sm">
                           {log.module ?? "—"}
                         </TableCell>
-                        <TableCell className="text-sm max-w-[280px] truncate" title={log.description}>
+                        <TableCell
+                          className="text-sm max-w-[280px] truncate"
+                          title={log.description}
+                        >
                           {log.description ?? "—"}
                         </TableCell>
                         <TableCell className="text-gray-600 dark:text-gray-400 text-sm">
@@ -331,15 +346,20 @@ const SuperAdminDashboard = () => {
                   <TableRow className="bg-gray-50/50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-800">
                     <TableHead className="font-semibold">Name</TableHead>
                     <TableHead className="font-semibold">Email</TableHead>
-                    <TableHead className="font-semibold">Organization</TableHead>
+                    <TableHead className="font-semibold">
+                      Organization
+                    </TableHead>
                     <TableHead className="font-semibold">Level</TableHead>
                     <TableHead className="font-semibold">Created</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(!stats?.recentUsers || stats.recentUsers.length === 0) ? (
+                  {!stats?.recentUsers || stats.recentUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                      <TableCell
+                        colSpan={5}
+                        className="text-center py-8 text-gray-500"
+                      >
                         No users yet
                       </TableCell>
                     </TableRow>

@@ -14,6 +14,19 @@ const isGlobalPlatformAdmin = (user: any): boolean => {
   return user.level === "system_admin" || user.level === "superadmin";
 };
 
+/**
+ * Checks if a user is a Secondary Org Admin (System Administrative) within their tenant.
+ * These users should have full access to all modules enabled by their organisation's plan,
+ * regardless of the specific role permissions assigned to them.
+ */
+const isSecondaryOrgAdmin = (user: any): boolean => {
+  if (!user) return false;
+  if (!user.tenantId) return false; // must be a tenant user
+  return (
+    user.userType === "systemAdministrator" || user.level === "tenant_admin"
+  );
+};
+
 export const usePermissions = () => {
   const user = useAppSelector((state) => state.auth.currentUser);
 
@@ -26,6 +39,11 @@ export const usePermissions = () => {
         return true;
       }
 
+      // Secondary Org Admin check: tenant users marked as "System Administrator"
+      // or level=tenant_admin bypass ROLE-BASED checks but are still bound by their
+      // organisation's SUBSCRIPTION PLAN (module-level checks below still apply).
+      const secondaryAdmin = isSecondaryOrgAdmin(user);
+
       // ─── CRITICAL SAAS CHECK FOR ALL TENANT USERS ───
       // If a user belongs to a tenant, we MUST verify the module is enabled.
       // This immediately blocks access if the subscription doesn't permit it,
@@ -34,35 +52,186 @@ export const usePermissions = () => {
         const enabledModules = user.tenant?.enabledModules || [];
 
         const permissionToModuleMap: Record<string, string> = {
+          // Members
           view_member: "members",
           create_member: "members",
           edit_member: "members",
           delete_member: "members",
+          // Events
           view_event: "events",
+          create_event: "events",
+          edit_event: "events",
+          delete_event: "events",
+          view_events_calendar: "events",
+          // Visitors
           view_visitor: "visitors",
+          create_visitor: "visitors",
+          edit_visitor: "visitors",
+          delete_visitor: "visitors",
+          // Projects
           view_project: "projects",
+          create_project: "projects",
+          edit_project: "projects",
+          delete_project: "projects",
+          // Assembly Issues
           view_assembly_issue: "assembly_issues",
+          create_assembly_issue: "assembly_issues",
+          edit_assembly_issue: "assembly_issues",
+          delete_assembly_issue: "assembly_issues",
+          // Voters
           view_voter: "voters",
           create_voter: "voters",
           edit_voter: "voters",
           delete_voter: "voters",
+          export_voter: "voters",
+          view_voters: "voters",
+          create_voters: "voters",
+          edit_voters: "voters",
+          delete_voters: "voters",
+          export_voters: "voters",
+          // Panchayats (both singular & plural)
           view_panchayat: "panchayats",
+          create_panchayat: "panchayats",
+          edit_panchayat: "panchayats",
+          delete_panchayat: "panchayats",
+          manage_panchayat: "panchayats",
+          view_panchayats: "panchayats",
+          create_panchayats: "panchayats",
+          edit_panchayats: "panchayats",
+          delete_panchayats: "panchayats",
+          manage_panchayats: "panchayats",
+          // Parliaments (both singular & plural)
+          view_parliament: "parliaments",
+          create_parliament: "parliaments",
+          edit_parliament: "parliaments",
+          delete_parliament: "parliaments",
+          manage_parliament: "parliaments",
+          view_parliaments: "parliaments",
+          create_parliaments: "parliaments",
+          edit_parliaments: "parliaments",
+          delete_parliaments: "parliaments",
+          manage_parliaments: "parliaments",
+          // Villages
           view_village: "villages",
+          create_village: "villages",
+          edit_village: "villages",
+          delete_village: "villages",
+          manage_village: "villages",
+          view_villages: "villages",
+          create_villages: "villages",
+          edit_villages: "villages",
+          delete_villages: "villages",
+          manage_villages: "villages",
+          // Booths
           view_booth: "booths",
+          create_booth: "booths",
+          edit_booth: "booths",
+          delete_booth: "booths",
+          manage_booth: "booths",
+          view_booths: "booths",
+          create_booths: "booths",
+          edit_booths: "booths",
+          delete_booths: "booths",
+          manage_booths: "booths",
+          // Blocks
           view_block: "blocks",
+          create_block: "blocks",
+          edit_block: "blocks",
+          delete_block: "blocks",
+          manage_block: "blocks",
+          view_blocks: "blocks",
+          create_blocks: "blocks",
+          edit_blocks: "blocks",
+          delete_blocks: "blocks",
+          manage_blocks: "blocks",
+          // Departments
           view_department: "departments",
+          create_department: "departments",
+          edit_department: "departments",
+          delete_department: "departments",
+          manage_department: "departments",
+          view_departments: "departments",
+          create_departments: "departments",
+          edit_departments: "departments",
+          delete_departments: "departments",
+          manage_departments: "departments",
+          // Parties
           view_party: "parties",
+          create_party: "parties",
+          edit_party: "parties",
+          delete_party: "parties",
+          manage_party: "parties",
+          view_parties: "parties",
+          create_parties: "parties",
+          edit_parties: "parties",
+          delete_parties: "parties",
+          manage_parties: "parties",
+          // Work Types
           view_worktype: "work_types",
+          view_work_types: "work_types",
+          create_work_types: "work_types",
+          edit_work_types: "work_types",
+          delete_work_types: "work_types",
+          manage_work_types: "work_types",
+          // Sub Work Types
           view_sub_type_of_work: "sub_work_types",
+          view_sub_work_types: "sub_work_types",
+          create_sub_work_types: "sub_work_types",
+          edit_sub_work_types: "sub_work_types",
+          delete_sub_work_types: "sub_work_types",
+          manage_sub_work_types: "sub_work_types",
+          // States
+          view_state: "states",
+          view_states: "states",
+          create_states: "states",
+          edit_states: "states",
+          delete_states: "states",
+          manage_states: "states",
+          // Divisions
+          view_division: "divisions",
+          view_divisions: "divisions",
+          create_divisions: "divisions",
+          edit_divisions: "divisions",
+          delete_divisions: "divisions",
+          manage_divisions: "divisions",
+          // Districts
+          view_district: "districts",
+          view_districts: "districts",
+          create_districts: "districts",
+          edit_districts: "districts",
+          delete_districts: "districts",
+          manage_districts: "districts",
+          // Samiti
+          view_samiti: "samiti",
+          create_samiti: "samiti",
+          edit_samiti: "samiti",
+          delete_samiti: "samiti",
+          manage_samiti: "samiti",
+          export_samiti: "samiti",
+          // Activity
           view_activity_logs: "activity_management",
           view_user_activity_report: "activity_management",
+          // Assemblies (Vidhan Sabha)
           view_assemblies: "assemblies",
+          create_assemblies: "assemblies",
+          edit_assemblies: "assemblies",
+          delete_assemblies: "assemblies",
+          manage_assemblies: "assemblies",
+          // Vidhan Sabha Samiti
           view_vidhan_sabha_samiti: "vidhan_sabha_samiti",
+          // MP Public Problems
+          view_mp_public_problems: "mp_public_problems",
+          create_mp_public_problems: "mp_public_problems",
+          edit_mp_public_problems: "mp_public_problems",
+          delete_mp_public_problems: "mp_public_problems",
         };
 
         const requiredModule =
           permissionToModuleMap[permissionName] ||
-          permissionName.replace(/^(view|create|edit|delete|manage)_/, "");
+          permissionName.replace(
+            /^(view|create|edit|delete|manage|export)_/,
+            "",
+          );
 
         const IS_A_KNOWN_OPTIONAL_MODULE =
           Object.values(permissionToModuleMap).includes(requiredModule) ||
@@ -113,8 +282,8 @@ export const usePermissions = () => {
         }
       }
 
-      // Tenant Admin Level - always allow core views
-      if (user.level === "tenant_admin") {
+      // Tenant Admin Level OR System Administrator userType — always allow core views
+      if (secondaryAdmin) {
         if (
           permissionName === "view_user_count" ||
           permissionName === "view_dashboard" ||
@@ -128,40 +297,93 @@ export const usePermissions = () => {
 
         // Auto-grant access to enabled modules for tenant_admin
         if (user.tenant?.enabledModules) {
-          // Check using the same mapping logic to ensure singular permissions (view_voter)
-          // match up with plural module IDs (voters)
+          // Full permission → module map (same as above, ensures singular/plural both work)
           const permissionToModuleMap: Record<string, string> = {
             view_member: "members",
+            create_member: "members",
             view_event: "events",
+            create_event: "events",
             view_visitor: "visitors",
+            create_visitor: "visitors",
             view_project: "projects",
+            create_project: "projects",
             view_assembly_issue: "assembly_issues",
             view_voter: "voters",
+            view_voters: "voters",
             create_voter: "voters",
+            create_voters: "voters",
             edit_voter: "voters",
+            edit_voters: "voters",
             delete_voter: "voters",
+            delete_voters: "voters",
+            export_voter: "voters",
+            export_voters: "voters",
             view_panchayat: "panchayats",
+            view_panchayats: "panchayats",
+            create_panchayat: "panchayats",
+            create_panchayats: "panchayats",
+            edit_panchayat: "panchayats",
+            edit_panchayats: "panchayats",
+            delete_panchayat: "panchayats",
+            delete_panchayats: "panchayats",
+            manage_panchayat: "panchayats",
+            manage_panchayats: "panchayats",
+            view_parliament: "parliaments",
+            view_parliaments: "parliaments",
+            create_parliament: "parliaments",
+            create_parliaments: "parliaments",
+            edit_parliament: "parliaments",
+            edit_parliaments: "parliaments",
+            delete_parliament: "parliaments",
+            delete_parliaments: "parliaments",
+            manage_parliament: "parliaments",
+            manage_parliaments: "parliaments",
             view_village: "villages",
+            view_villages: "villages",
             view_booth: "booths",
+            view_booths: "booths",
             view_block: "blocks",
+            view_blocks: "blocks",
             view_department: "departments",
+            view_departments: "departments",
             view_party: "parties",
+            view_parties: "parties",
             view_worktype: "work_types",
+            view_work_types: "work_types",
             view_sub_type_of_work: "sub_work_types",
+            view_sub_work_types: "sub_work_types",
+            view_state: "states",
+            view_states: "states",
+            view_division: "divisions",
+            view_divisions: "divisions",
+            view_district: "districts",
+            view_districts: "districts",
+            view_samiti: "samiti",
             view_activity_logs: "activity_management",
             view_user_activity_report: "activity_management",
             view_assemblies: "assemblies",
+            manage_assemblies: "assemblies",
             view_vidhan_sabha_samiti: "vidhan_sabha_samiti",
+            view_mp_public_problems: "mp_public_problems",
           };
 
           const rawModule =
             permissionToModuleMap[permissionName] ||
-            permissionName.replace(/^(view|create|edit|delete|manage)_/, "");
+            permissionName.replace(
+              /^(view|create|edit|delete|manage|export)_/,
+              "",
+            );
 
           if (user.tenant.enabledModules.includes(rawModule)) {
             return true;
           }
         }
+      }
+
+      // Secondary org admins bypass the role-based check below.
+      // If we got here, the module subscription check passed — grant access.
+      if (secondaryAdmin) {
+        return true;
       }
 
       if (!user.role) {

@@ -14,11 +14,19 @@ const checkPermission = (permissionName) => {
       return next();
     }
 
-    // Tenant Admins get default access to core views
+    // Tenant Admins and secondary System Administrators get default access to core views
+    const isSecondaryAdmin =
+      req.user.level === "tenant_admin" ||
+      req.user.userType === "systemAdministrator";
+
     if (
-      req.user.level === "tenant_admin" &&
+      isSecondaryAdmin &&
       (permissionName === "view_user_count" ||
-        permissionName === "view_dashboard")
+        permissionName === "view_dashboard" ||
+        permissionName === "view_activity_logs" ||
+        permissionName === "view_user_activity_report" ||
+        permissionName === "view_roles" ||
+        permissionName === "manage_roles")
     ) {
       return next();
     }
@@ -56,11 +64,19 @@ const checkAnyPermission = (permissionNames) => {
       return next();
     }
 
-    // Tenant Admins get default access to core views
+    // Tenant Admins and secondary System Administrators get default access to core views
+    const isSecondaryAdmin =
+      req.user.level === "tenant_admin" ||
+      req.user.userType === "systemAdministrator";
+
     if (
-      req.user.level === "tenant_admin" &&
+      isSecondaryAdmin &&
       (permissionNames.includes("view_user_count") ||
-        permissionNames.includes("view_dashboard"))
+        permissionNames.includes("view_dashboard") ||
+        permissionNames.includes("view_activity_logs") ||
+        permissionNames.includes("view_user_activity_report") ||
+        permissionNames.includes("view_roles") ||
+        permissionNames.includes("manage_roles"))
     ) {
       return next();
     }
@@ -99,6 +115,27 @@ const checkAllPermissions = (permissionNames) => {
 
     // Global Admins have all permissions
     if (isGlobalAdmin(req.user)) {
+      return next();
+    }
+
+    // Tenant Admins and secondary System Administrators get default access to core views
+    const isSecondaryAdmin =
+      req.user.level === "tenant_admin" ||
+      req.user.userType === "systemAdministrator";
+
+    if (
+      isSecondaryAdmin &&
+      permissionNames.every((p) =>
+        [
+          "view_user_count",
+          "view_dashboard",
+          "view_activity_logs",
+          "view_user_activity_report",
+          "view_roles",
+          "manage_roles",
+        ].includes(p),
+      )
+    ) {
       return next();
     }
 

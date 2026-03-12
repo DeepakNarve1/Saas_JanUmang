@@ -187,7 +187,7 @@ export const MENU: IMenuItem[] = [
   {
     name: "Vidhan Sabha",
     icon: "fas fa-gavel nav-icon",
-    path: "/vidhansabha",
+    path: "/assemblies",
     allowedPermissions: [PERMISSIONS.VIEW_ASSEMBLIES],
     resource: "assemblies",
   },
@@ -279,16 +279,6 @@ export const MENU: IMenuItem[] = [
       PERMISSIONS.MANAGE_PARLIAMENTS,
     ],
     resource: "parliaments",
-  },
-  {
-    name: "Assembly",
-    icon: "fas fa-columns nav-icon",
-    path: "/assemblies",
-    allowedPermissions: [
-      PERMISSIONS.VIEW_ASSEMBLIES,
-      PERMISSIONS.MANAGE_ASSEMBLIES,
-    ],
-    resource: "assemblies",
   },
 
   {

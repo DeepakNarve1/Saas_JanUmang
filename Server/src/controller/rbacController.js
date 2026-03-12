@@ -65,11 +65,21 @@ exports.getAvailablePermissions = asyncHandler(async (req, res) => {
     throw new Error("Tenant not found");
   }
 
-  const { getCoreModuleIds } = require("../config/modules");
+  const { getCoreModuleIds, getPlanConfig } = require("../config/modules");
   const coreModules = getCoreModuleIds();
-  const allEnabledModules = [
-    ...new Set([...(tenant.enabledModules || []), ...coreModules]),
-  ];
+  const planConfig = getPlanConfig(tenant.plan || "basic");
+
+  let allEnabledModules;
+  if (planConfig.id === "custom") {
+    allEnabledModules = [
+      ...new Set([...(tenant.enabledModules || []), ...coreModules]),
+    ];
+  } else {
+    // Predefined plans (basic, professional, enterprise) use plan config
+    allEnabledModules = [
+      ...new Set([...(planConfig.enabledModules || []), ...coreModules]),
+    ];
+  }
 
   // Get permissions only for enabled modules
   const permissions = await Permission.find({

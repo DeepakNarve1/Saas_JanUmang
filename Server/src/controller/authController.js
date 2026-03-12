@@ -6,7 +6,7 @@ const Role = require("../models/roleModel");
 const { OAuth2Client } = require("google-auth-library");
 const { logActivity } = require("./activityLogController");
 const AppError = require("../utils/AppError");
-const { getCoreModuleIds } = require("../config/modules");
+const { getCoreModuleIds, getPlanConfig } = require("../config/modules");
 const { isGlobalAdmin } = require("../utils/authHelpers");
 const { sendAdminPasswordResetEmail } = require("../services/emailService");
 
@@ -54,13 +54,37 @@ const getTenantData = async (tenantId) => {
     isTrialExpiringSoon = daysLeftInTrial <= 7;
   }
 
+  // ── Plan-enforced module list ────────────────────────────────────────────
+  // Predefined plans (basic, professional, enterprise) use their config as truth.
+  // This ensures existing tenants get access to all plan modules even if their
+  // DB record is outdated (e.g. missing new 'panchayats' or 'parliaments' IDs).
+  const planConfig = getPlanConfig(tenant.plan || "basic");
+  const coreModules = getCoreModuleIds();
+
+  let allowedModules;
+  if (planConfig.id === "custom") {
+    // Custom plan: use what is explicitly stored in the tenant document
+    allowedModules = [
+      ...new Set([...(tenant.enabledModules || []), ...coreModules]),
+    ];
+  } else if (planConfig.id === "enterprise") {
+    // Enterprise: they get everything (dynamic list)
+    allowedModules = [
+      ...new Set([...planConfig.enabledModules, ...coreModules]),
+    ];
+  } else {
+    // Predefined plans: use the plan config modules
+    // This allows us to "broadcast" new modules to all plan subscribers instantly.
+    allowedModules = [
+      ...new Set([...(planConfig.enabledModules || []), ...coreModules]),
+    ];
+  }
+
   return {
     _id: tenant._id,
     name: tenant.name,
     slug: tenant.slug,
-    enabledModules: [
-      ...new Set([...(tenant.enabledModules || []), ...getCoreModuleIds()]),
-    ],
+    enabledModules: allowedModules,
     plan: tenant.plan,
     // Subscription / trial status — used by frontend warning banner
     subscriptionStatus: tenant.subscriptionStatus,
@@ -131,6 +155,16 @@ exports.registerUser = asyncHandler(async (req, res) => {
       : isAdmin
         ? "superadmin"
         : "regularUser";
+  }
+
+  // If the tenant admin marking this user as "System Administrator",
+  // automatically promote them to tenant_admin level within this organisation.
+  if (
+    userType === "systemAdministrator" &&
+    tenantId &&
+    effectiveLevel === "regularUser"
+  ) {
+    effectiveLevel = "tenant_admin";
   }
 
   const newUser = await User.create({
@@ -527,6 +561,17 @@ exports.updateUser = asyncHandler(async (req, res) => {
     if (role) user.role = role;
     user.mobile = mobile ?? user.mobile;
     user.userType = userType ?? user.userType;
+
+    // Auto-sync level based on userType for tenant users
+    if (userType && user.tenantId) {
+      if (userType === "systemAdministrator" && user.level === "regularUser") {
+        // Promote to secondary org admin
+        user.level = "tenant_admin";
+      } else if (userType === "regularUser" && user.level === "tenant_admin") {
+        // Demote back to regular staff (only if they were promoted by userType, not manually)
+        user.level = "regularUser";
+      }
+    }
 
     // Security: Only platform global admins can assign platform-level roles
     if (level && level !== user.level) {

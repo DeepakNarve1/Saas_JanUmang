@@ -86,6 +86,8 @@ const MenuSidebar = () => {
           "roles",
           "tenants",
           "activity_management",
+          "activity_logs",
+          "user_activity_report",
         ];
 
         if (

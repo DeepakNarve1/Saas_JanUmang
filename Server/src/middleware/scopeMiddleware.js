@@ -9,31 +9,32 @@ const scopeQuery = (levelFieldMap = {}, geographic = true) => {
   return (req, res, next) => {
     // Global Admins can see everything
     if (isGlobalAdmin(req.user)) {
-      // If a global admin has selected a specific tenant, show that tenant's data PLUS global data
+      // If a global admin has selected a specific tenant, show only that tenant's data
       if (req.tenantId) {
-        req.scopeFilter = {
-          tenantId: { $in: [req.tenantId, null, undefined] },
-        };
+        req.scopeFilter = { tenantId: req.tenantId };
       } else {
-        // Show Global data
-        // For roles specifically, we also want to show 'tenant_admin' roles by name
-        // so the frontend can deduplicate them and show the "Organization Admin" option.
-        req.scopeFilter = {
-          $or: [
-            { tenantId: { $in: [null, undefined] } },
-            { level: "tenant_admin" },
-            { name: "tenant_admin" },
-            { name: "organization admin" },
-          ],
-        };
+        // No specific tenant selected → show ALL data (no filter restriction)
+        req.scopeFilter = {};
+        req.isGlobalScope = true;
       }
       return next();
     }
 
     const { level } = req.user;
 
-    // SaaS: Every user (except global admin) MUST be restricted by their tenantId
-    req.scopeFilter = { tenantId: req.tenantId };
+    // SaaS: Every user (except global admin) MUST have a tenantId
+    const tenantId = req.tenantId || req.user?.tenantId;
+    if (!tenantId) {
+      res.status(403);
+      return next(
+        new Error(
+          "Your account is not associated with any organisation. Please contact your administrator.",
+        ),
+      );
+    }
+
+    // Restrict all queries to the user's tenant
+    req.scopeFilter = { tenantId };
 
     // If geographic filtering is disabled, or it's a tenant admin, we stop here
     if (!geographic || level === "tenant_admin") {
