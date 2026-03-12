@@ -24,7 +24,7 @@ import {
 import { Button } from "@app/components/ui/button";
 import { Label } from "@app/components/ui/label";
 import { ContentHeader } from "@app/components";
-import { RouteGuard } from '@app/components/RouteGuard';
+import { RouteGuard } from "@app/components/RouteGuard";
 import { PERMISSIONS } from "@app/config/permissions";
 import {
   Upload,

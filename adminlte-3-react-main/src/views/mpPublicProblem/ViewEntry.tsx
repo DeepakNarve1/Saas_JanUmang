@@ -210,7 +210,7 @@ const ViewMPPublicProblem = () => {
                     Registration No: {entry.regNo}
                   </h2>
                   <Badge
-                    className={`${getStatusColor(entry.status)} border dark:bg-gray-800`}
+                    className={`whitespace-nowrap ${getStatusColor(entry.status)} border dark:bg-gray-800`}
                   >
                     {entry.status}
                   </Badge>

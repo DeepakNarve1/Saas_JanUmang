@@ -210,7 +210,6 @@ const MpPublicProblem = () => {
   });
 
   const handleDelete = (id: string) => {
-    
     deleteMutation.mutate(id);
   };
 
@@ -1020,7 +1019,7 @@ const MpPublicProblem = () => {
                         {visibleColumns.status && (
                           <TableCell className="dark:text-gray-300">
                             <span
-                              className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                              className={`whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium border ${
                                 row.status === "Resolved"
                                   ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
                                   : row.status === "Rejected"
@@ -1120,7 +1119,8 @@ const MpPublicProblem = () => {
                                     onConfirm={() => handleDelete(row._id)}
                                     trigger={
                                       <div className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-red-50 focus:bg-red-50 text-red-600 hover:text-red-700 w-full">
-                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                        <Trash2 className="mr-2 h-4 w-4" />{" "}
+                                        Delete
                                       </div>
                                     }
                                   />
