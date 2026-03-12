@@ -10,7 +10,7 @@ router
   .route("/")
   .get(
     protect,
-    checkPermission("view_assemblies"),
+    // checkPermission("view_assemblies"), // Allowed for all authenticated users to populate dropdowns
     scopeQuery({}, false),
     vidhanSabhaController.getAll,
   )
@@ -24,7 +24,7 @@ router
   .route("/:id")
   .get(
     protect,
-    checkPermission("view_assemblies"),
+    // checkPermission("view_assemblies"), // Allowed for all authenticated users to populate dropdowns
     scopeQuery({}, false),
     vidhanSabhaController.getById,
   )

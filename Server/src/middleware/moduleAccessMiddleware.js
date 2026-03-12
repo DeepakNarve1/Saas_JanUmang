@@ -4,7 +4,11 @@
  */
 
 const Tenant = require("../models/tenantModel");
-const { getModuleById } = require("../config/modules");
+const {
+  getModuleById,
+  getPlanConfig,
+  getCoreModuleIds,
+} = require("../config/modules");
 const { isGlobalAdmin } = require("../utils/authHelpers");
 
 /**
@@ -70,16 +74,28 @@ exports.checkModuleAccess = (moduleId) => {
       const module = getModuleById(moduleId);
       const isAlwaysEnabled = module?.alwaysEnabled || false;
 
-      if (
-        !isAlwaysEnabled &&
-        (!tenant.enabledModules || !tenant.enabledModules.includes(moduleId))
-      ) {
-        const moduleName = module ? module.name : moduleId;
+      if (!isAlwaysEnabled) {
+        const planConfig = getPlanConfig(tenant.plan || "basic");
+        const coreModules = getCoreModuleIds();
 
-        res.status(403);
-        throw new Error(
-          `Module '${moduleName}' is not enabled for your organization. Please upgrade your plan.`,
-        );
+        let hasAccess = false;
+        if (planConfig.id === "custom") {
+          // Custom plan: check DB
+          hasAccess = (tenant.enabledModules || []).includes(moduleId);
+        } else {
+          // Predefined plans: check plan config
+          hasAccess =
+            coreModules.includes(moduleId) ||
+            (planConfig.enabledModules || []).includes(moduleId);
+        }
+
+        if (!hasAccess) {
+          const moduleName = module ? module.name : moduleId;
+          res.status(403);
+          throw new Error(
+            `Module '${moduleName}' is not available on your current plan. Please upgrade your plan.`,
+          );
+        }
       }
 
       // Module access granted
@@ -126,11 +142,19 @@ exports.checkAnyModuleAccess = (moduleIds) => {
         throw new Error("Tenant not found or inactive");
       }
 
-      const { getCoreModuleIds } = require("../config/modules");
+      const planConfig = getPlanConfig(tenant.plan || "basic");
       const coreModules = getCoreModuleIds();
-      const allEnabled = [
-        ...new Set([...(tenant.enabledModules || []), ...coreModules]),
-      ];
+
+      let allEnabled;
+      if (planConfig.id === "custom") {
+        allEnabled = [
+          ...new Set([...(tenant.enabledModules || []), ...coreModules]),
+        ];
+      } else {
+        allEnabled = [
+          ...new Set([...(planConfig.enabledModules || []), ...coreModules]),
+        ];
+      }
 
       // Check if tenant has access to at least one module
       const hasAccess = moduleIds.some((moduleId) =>
@@ -187,11 +211,19 @@ exports.checkAllModulesAccess = (moduleIds) => {
         throw new Error("Tenant not found or inactive");
       }
 
-      const { getCoreModuleIds } = require("../config/modules");
+      const planConfig = getPlanConfig(tenant.plan || "basic");
       const coreModules = getCoreModuleIds();
-      const allEnabled = [
-        ...new Set([...(tenant.enabledModules || []), ...coreModules]),
-      ];
+
+      let allEnabled;
+      if (planConfig.id === "custom") {
+        allEnabled = [
+          ...new Set([...(tenant.enabledModules || []), ...coreModules]),
+        ];
+      } else {
+        allEnabled = [
+          ...new Set([...(planConfig.enabledModules || []), ...coreModules]),
+        ];
+      }
 
       // Check if tenant has access to ALL modules
       const missingModules = moduleIds.filter(
@@ -236,12 +268,21 @@ exports.attachEnabledModules = async (req, res, next) => {
       return next();
     }
 
-    const tenant = await Tenant.findById(tenantId).select("enabledModules");
-    const { getCoreModuleIds } = require("../config/modules");
+    const tenant = await Tenant.findById(tenantId).select(
+      "enabledModules plan",
+    );
+    const planConfig = getPlanConfig(tenant?.plan || "basic");
     const coreModules = getCoreModuleIds();
-    req.enabledModules = [
-      ...new Set([...(tenant?.enabledModules || []), ...coreModules]),
-    ];
+
+    if (planConfig.id === "custom") {
+      req.enabledModules = [
+        ...new Set([...(tenant?.enabledModules || []), ...coreModules]),
+      ];
+    } else {
+      req.enabledModules = [
+        ...new Set([...(planConfig.enabledModules || []), ...coreModules]),
+      ];
+    }
 
     next();
   } catch (error) {

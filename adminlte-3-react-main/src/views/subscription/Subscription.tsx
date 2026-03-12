@@ -18,20 +18,18 @@ import { Button } from "@app/components/ui/button";
 import { Badge } from "@app/components/ui/badge";
 import {
   Building2,
-  Users,
   ShieldCheck,
   CreditCard,
   CheckCircle2,
   AlertTriangle,
   Crown,
   Zap,
-  Briefcase,
   ChevronRight,
-  Calendar,
-  RefreshCw,
   Loader2,
   ExternalLink,
   Receipt,
+  Grid3X3,
+  List,
 } from "lucide-react";
 import { ITenant } from "@app/types/tenant";
 import { Skeleton } from "@app/components/ui/skeleton";
@@ -59,6 +57,64 @@ interface IPaymentRecord {
   createdAt: string;
 }
 
+// ─── Module Category colour map ───────────────────────────────────────────────
+const CATEGORY_COLORS: Record<
+  string,
+  { bg: string; text: string; dot: string }
+> = {
+  Core: {
+    bg: "bg-blue-100 dark:bg-blue-900/30",
+    text: "text-blue-700 dark:text-blue-300",
+    dot: "bg-blue-500",
+  },
+  Operations: {
+    bg: "bg-purple-100 dark:bg-purple-900/30",
+    text: "text-purple-700 dark:text-purple-300",
+    dot: "bg-purple-500",
+  },
+  "Master Data": {
+    bg: "bg-amber-100 dark:bg-amber-900/30",
+    text: "text-amber-700 dark:text-amber-300",
+    dot: "bg-amber-500",
+  },
+  People: {
+    bg: "bg-pink-100 dark:bg-pink-900/30",
+    text: "text-pink-700 dark:text-pink-300",
+    dot: "bg-pink-500",
+  },
+  Activities: {
+    bg: "bg-cyan-100 dark:bg-cyan-900/30",
+    text: "text-cyan-700 dark:text-cyan-300",
+    dot: "bg-cyan-500",
+  },
+  Documents: {
+    bg: "bg-orange-100 dark:bg-orange-900/30",
+    text: "text-orange-700 dark:text-orange-300",
+    dot: "bg-orange-500",
+  },
+  Legislative: {
+    bg: "bg-indigo-100 dark:bg-indigo-900/30",
+    text: "text-indigo-700 dark:text-indigo-300",
+    dot: "bg-indigo-500",
+  },
+  Other: {
+    bg: "bg-gray-100 dark:bg-gray-800",
+    text: "text-gray-600 dark:text-gray-400",
+    dot: "bg-gray-400",
+  },
+};
+
+const CATEGORY_ORDER = [
+  "Core",
+  "Operations",
+  "Master Data",
+  "People",
+  "Activities",
+  "Documents",
+  "Legislative",
+  "Other",
+];
+
 // ─── Plan Card ────────────────────────────────────────────────────────────────
 const PlanCard = ({
   plan,
@@ -74,8 +130,10 @@ const PlanCard = ({
   onSelect: (planId: PlanId) => void;
 }) => {
   const isCurrentPlan = currentPlan === plan.id;
-  const price =
-    billingCycle === "yearly" ? plan.priceYearly : plan.priceMonthly;
+  const [activeTab, setActiveTab] = useState<"features" | "modules">(
+    "features",
+  );
+
   const monthlyEquivalent =
     billingCycle === "yearly"
       ? Math.round(plan.priceYearly / 12)
@@ -85,26 +143,39 @@ const PlanCard = ({
       100,
   );
 
+  // Group modules by category
+  const modulesByCategory = plan.modules.reduce(
+    (acc, mod) => {
+      const cat = mod.category || "Other";
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(mod);
+      return acc;
+    },
+    {} as Record<string, typeof plan.modules>,
+  );
+
+  const sortedCategories = CATEGORY_ORDER.filter((c) => modulesByCategory[c]);
+
   return (
     <div
       className={`relative rounded-2xl border-2 transition-all duration-300 flex flex-col ${
         plan.highlighted && !isCurrentPlan
-          ? "border-[#368F8B] shadow-xl shadow-[#368F8B]/15 scale-105"
+          ? "border-[#368F8B] shadow-xl shadow-[#368F8B]/15 scale-[1.02]"
           : isCurrentPlan
             ? "border-emerald-400 shadow-lg shadow-emerald-500/10"
             : "border-gray-200 dark:border-gray-700 hover:border-[#368F8B]/50"
-      } bg-white dark:bg-[#1e2023] overflow-hidden`}
+      } bg-white dark:bg-[#1e2023] overflow-visible`}
     >
       {/* Badges */}
       {plan.highlighted && !isCurrentPlan && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20">
           <span className="bg-[#368F8B] text-white text-xs font-black px-4 py-1 rounded-full shadow-lg whitespace-nowrap">
             ⭐ Most Popular
           </span>
         </div>
       )}
       {isCurrentPlan && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20">
           <span className="bg-emerald-500 text-white text-xs font-black px-4 py-1 rounded-full shadow-lg whitespace-nowrap">
             ✓ Current Plan
           </span>
@@ -115,7 +186,7 @@ const PlanCard = ({
       <div className="p-6 pt-8">
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-          style={{ backgroundColor: `${plan.color}18` }}
+          style={{ backgroundColor: `${plan.color}20` }}
         >
           {plan.id === "basic" && (
             <ShieldCheck className="w-5 h-5" style={{ color: plan.color }} />
@@ -161,27 +232,98 @@ const PlanCard = ({
         </div>
       </div>
 
-      {/* Features */}
-      <div className="px-6 pb-6 flex-1">
-        <ul className="space-y-3">
-          {plan.features.map((f) => (
-            <li
-              key={f}
-              className="flex items-start gap-2.5 text-sm text-gray-600 dark:text-gray-300"
+      {/* Internal tab switcher: Features | Modules */}
+      <div className="px-6 mb-3">
+        <div className="flex gap-0.5 bg-gray-100 dark:bg-gray-800/60 p-0.5 rounded-lg w-fit text-xs">
+          <button
+            id={`plan-features-tab-${plan.id}`}
+            onClick={() => setActiveTab("features")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-bold transition-all ${
+              activeTab === "features"
+                ? "bg-white dark:bg-[#1e2023] text-gray-900 dark:text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            <List className="w-3 h-3" /> Features
+          </button>
+          <button
+            id={`plan-modules-tab-${plan.id}`}
+            onClick={() => setActiveTab("modules")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-bold transition-all ${
+              activeTab === "modules"
+                ? "bg-white dark:bg-[#1e2023] text-gray-900 dark:text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            <Grid3X3 className="w-3 h-3" /> Modules
+            <span
+              className="text-[9px] font-black px-1.5 py-0.5 rounded-full text-white ml-0.5"
+              style={{ backgroundColor: plan.color }}
             >
-              <CheckCircle2
-                className="w-4 h-4 mt-0.5 shrink-0"
-                style={{ color: plan.color }}
-              />
-              <span>{f}</span>
-            </li>
-          ))}
-        </ul>
+              {plan.id === "enterprise" ? "All" : plan.modules.length}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="px-6 pb-4 flex-1" style={{ minHeight: 200 }}>
+        {activeTab === "features" && (
+          <ul className="space-y-3">
+            {plan.features.map((f) => (
+              <li
+                key={f}
+                className="flex items-start gap-2.5 text-sm text-gray-600 dark:text-gray-300"
+              >
+                <CheckCircle2
+                  className="w-4 h-4 mt-0.5 shrink-0"
+                  style={{ color: plan.color }}
+                />
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {activeTab === "modules" && (
+          <div
+            className="space-y-3 overflow-y-auto pr-1"
+            style={{ maxHeight: 300 }}
+          >
+            {sortedCategories.map((category) => {
+              const colors =
+                CATEGORY_COLORS[category] ?? CATEGORY_COLORS["Other"];
+              return (
+                <div key={category}>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${colors.dot}`}
+                    />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                      {category}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {modulesByCategory[category].map((mod) => (
+                      <span
+                        key={mod.id}
+                        className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${colors.bg} ${colors.text}`}
+                      >
+                        {mod.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* CTA */}
-      <div className="px-6 pb-6">
+      <div className="px-6 pb-6 pt-2">
         <Button
+          id={`plan-cta-${plan.id}`}
           className="w-full h-11 font-bold rounded-xl transition-all"
           disabled={isCurrentPlan || upgrading === plan.id}
           onClick={() => onSelect(plan.id)}
@@ -237,14 +379,12 @@ const Subscription = () => {
       verifyPaymentSession(sessionId)
         .then((data) => {
           toast.success(`🎉 Successfully upgraded to ${data.plan} plan!`);
-          // Refresh tenant data so the UI reflects the new plan
           queryClient.invalidateQueries({ queryKey: ["my-tenant"] });
           queryClient.invalidateQueries({ queryKey: ["payment-history"] });
         })
         .catch(() => {
           toast.info("Payment received! It may take a moment to reflect.");
         });
-      // Clean the URL
       router.replace("/subscription");
     } else if (payment === "cancelled") {
       toast.info("Payment cancelled. Your current plan remains active.");
@@ -276,7 +416,6 @@ const Subscription = () => {
     try {
       setUpgrading(planId);
       await initiateCheckout(planId, billingCycle);
-      // Will redirect — no need to reset upgrading state
     } catch (error) {
       handleError(error, "Failed to start checkout");
       setUpgrading(null);
@@ -343,6 +482,9 @@ const Subscription = () => {
     ? 0
     : Math.min((userUsage / userLimit) * 100, 100);
 
+  // Build an easy-to-display modules list for the current plan banner
+  const currentPlanDef = PLANS.find((p) => p.id === currentPlan);
+
   return (
     <div className="content-wrapper">
       <ContentHeader title="Subscription & Billing" />
@@ -354,8 +496,8 @@ const Subscription = () => {
               <Building2 size={100} />
             </div>
             <div className="p-6 md:p-8 relative z-10">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">
                     <h2 className="text-xl font-black text-gray-900 dark:text-white capitalize">
                       {currentPlan} Plan
@@ -395,11 +537,64 @@ const Subscription = () => {
                       </span>
                     )}
                   </p>
+
+                  {/* Usage */}
+                  <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <div className="flex justify-between text-xs text-gray-400 mb-1.5">
+                        <span className="font-bold uppercase tracking-wider">
+                          User Allocation
+                        </span>
+                        <span className="font-bold">
+                          {userUsage} / {isUnlimited ? "∞" : userLimit}
+                        </span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ${
+                            usagePct > 90
+                              ? "bg-red-500"
+                              : usagePct > 70
+                                ? "bg-amber-500"
+                                : "bg-[#368F8B]"
+                          }`}
+                          style={{ width: `${usagePct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs text-gray-400 mb-1.5">
+                        <span className="font-bold uppercase tracking-wider">
+                          Enabled Modules
+                        </span>
+                        <span className="font-bold">
+                          {tenant?.enabledModules?.length || 0}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {tenant?.enabledModules?.slice(0, 5).map((m) => (
+                          <span
+                            key={m}
+                            className="text-[10px] px-2 py-0.5 bg-[#368F8B]/10 text-[#368F8B] dark:text-[#4EADA9] rounded-full font-bold capitalize"
+                          >
+                            {m.replace(/_/g, " ")}
+                          </span>
+                        ))}
+                        {(tenant?.enabledModules?.length || 0) > 5 && (
+                          <span className="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-full font-bold">
+                            +{(tenant?.enabledModules?.length || 0) - 5} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                   {tenant?.stripeCustomerId && (
                     <Button
+                      id="manage-billing-btn"
                       variant="outline"
                       onClick={handleManageBilling}
                       className="h-10 text-sm font-bold rounded-xl border-gray-200 dark:border-gray-700"
@@ -412,57 +607,29 @@ const Subscription = () => {
                 </div>
               </div>
 
-              {/* Usage Bar */}
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <div className="flex justify-between text-xs text-gray-400 mb-1.5">
-                    <span className="font-bold uppercase tracking-wider">
-                      User Allocation
-                    </span>
-                    <span className="font-bold">
-                      {userUsage} / {isUnlimited ? "∞" : userLimit}
-                    </span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        usagePct > 90
-                          ? "bg-red-500"
-                          : usagePct > 70
-                            ? "bg-amber-500"
-                            : "bg-[#368F8B]"
-                      }`}
-                      style={{ width: `${usagePct}%` }}
-                    />
+              {/* Current Plan – Modules list breakdown */}
+              {currentPlanDef && (
+                <div className="mt-6 pt-5 border-t border-gray-100 dark:border-gray-800">
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
+                    Modules included in your current plan
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {currentPlanDef.modules.map((mod) => {
+                      const colors =
+                        CATEGORY_COLORS[mod.category] ??
+                        CATEGORY_COLORS["Other"];
+                      return (
+                        <span
+                          key={mod.id}
+                          className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg ${colors.bg} ${colors.text}`}
+                        >
+                          {mod.label}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
-
-                <div>
-                  <div className="flex justify-between text-xs text-gray-400 mb-1.5">
-                    <span className="font-bold uppercase tracking-wider">
-                      Enabled Modules
-                    </span>
-                    <span className="font-bold">
-                      {tenant?.enabledModules?.length || 0}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {tenant?.enabledModules?.slice(0, 4).map((m) => (
-                      <span
-                        key={m}
-                        className="text-[10px] px-2 py-0.5 bg-[#368F8B]/10 text-[#368F8B] dark:text-[#4EADA9] rounded-full font-bold capitalize"
-                      >
-                        {m.replace(/_/g, " ")}
-                      </span>
-                    ))}
-                    {(tenant?.enabledModules?.length || 0) > 4 && (
-                      <span className="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-full font-bold">
-                        +{(tenant?.enabledModules?.length || 0) - 4} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -471,6 +638,7 @@ const Subscription = () => {
             {(["plans", "history"] as const).map((tab) => (
               <button
                 key={tab}
+                id={`subscription-tab-${tab}`}
                 onClick={() => setActiveTab(tab)}
                 className={`px-6 py-2 rounded-lg text-sm font-bold transition-all capitalize ${
                   activeTab === tab
@@ -494,6 +662,7 @@ const Subscription = () => {
                   Monthly
                 </span>
                 <button
+                  id="billing-cycle-toggle"
                   onClick={() =>
                     setBillingCycle((c) =>
                       c === "monthly" ? "yearly" : "monthly",
@@ -578,7 +747,7 @@ const Subscription = () => {
                     {historyData.data.map((p: IPaymentRecord) => (
                       <div
                         key={p._id}
-                        className="flex items-center justify-between px-6 py-4 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
+                        className="flex items-center justify-between px-6 py-4 hover:bg-gray-100   dark:hover:bg-gray-800/30 transition-colors"
                       >
                         <div className="flex items-center gap-4">
                           <div
