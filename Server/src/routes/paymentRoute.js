@@ -6,6 +6,8 @@ const {
   getPaymentHistory,
   getPlans,
   handleWebhook,
+  downloadInvoice,
+  cancelSubscription,
 } = require("../controller/paymentController");
 const protect = require("../middleware/authMiddleware");
 
@@ -31,7 +33,13 @@ router.post("/create-subscription", jsonBody, createSubscription);
 // Verify a completed payment (called by frontend handler)
 router.post("/verify-payment", jsonBody, verifyPayment);
 
+// Cancel an active subscription
+router.post("/cancel-subscription", cancelSubscription);
+
 // Payment history for the current tenant
 router.get("/history", getPaymentHistory);
+
+// Download PDF Invoice for a specific payment
+router.get("/history/:id/invoice", downloadInvoice);
 
 module.exports = router;

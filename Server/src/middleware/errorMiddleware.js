@@ -23,6 +23,12 @@ const handleJWTError = () =>
 const handleJWTExpiredError = () =>
   new AppError("Your token has expired! Please log in again.", 401);
 
+const handleRazorpayError = (err) => {
+  const message = err.error?.description || err.message || "Payment gateway error";
+  return new AppError(message, err.statusCode || 502);
+};
+
+
 const sendErrorDev = (err, res) => {
   res.status(err.statusCode).json({
     success: false,
@@ -82,6 +88,7 @@ module.exports = (err, req, res, next) => {
       error = handleValidationErrorDB(error);
     if (error.name === "JsonWebTokenError") error = handleJWTError();
     if (error.name === "TokenExpiredError") error = handleJWTExpiredError();
+    if (error.error && error.error.description) error = handleRazorpayError(error);
 
     sendErrorProd(error, res);
   }

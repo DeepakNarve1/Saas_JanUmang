@@ -2,6 +2,15 @@ const asyncHandler = require("express-async-handler");
 const AppError = require("../utils/AppError");
 const { isGlobalAdmin, getUserRoleName } = require("../utils/authHelpers");
 
+const DEFAULT_SECONDARY_ADMIN_PERMISSIONS = [
+  "view_user_count",
+  "view_dashboard",
+  "view_activity_logs",
+  "view_user_activity_report",
+  "view_roles",
+  "manage_roles",
+];
+
 // @desc    Check if user has a specific permission
 const checkPermission = (permissionName) => {
   return asyncHandler(async (req, res, next) => {
@@ -21,12 +30,7 @@ const checkPermission = (permissionName) => {
 
     if (
       isSecondaryAdmin &&
-      (permissionName === "view_user_count" ||
-        permissionName === "view_dashboard" ||
-        permissionName === "view_activity_logs" ||
-        permissionName === "view_user_activity_report" ||
-        permissionName === "view_roles" ||
-        permissionName === "manage_roles")
+      DEFAULT_SECONDARY_ADMIN_PERMISSIONS.includes(permissionName)
     ) {
       return next();
     }
@@ -71,12 +75,9 @@ const checkAnyPermission = (permissionNames) => {
 
     if (
       isSecondaryAdmin &&
-      (permissionNames.includes("view_user_count") ||
-        permissionNames.includes("view_dashboard") ||
-        permissionNames.includes("view_activity_logs") ||
-        permissionNames.includes("view_user_activity_report") ||
-        permissionNames.includes("view_roles") ||
-        permissionNames.includes("manage_roles"))
+      permissionNames.some((p) =>
+        DEFAULT_SECONDARY_ADMIN_PERMISSIONS.includes(p),
+      )
     ) {
       return next();
     }
@@ -126,14 +127,7 @@ const checkAllPermissions = (permissionNames) => {
     if (
       isSecondaryAdmin &&
       permissionNames.every((p) =>
-        [
-          "view_user_count",
-          "view_dashboard",
-          "view_activity_logs",
-          "view_user_activity_report",
-          "view_roles",
-          "manage_roles",
-        ].includes(p),
+        DEFAULT_SECONDARY_ADMIN_PERMISSIONS.includes(p),
       )
     ) {
       return next();

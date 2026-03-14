@@ -14,6 +14,10 @@ const {
   resetUserPassword,
   sanitizeUserLevels,
   refreshToken,
+  generateMfaSecret,
+  verifyMfaSetup,
+  verifyMfaLogin,
+  disableMfa,
 } = require("../controller/authController");
 const {
   forgotPassword,
@@ -56,6 +60,12 @@ router.post("/register", protect, registerLimiter, registerUser);
 router.post("/logout", protect, logoutUser);
 router.post("/change-password", protect, changePassword);
 router.put("/profile", protect, updateUserProfile);
+
+// ─── MFA Endpoints ─────────────────────────────────────────────────────────
+router.post("/mfa/verify-login", loginLimiter, verifyMfaLogin); // Public (requires tempToken)
+router.post("/mfa/generate", protect, generateMfaSecret); 
+router.post("/mfa/verify-setup", protect, verifyMfaSetup);
+router.post("/mfa/disable", protect, disableMfa);
 
 // ─── Current user ──────────────────────────────────────────────────────────
 router.get("/me", protect, getCurrentUser);

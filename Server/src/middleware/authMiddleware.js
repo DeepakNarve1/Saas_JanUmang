@@ -4,6 +4,7 @@ const asyncHandler = require("express-async-handler");
 const AppError = require("../utils/AppError");
 const User = require("../models/userModel");
 const Role = require("../models/roleModel");
+const Tenant = require("../models/tenantModel");
 const { isGlobalAdmin } = require("../utils/authHelpers");
 
 const protect = asyncHandler(async (req, res, next) => {
@@ -16,37 +17,30 @@ const protect = asyncHandler(async (req, res, next) => {
     try {
       token = req.headers.authorization.split(" ")[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id).select("-password");
 
-      // Manually populate role
-      if (req.user && req.user.role) {
-        if (mongoose.Types.ObjectId.isValid(req.user.role)) {
-          // It's an ObjectId
-          const roleDoc = await Role.findById(req.user.role).populate(
-            "permissions",
-            "name displayName",
-          );
-          if (roleDoc) {
-            req.user.role = roleDoc;
-          }
-        } else if (typeof req.user.role === "string") {
-          // It's a string name (legacy support)
-          const roleDoc = await Role.findOne({ name: req.user.role }).populate(
-            "permissions",
-            "name displayName",
-          );
-          if (roleDoc) {
-            req.user.role = roleDoc;
-          }
-        }
+      // Single DB call with deep population
+      req.user = await User.findById(decoded.id)
+        .select("-password")
+        .populate({
+          path: "role",
+          populate: {
+            path: "permissions",
+            select: "name displayName category",
+          },
+        });
+
+      if (!req.user) {
+        throw new AppError("User not found", 401);
       }
 
-      // SaaS: Attach tenantId to request
-      // Use _doc fallback because mutating req.user.role to a populated object
-      // can sometimes cause Mongoose to shadow plain field access on the document.
+      // SaaS: Attach tenant & tenantId to request
       req.tenantId = req.user.tenantId || req.user._doc?.tenantId;
 
-      // System Admin / Superadmin can override tenant context via header for management/support
+      if (req.tenantId) {
+        req.tenant = await Tenant.findById(req.tenantId);
+      }
+
+      // System Admin / Superadmin override logic... [unchanged]
       if (
         isGlobalAdmin(req.user) &&
         req.headers["x-tenant-id"] &&
@@ -54,6 +48,8 @@ const protect = asyncHandler(async (req, res, next) => {
       ) {
         const originalTenantId = req.tenantId;
         req.tenantId = new mongoose.Types.ObjectId(req.headers["x-tenant-id"]);
+        // Fetch new tenant context
+        req.tenant = await Tenant.findById(req.tenantId);
 
         // Log tenant context switching for audit trail
         if (process.env.NODE_ENV !== "test") {

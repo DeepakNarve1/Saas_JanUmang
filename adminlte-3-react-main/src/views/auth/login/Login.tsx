@@ -59,35 +59,51 @@ const Login = () => {
     return Object.values(newErrors).every((e) => e === "");
   };
 
+  const [mfaStep, setMfaStep] = useState(false);
+  const [tempToken, setTempToken] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!mfaStep && !validate()) return;
+    if (mfaStep && mfaCode.length !== 6) {
+      toast.error("Please enter a valid 6-digit code");
+      return;
+    }
 
     setLoading(true);
     try {
-      const res = await axios.post("/auth/login", {
-        email: formData.email,
-        password: formData.password,
-      });
+      if (mfaStep) {
+        const res = await axios.post("/auth/mfa/verify-login", {
+          tempToken,
+          code: mfaCode,
+        });
+        const { token, user } = res.data.data;
+        localStorage.setItem("token", token);
+        dispatch(setCurrentUser(user));
+        toast.success("Login successful!");
+        setTimeout(() => router.push("/"), 100);
+      } else {
+        const res = await axios.post("/auth/login", {
+          email: formData.email,
+          password: formData.password,
+        });
 
-      const { token, user } = res.data.data;
+        if (res.data.mfaRequired) {
+          setTempToken(res.data.tempToken);
+          setMfaStep(true);
+          toast.info("Two-Factor Authentication required");
+          return;
+        }
 
-      // Store ONLY the opaque access token in localStorage (needed to
-      // re-bootstrap auth on page reload via /auth/refresh-token).
-      // The user object lives in Redux memory only — never in localStorage.
-      localStorage.setItem("token", token);
-
-      // Dispatch to Redux store (IMPORTANT for protected routes)
-      dispatch(setCurrentUser(user));
-
-      toast.success("Login successful!");
-
-      // Small delay to ensure Redux state is updated
-      setTimeout(() => {
-        router.push("/");
-      }, 100);
+        const { token, user } = res.data.data;
+        localStorage.setItem("token", token);
+        dispatch(setCurrentUser(user));
+        toast.success("Login successful!");
+        setTimeout(() => router.push("/"), 100);
+      }
     } catch (error: any) {
-      handleError(error, "Invalid credentials");
+      handleError(error, mfaStep ? "Invalid MFA code" : "Invalid credentials");
     } finally {
       setLoading(false);
     }
@@ -112,59 +128,90 @@ const Login = () => {
 
         <div className="p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="email"
-                className="text-sm font-semibold text-gray-700 dark:text-gray-300"
-              >
-                Email Address
-              </Label>
-              <div className="relative group">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-[#368F8B] transition-colors z-10 pointer-events-none" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`pl-11! h-12 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 focus-visible:ring-[#368F8B] ${errors.email ? "border-red-500 focus:ring-red-500" : ""}`}
-                />
-              </div>
-              {errors.email && (
-                <p className="text-xs text-red-500 font-medium mt-1">
-                  {errors.email}
-                </p>
-              )}
-            </div>
+            {!mfaStep ? (
+              <>
+                {/* Email */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="email"
+                    className="text-sm font-semibold text-gray-700 dark:text-gray-300"
+                  >
+                    Email Address
+                  </Label>
+                  <div className="relative group">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-[#368F8B] transition-colors z-10 pointer-events-none" />
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="name@example.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={`pl-11! h-12 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 focus-visible:ring-[#368F8B] ${errors.email ? "border-red-500 focus:ring-red-500" : ""}`}
+                    />
+                  </div>
+                  {errors.email && (
+                    <p className="text-xs text-red-500 font-medium mt-1">
+                      {errors.email}
+                    </p>
+                  )}
+                </div>
 
-            {/* Password */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="password"
-                className="text-sm font-semibold text-gray-700 dark:text-gray-300"
-              >
-                Password
-              </Label>
-              <div className="relative group">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-[#368F8B] transition-colors z-10 pointer-events-none" />
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`pl-11! h-12 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 focus-visible:ring-[#368F8B] ${errors.password ? "border-red-500 focus:ring-red-500" : ""}`}
-                />
-              </div>
-              {errors.password && (
-                <p className="text-xs text-red-500 font-medium mt-1">
-                  {errors.password}
-                </p>
-              )}
-            </div>
+                {/* Password */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="password"
+                    className="text-sm font-semibold text-gray-700 dark:text-gray-300"
+                  >
+                    Password
+                  </Label>
+                  <div className="relative group">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-[#368F8B] transition-colors z-10 pointer-events-none" />
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className={`pl-11! h-12 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 focus-visible:ring-[#368F8B] ${errors.password ? "border-red-500 focus:ring-red-500" : ""}`}
+                    />
+                  </div>
+                  {errors.password && (
+                    <p className="text-xs text-red-500 font-medium mt-1">
+                      {errors.password}
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="mfaCode"
+                    className="text-sm font-semibold text-gray-700 dark:text-gray-300"
+                  >
+                    Authenticator Code
+                  </Label>
+                  <div className="relative group">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-[#368F8B] transition-colors z-10 pointer-events-none" />
+                    <Input
+                      id="mfaCode"
+                      name="mfaCode"
+                      type="text"
+                      maxLength={6}
+                      placeholder="e.g. 123456"
+                      value={mfaCode}
+                      onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                      className={`pl-11! h-12 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 focus-visible:ring-[#368F8B] tracking-widest text-center text-lg`}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 font-medium mt-2 text-center">
+                    Enter the 6-digit code from your authenticator app
+                  </p>
+                </div>
+              </>
+            )}
 
             {/* Submit Button */}
             <Button
@@ -175,10 +222,10 @@ const Login = () => {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Signing in...
+                  {mfaStep ? "Verifying..." : "Signing in..."}
                 </>
               ) : (
-                "Sign In"
+                mfaStep ? "Verify Code" : "Sign In"
               )}
             </Button>
 

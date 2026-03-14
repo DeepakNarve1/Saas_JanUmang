@@ -323,36 +323,46 @@ exports.getUserById = asyncHandler(async (req, res) => {
 
 // Get current user (me)
 exports.getCurrentUser = asyncHandler(async (req, res) => {
-  let user = await User.findById(req.user._id).select("-password").lean();
-
-  if (user && user.role) {
-    if (mongoose.Types.ObjectId.isValid(user.role)) {
-      const roleDoc = await Role.findById(user.role).populate(
-        "permissions",
-        "name displayName category",
-      );
-      if (roleDoc) user.role = roleDoc;
-    } else if (typeof user.role === "string") {
-      const roleDoc = await Role.findOne({ name: user.role }).populate(
-        "permissions",
-        "name displayName category",
-      );
-      if (roleDoc) user.role = roleDoc;
-    }
-  }
-
-  if (!user) {
-    res.status(404);
-    throw new Error("User not found");
-  }
-
-  // Convert to plain object to attach non-schema properties
-  const userObj = user.toObject ? user.toObject() : user;
+  // 1. User and Role/Permissions are already deeply populated in protect()
+  const userObj = req.user.toObject();
   delete userObj.password;
 
-  // Populate tenant info
-  if (req.tenantId) {
-    userObj.tenant = await getTenantData(req.tenantId);
+  // 2. Tenant data is already fetched in protect(), just needs consistent processing
+  if (req.tenant) {
+    const { getPlanConfig, getCoreModuleIds } = require("../config/modules");
+    const tenant = req.tenant;
+
+    const now = new Date();
+    let daysLeftInTrial = null;
+    let isTrialExpiringSoon = false;
+
+    if (tenant.subscriptionStatus === "trial" && tenant.trialEndsAt) {
+      const msLeft = tenant.trialEndsAt - now;
+      daysLeftInTrial = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+      isTrialExpiringSoon = daysLeftInTrial <= 7;
+    }
+
+    const planConfig = getPlanConfig(tenant.plan || "basic");
+    const coreModules = getCoreModuleIds();
+
+    let allowedModules;
+    if (planConfig.id === "custom") {
+      allowedModules = [...new Set([...(tenant.enabledModules || []), ...coreModules])];
+    } else {
+      allowedModules = [...new Set([...(planConfig.enabledModules || []), ...coreModules])];
+    }
+
+    userObj.tenant = {
+      _id: tenant._id,
+      name: tenant.name,
+      slug: tenant.slug,
+      enabledModules: allowedModules,
+      plan: tenant.plan,
+      subscriptionStatus: tenant.subscriptionStatus,
+      trialEndsAt: tenant.trialEndsAt || null,
+      daysLeftInTrial,
+      isTrialExpiringSoon,
+    };
   }
 
   res.json({ success: true, data: userObj });
@@ -688,6 +698,23 @@ exports.loginUser = asyncHandler(async (req, res) => {
 
   req.user = user;
   req.tenantId = user.tenantId;
+
+  // MFA Evaluation
+  if (user.mfaEnabled) {
+    // Generate a temporary 5-min token to allow verifying MFA
+    const tempToken = jwt.sign(
+      { id: user._id, mfaPending: true },
+      process.env.JWT_SECRET,
+      { expiresIn: "5m" }
+    );
+
+    return res.json({
+      success: true,
+      mfaRequired: true,
+      tempToken,
+    });
+  }
+
   await logActivity(
     req,
     "LOGIN",
@@ -711,6 +738,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
         tenantId: user.tenantId,
         tenant: await getTenantData(user.tenantId),
         level: user.level,
+        mfaEnabled: user.mfaEnabled,
       },
     },
   });
@@ -980,7 +1008,192 @@ exports.logoutUser = asyncHandler(async (req, res) => {
   res.clearCookie("refreshToken", { path: "/api/auth" });
   res.status(200).json({ success: true, message: "Logged out successfully" });
 });
+const speakeasy = require("speakeasy");
+const QRCode = require("qrcode");
 
+// ─── MFA Methods ─────────────────────────────────────────────────────────────
+
+// Setup/Enable MFA
+exports.generateMfaSecret = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user.mfaEnabled) {
+    res.status(400);
+    throw new Error("MFA is already enabled");
+  }
+
+  const secret = speakeasy.generateSecret({
+    name: `JanUmang(${user.email})`,
+  });
+
+  // Temporarily store the secret in the user document but don't mark as enabled yet
+  user.mfaSecret = secret.base32;
+  await user.save();
+
+  QRCode.toDataURL(secret.otpauth_url, (err, data_url) => {
+    if (err) {
+      res.status(500);
+      throw new Error("Error generating QR code");
+    }
+
+    res.json({
+      success: true,
+      data: {
+        secret: secret.base32,
+        qrCode: data_url,
+      },
+    });
+  });
+});
+
+// Verify MFA to complete setup
+exports.verifyMfaSetup = asyncHandler(async (req, res) => {
+  const { code } = req.body;
+  const user = await User.findById(req.user._id).select("+mfaSecret");
+
+  if (user.mfaEnabled) {
+    res.status(400);
+    throw new Error("MFA is already enabled");
+  }
+
+  const verified = speakeasy.totp.verify({
+    secret: user.mfaSecret,
+    encoding: "base32",
+    token: code,
+  });
+
+  if (verified) {
+    user.mfaEnabled = true;
+    await user.save();
+
+    await logActivity(req, "UPDATE", "Auth", `User enabled MFA`);
+
+    res.json({ success: true, message: "MFA enabled successfully" });
+  } else {
+    res.status(400);
+    throw new Error("Invalid token");
+  }
+});
+
+// Verify MFA during Login
+exports.verifyMfaLogin = asyncHandler(async (req, res) => {
+  const { tempToken, code } = req.body;
+
+  if (!tempToken || !code) {
+    res.status(400);
+    throw new Error("Temporary token and code are required");
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+  } catch (error) {
+    res.status(401);
+    throw new Error("Invalid or expired temporary token");
+  }
+
+  if (!decoded.mfaPending) {
+    res.status(401);
+    throw new Error("Invalid token type");
+  }
+
+  const user = await User.findById(decoded.id).select("+mfaSecret");
+
+  if (!user || (!user.mfaEnabled)) {
+    res.status(400);
+    throw new Error("MFA is not enabled for this user or user does not exist");
+  }
+
+  const verified = speakeasy.totp.verify({
+    secret: user.mfaSecret,
+    encoding: "base32",
+    token: code,
+  });
+
+  if (!verified) {
+    res.status(400);
+    throw new Error("Invalid MFA code");
+  }
+
+  // Generate long lasting tokens
+  setRefreshCookie(res, generateRefreshToken(user._id));
+
+  // Populate roles and tenant needed for login payload
+  if (user.role) {
+    if (mongoose.Types.ObjectId.isValid(user.role)) {
+      const roleDoc = await Role.findById(user.role).populate(
+        "permissions",
+        "name displayName",
+      );
+      if (roleDoc) user.role = roleDoc;
+    } else if (typeof user.role === "string") {
+      const roleDoc = await Role.findOne({ name: user.role }).populate(
+        "permissions",
+        "name displayName",
+      );
+      if (roleDoc) user.role = roleDoc;
+    }
+  }
+
+  await logActivity(
+    { user },
+    "LOGIN",
+    "Auth",
+    `User verified MFA and logged in: ${user.name} (${user.email})`,
+  );
+
+  res.json({
+    success: true,
+    data: {
+      token: generateAccessToken(user._id),
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        mobile: user.mobile,
+        userType: user.userType,
+        tenantId: user.tenantId,
+        tenant: await getTenantData(user.tenantId),
+        level: user.level,
+        mfaEnabled: user.mfaEnabled,
+      },
+    },
+  });
+});
+
+// Disable MFA
+exports.disableMfa = asyncHandler(async (req, res) => {
+  const { code } = req.body;
+  const user = await User.findById(req.user._id).select("+mfaSecret");
+
+  if (!user.mfaEnabled) {
+    res.status(400);
+    throw new Error("MFA is not enabled");
+  }
+
+  const verified = speakeasy.totp.verify({
+    secret: user.mfaSecret,
+    encoding: "base32",
+    token: code,
+  });
+
+  if (!verified) {
+    res.status(400);
+    throw new Error("Invalid token");
+  }
+
+  user.mfaEnabled = false;
+  user.mfaSecret = undefined;
+  await user.save();
+
+  await logActivity(req, "UPDATE", "Auth", `User disabled MFA`);
+
+  res.json({ success: true, message: "MFA disabled successfully" });
+});
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 /**
  * ADMIN MAINTENANCE: Sanitize user levels
  *

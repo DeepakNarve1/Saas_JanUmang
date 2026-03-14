@@ -36,8 +36,8 @@ exports.checkModuleAccess = (moduleId) => {
         throw new Error("No tenant associated with user");
       }
 
-      // Fetch tenant
-      const tenant = await Tenant.findById(tenantId);
+      // Use cached tenant if available, otherwise fetch
+      const tenant = req.tenant || (await Tenant.findById(tenantId));
 
       if (!tenant) {
         res.status(403);
@@ -130,7 +130,7 @@ exports.checkAnyModuleAccess = (moduleIds) => {
         throw new Error("No tenant associated with user");
       }
 
-      const tenant = await Tenant.findById(tenantId);
+      const tenant = req.tenant || (await Tenant.findById(tenantId));
 
       if (
         !tenant ||
@@ -199,7 +199,7 @@ exports.checkAllModulesAccess = (moduleIds) => {
         throw new Error("No tenant associated with user");
       }
 
-      const tenant = await Tenant.findById(tenantId);
+      const tenant = req.tenant || (await Tenant.findById(tenantId));
 
       if (
         !tenant ||
@@ -268,9 +268,9 @@ exports.attachEnabledModules = async (req, res, next) => {
       return next();
     }
 
-    const tenant = await Tenant.findById(tenantId).select(
+    const tenant = req.tenant || (await Tenant.findById(tenantId).select(
       "enabledModules plan",
-    );
+    ));
     const planConfig = getPlanConfig(tenant?.plan || "basic");
     const coreModules = getCoreModuleIds();
 

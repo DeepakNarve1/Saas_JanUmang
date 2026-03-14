@@ -1,5 +1,6 @@
 export interface IUser {
-  uid: string;
+  uid?: string;
+  _id?: string;
   name?: string;
   email?: string;
   token?: string;
@@ -23,6 +24,7 @@ export interface IUser {
   panchayat?: string;
   village?: string;
   booth?: string;
+  mfaEnabled?: boolean;
 }
 
 export interface ITenantShort {

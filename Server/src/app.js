@@ -71,6 +71,19 @@ const paymentRoutes = require("./routes/paymentRoute");
 
 const app = express();
 
+// 0) HELPER MIDDLEWARES
+// Express 5: req.query is a getter by default and often read-only.
+// We make it writable so middlewares like mongo-sanitize can work.
+app.use((req, res, next) => {
+  Object.defineProperty(req, "query", {
+    value: { ...req.query },
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
+  next();
+});
+
 // 1) GLOBAL MIDDLEWARES
 app.use(helmet());
 app.use("/api", generalApiLimiter);
@@ -92,6 +105,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(compression());
 app.use(cookieParser()); // Must be before payment routes so protect() can read cookies
+app.use(mongoSanitize()); // Prevent NoSQL injection BEFORE ANY routes run
 
 // ⚠️  Razorpay webhook MUST be registered before global express.json() might limit it.
 //    The payment route handles its own JSON parsing.
@@ -100,17 +114,8 @@ app.use("/api/payment", paymentRoutes);
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ limit: "5mb", extended: true }));
 
-app.use((req, res, next) => {
-  Object.defineProperty(req, "query", {
-    value: { ...req.query },
-    writable: true,
-    enumerable: true,
-    configurable: true,
-  });
-  next();
-});
+// req.query writability fix already applied above (0)
 
-app.use(mongoSanitize());
 // cookieParser already applied above (before payment routes)
 
 // 2) ROUTES

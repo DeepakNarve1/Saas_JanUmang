@@ -65,8 +65,6 @@ exports.createSubscription = asyncHandler(async (req, res) => {
   if (!tenant) throw new AppError("Tenant not found", 404);
 
   // Create Razorpay Subscription
-  console.log(`[Razorpay DEBUG] KEY_ID: ${process.env.RAZORPAY_KEY_ID}`);
-  console.log(`[Razorpay DEBUG] plan_id being sent: ${razorpayPlanId}`);
   let subscription;
   try {
     subscription = await razorpay.subscriptions.create({
@@ -206,20 +204,113 @@ exports.getPaymentHistory = asyncHandler(async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /api/payment/history/:id/invoice
+// ─────────────────────────────────────────────────────────────────────────────
+exports.downloadInvoice = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const payment = await Payment.findOne({
+    _id: id,
+    tenantId: req.user.tenantId,
+  }).lean();
+
+  if (!payment) {
+    res.status(404);
+    throw new Error("Payment record not found");
+  }
+
+  if (payment.status !== "paid") {
+    res.status(400);
+    throw new Error("Invoice only available for paid transactions");
+  }
+
+  const tenant = await Tenant.findById(req.user.tenantId).select("name").lean();
+
+  // Load PDF generator
+  const { generateInvoice } = require("../utils/invoiceGenerator");
+
+  const filename = `Invoice_${payment.razorpayPaymentId || payment._id}.pdf`;
+  
+  res.setHeader("Content-disposition", `attachment; filename="${filename}"`);
+  res.setHeader("Content-type", "application/pdf");
+
+  // Generate and pipe directly to response
+  generateInvoice(payment, tenant, res);
+});
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/payment/cancel-subscription
+// ─────────────────────────────────────────────────────────────────────────────
+exports.cancelSubscription = asyncHandler(async (req, res) => {
+  const tenant = await Tenant.findById(req.user.tenantId);
+  const subscriptionId = tenant.razorpaySubscriptionId;
+
+  if (!subscriptionId) {
+    res.status(400);
+    throw new Error("No active Razorpay subscription found to cancel");
+  }
+
+  const razorpay = getRazorpay();
+  
+  try {
+    // Note: cancelAtCycleEnd=true means they keep access until current paid period ends
+    await razorpay.subscriptions.cancel(subscriptionId, true);
+    
+    tenant.subscriptionStatus = "cancelled";
+    // We do NOT clear the subscriptionEndDate immediately because they paid for the current cycle
+    await tenant.save();
+
+    res.json({
+      success: true,
+      message: "Subscription has been successfully cancelled. You will retain access until the end of the current billing cycle."
+    });
+  } catch (error) {
+    console.error("[Razorpay] Cancel error:", error);
+    res.status(500);
+    throw new Error(error.error?.description || "Failed to cancel subscription with payment gateway");
+  }
+});
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/payment/plans
 // ─────────────────────────────────────────────────────────────────────────────
 exports.getPlans = asyncHandler(async (req, res) => {
-  const publicPlans = Object.values(PLANS).map((p) => ({
-    id: p.id,
-    name: p.name,
-    description: p.description,
-    maxUsers: p.maxUsers,
-    maxStorage: p.maxStorage,
-    priceMonthly: p.priceMonthlyPaise / 100,
-    priceYearly: p.priceYearlyPaise / 100,
-    features: p.features,
-    enabled: !!p.razorpayPlanIdMonthly,
-  }));
+  const { MODULES, getPlanConfig } = require("../config/modules");
+
+  const publicPlans = Object.values(PLANS).map((p) => {
+    // Get module IDs for this plan
+    const planConfig = getPlanConfig(p.id);
+    const moduleIds = planConfig.enabledModules || [];
+
+    // Map to full module objects
+    const planModules = moduleIds
+      .map((id) => {
+        const mod = Object.values(MODULES).find((m) => m.id === id);
+        
+        const formatCategory = (cat) => {
+          if (!cat) return "Other";
+          return cat.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        };
+
+        return mod
+          ? { id: mod.id, label: mod.name, category: formatCategory(mod.category) }
+          : null;
+      })
+      .filter(Boolean);
+
+    return {
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      maxUsers: p.maxUsers,
+      maxStorage: p.maxStorage,
+      priceMonthly: p.priceMonthlyPaise / 100,
+      priceYearly: p.priceYearlyPaise / 100,
+      features: p.features,
+      modules: planModules,
+      enabled: !!p.razorpayPlanIdMonthly,
+      color: p.color,
+      highlighted: p.highlighted,
+    };
+  });
 
   res.json({ success: true, data: publicPlans });
 });

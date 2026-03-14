@@ -24,9 +24,8 @@ const userSchema = new mongoose.Schema(
       minlength: [8, "Password must be at least 8 characters"],
     },
     role: {
-      // Ideally this should be ObjectId, but keeping Mixed for backward compatibility
-      // as seen in controllers that handle both String and ObjectId.
-      type: mongoose.Schema.Types.Mixed,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Role",
       required: [true, "Please select a Role"],
     },
     mobile: {
@@ -97,6 +96,10 @@ const userSchema = new mongoose.Schema(
     isEmailVerified: { type: Boolean, default: false },
     emailVerificationToken: { type: String, select: false },
     emailVerificationExpires: { type: Date, select: false },
+
+    // ── Two-Factor Authentication (MFA) ───────────────────────────────────────
+    mfaEnabled: { type: Boolean, default: false },
+    mfaSecret: { type: String, select: false },
   },
   { timestamps: true },
 );

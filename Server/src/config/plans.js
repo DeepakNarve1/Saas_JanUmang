@@ -37,6 +37,7 @@ const PLANS = {
       "Email support",
       "Activity logs",
     ],
+    color: "#22c55e",
   },
 
   professional: {
@@ -58,6 +59,8 @@ const PLANS = {
       "API access",
       "Custom roles",
     ],
+    highlighted: true,
+    color: "#368F8B",
   },
 
   enterprise: {
@@ -80,6 +83,7 @@ const PLANS = {
       "On-premise option",
       "White labeling",
     ],
+    color: "#f59e0b",
   },
 };
 

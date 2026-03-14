@@ -4,6 +4,7 @@ import { ContentHeader } from "@components";
 import Image from "@app/components/Image";
 import SettingsTab from "./SettingsTab";
 import ChangePasswordTab from "./ChangePasswordTab";
+import MFATab from "./MFATab";
 import { useAppSelector } from "@app/store/store";
 import {
   User as UserIcon,
@@ -116,12 +117,26 @@ const Profile = () => {
                         Change Password
                       </button>
                     </li>
+                    <li>
+                      <button
+                        className={`flex items-center px-6 py-3 rounded-xl text-sm font-extrabold transition-all duration-300 ${
+                          activeTab === "MFA"
+                            ? "bg-[#368F8B] text-white shadow-lg shadow-[#368F8B]/25"
+                            : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-[#368F8B] dark:hover:text-[#45b1ac]"
+                        }`}
+                        onClick={() => toggle("MFA")}
+                      >
+                        <ShieldCheck className="w-4.5 h-4.5 mr-2" />
+                        Two-Factor Auth
+                      </button>
+                    </li>
                   </ul>
                 </div>
                 <div className="p-8 grow">
                   <div className="animate-in fade-in duration-500">
                     <SettingsTab isActive={activeTab === "SETTINGS"} />
                     <ChangePasswordTab isActive={activeTab === "PASSWORD"} />
+                    <MFATab isActive={activeTab === "MFA"} />
                   </div>
                 </div>
               </div>

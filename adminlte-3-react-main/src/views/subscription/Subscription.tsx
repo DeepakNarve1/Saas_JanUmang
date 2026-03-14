@@ -30,10 +30,11 @@ import {
   Receipt,
   Grid3X3,
   List,
+  Download,
 } from "lucide-react";
 import { ITenant } from "@app/types/tenant";
 import { Skeleton } from "@app/components/ui/skeleton";
-import { PLANS, IPlan } from "@app/config/plans";
+import { IPlan } from "@app/config/plans";
 import {
   initiateSubscription,
   formatPrice,
@@ -379,7 +380,7 @@ const Subscription = () => {
     };
   }, []);
 
-  // Razorpay handle post-payment is done via handler usually, 
+  // Razorpay handle post-payment is done via handler usually,
   // but we can still check searchParams for success/cancel if we add a callback_url.
   // For now, most logic is moving to handleUpgrade.
 
@@ -403,6 +404,16 @@ const Subscription = () => {
     enabled: hasAccess && activeTab === "history",
   });
 
+  // Fetch available plans from backend
+  const { data: availablePlans, isLoading: plansLoading } = useQuery({
+    queryKey: ["payment-plans"],
+    queryFn: async () => {
+      const res = await axios.get("/payment/plans");
+      return res.data?.data as IPlan[];
+    },
+    enabled: hasAccess,
+  });
+
   const handleUpgrade = async (planId: PlanId) => {
     if (!currentUser) return;
     try {
@@ -423,7 +434,7 @@ const Subscription = () => {
         (error) => {
           toast.error(error);
           setUpgrading(null);
-        }
+        },
       );
     } catch (error) {
       handleError(error, "Failed to start checkout");
@@ -488,7 +499,7 @@ const Subscription = () => {
     : Math.min((userUsage / userLimit) * 100, 100);
 
   // Build an easy-to-display modules list for the current plan banner
-  const currentPlanDef = PLANS.find((p) => p.id === currentPlan);
+  const currentPlanDef = availablePlans?.find((p) => p.id === currentPlan);
 
   return (
     <div className="content-wrapper">
@@ -699,20 +710,28 @@ const Subscription = () => {
 
               {/* Plan Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
-                {PLANS.map((plan) => (
-                  <PlanCard
-                    key={plan.id}
-                    plan={plan}
-                    currentPlan={currentPlan}
-                    billingCycle={billingCycle}
-                    upgrading={upgrading}
-                    onSelect={handleUpgrade}
-                  />
-                ))}
+                {plansLoading
+                  ? [1, 2, 3].map((i) => (
+                      <Skeleton
+                        key={i}
+                        className="h-[500px] w-full rounded-2xl"
+                      />
+                    ))
+                  : availablePlans?.map((plan) => (
+                      <PlanCard
+                        key={plan.id}
+                        plan={plan}
+                        currentPlan={currentPlan}
+                        billingCycle={billingCycle}
+                        upgrading={upgrading}
+                        onSelect={handleUpgrade}
+                      />
+                    ))}
               </div>
 
               <p className="text-center text-xs text-gray-400 dark:text-gray-500">
-                All prices in INR. Billed via Razorpay — supports UPI, PhonePe, Google Pay & Cards.
+                All prices in INR. Billed via Razorpay — supports UPI, PhonePe,
+                Google Pay & Cards.
               </p>
             </>
           )}
@@ -787,21 +806,59 @@ const Subscription = () => {
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-black text-gray-900 dark:text-white">
-                            ₹{(p.amount / 100).toLocaleString("en-IN")}
-                          </p>
-                          <Badge
-                            className={`text-[10px] font-bold border-0 capitalize ${
-                              p.status === "paid"
-                                ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700"
-                                : p.status === "failed"
-                                  ? "bg-red-100 dark:bg-red-900/30 text-red-700"
-                                  : "bg-gray-100 dark:bg-gray-800 text-gray-600"
-                            }`}
-                          >
-                            {p.status}
-                          </Badge>
+                        <div className="flex items-center gap-6 text-right">
+                          <div>
+                            <p className="text-sm font-black text-gray-900 dark:text-white">
+                              ₹{(p.amount / 100).toLocaleString("en-IN")}
+                            </p>
+                            <Badge
+                              className={`text-[10px] font-bold border-0 capitalize ${
+                                p.status === "paid"
+                                  ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700"
+                                  : p.status === "failed"
+                                    ? "bg-red-100 dark:bg-red-900/30 text-red-700"
+                                    : "bg-gray-100 dark:bg-gray-800 text-gray-600"
+                              }`}
+                            >
+                              {p.status}
+                            </Badge>
+                          </div>
+                          {p.status === "paid" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              title="Download Invoice"
+                              onClick={() => {
+                                const token =
+                                  localStorage.getItem("token") || "";
+                                fetch(
+                                  `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000/api"}/payment/history/${p._id}/invoice`,
+                                  {
+                                    headers: {
+                                      Authorization: `Bearer ${token}`,
+                                    },
+                                  },
+                                )
+                                  .then((res) => res.blob())
+                                  .then((blob) => {
+                                    const url =
+                                      window.URL.createObjectURL(blob);
+                                    const a = document.createElement("a");
+                                    a.href = url;
+                                    a.download = `Invoice_${p._id}.pdf`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    a.remove();
+                                  })
+                                  .catch(() =>
+                                    toast.error("Failed to download invoice"),
+                                  );
+                              }}
+                              className="h-8 w-8 p-0 shrink-0 border-gray-200 dark:border-gray-700 text-gray-500 hover:text-[#368F8B] hover:bg-[#368F8B]/10"
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}

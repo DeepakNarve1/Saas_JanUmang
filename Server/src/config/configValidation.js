@@ -12,6 +12,8 @@ const validateEnv = () => {
     "JWT_REFRESH_SECRET",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
+    "RAZORPAY_KEY_ID",
+    "RAZORPAY_KEY_SECRET",
   ];
 
   const missing = required.filter((key) => !process.env[key]);
