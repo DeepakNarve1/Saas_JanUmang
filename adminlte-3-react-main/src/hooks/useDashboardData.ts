@@ -44,7 +44,7 @@ export interface BlockSummary {
   inProgress: number;
 }
 
-export interface MemberBlockSummary {
+export interface MemberDistrictSummary {
   name: string;
   bc: number;
   pp: number;
@@ -112,11 +112,11 @@ export const useDashboardData = () => {
     ...baseQueryOptions,
   });
 
-  // --- Member block summary ---
-  const { data: memberBlockData, isLoading: memberBlockLoading } = useQuery({
-    queryKey: ["dashboard-member-block-summary"],
+  // --- Member district summary ---
+  const { data: memberDistrictData, isLoading: memberDistrictLoading } = useQuery({
+    queryKey: ["dashboard-member-district-summary"],
     queryFn: async () => {
-      const res = await axios.get("/dashboard/member-block-summary");
+      const res = await axios.get("/dashboard/member-district-summary");
       return res.data?.data || [];
     },
     ...baseQueryOptions,
@@ -153,7 +153,7 @@ export const useDashboardData = () => {
     chartLoading ||
     departmentLoading ||
     blockLoading ||
-    memberBlockLoading ||
+    memberDistrictLoading ||
     statsLoading;
 
   // --- Stats object ---
@@ -213,9 +213,9 @@ export const useDashboardData = () => {
     [blockData],
   );
 
-  const memberBlockSummary: MemberBlockSummary[] = useMemo(
-    () => memberBlockData || [],
-    [memberBlockData],
+  const memberDistrictSummary: MemberDistrictSummary[] = useMemo(
+    () => memberDistrictData || [],
+    [memberDistrictData],
   );
 
   const problemsByDepartment = useMemo(
@@ -256,7 +256,7 @@ export const useDashboardData = () => {
     cardStats,
     departmentSummary,
     blockSummary,
-    memberBlockSummary,
+    memberDistrictSummary,
     problemsByDepartment,
     problemsByStatus,
 
@@ -276,6 +276,5 @@ export const useDashboardData = () => {
     filteredProjects: [],
     mpDepartmentSummary: [],
     mpBlockSummary: [],
-    memberDistrictSummary: [],
   };
 };

@@ -71,7 +71,7 @@ const DashboardContent = () => {
     cardStats,
     departmentSummary,
     blockSummary,
-    memberBlockSummary,
+    memberDistrictSummary,
     problemsByDepartment,
     problemsByStatus,
   } = useDashboardData();
@@ -234,9 +234,9 @@ const DashboardContent = () => {
 
                 <SummaryTable
                   title="New Member Summary"
-                  data={memberBlockSummary}
+                  data={memberDistrictSummary}
                   columns={[
-                    { header: "Block Name", accessorKey: "name" },
+                    { header: "District Name", accessorKey: "name" },
                     { header: "BC Count", accessorKey: "bc" },
                     { header: "PP Count", accessorKey: "pp" },
                     { header: "IP Count", accessorKey: "ip" },

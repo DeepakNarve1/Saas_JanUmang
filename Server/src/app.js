@@ -91,10 +91,10 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(compression());
+app.use(cookieParser()); // Must be before payment routes so protect() can read cookies
 
-// ⚠️  Stripe webhook MUST be registered before express.json() parses the body.
-//    The webhook handler applies express.raw() itself on the route, so the
-//    global express.json() below will NOT affect it.
+// ⚠️  Razorpay webhook MUST be registered before global express.json() might limit it.
+//    The payment route handles its own JSON parsing.
 app.use("/api/payment", paymentRoutes);
 
 app.use(express.json({ limit: "5mb" }));
@@ -111,7 +111,7 @@ app.use((req, res, next) => {
 });
 
 app.use(mongoSanitize());
-app.use(cookieParser());
+// cookieParser already applied above (before payment routes)
 
 // 2) ROUTES
 app.get("/health", async (req, res) => {

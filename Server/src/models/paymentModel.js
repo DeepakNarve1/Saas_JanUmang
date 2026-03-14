@@ -15,24 +15,24 @@ const paymentSchema = new mongoose.Schema(
       required: true,
     },
 
-    // ─── Stripe IDs ───────────────────────────────────────────────────────────
-    stripeSessionId: {
+    // ─── Razorpay IDs ───────────────────────────────────────────────────────────
+    razorpayOrderId: {
       type: String,
       index: true,
     },
-    stripePaymentIntentId: {
+    razorpayPaymentId: {
       type: String,
       index: true,
     },
-    stripeSubscriptionId: {
+    razorpaySubscriptionId: {
       type: String,
       index: true,
     },
-    stripeCustomerId: {
+    razorpayCustomerId: {
       type: String,
       index: true,
     },
-    stripeInvoiceId: {
+    razorpaySignature: {
       type: String,
     },
 
@@ -72,8 +72,8 @@ const paymentSchema = new mongoose.Schema(
     subscriptionStartDate: Date,
     subscriptionEndDate: Date,
 
-    // ─── Raw Stripe Event data (for debugging / audit trail) ──────────────────
-    stripeEventType: String,
+    // ─── Raw Razorpay Event data (for debugging / audit trail) ───────────────
+    razorpayEventType: String,
     metadata: { type: mongoose.Schema.Types.Mixed },
   },
   { timestamps: true },

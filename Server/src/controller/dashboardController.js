@@ -390,7 +390,7 @@ const getChartData = asyncHandler(async (req, res) => {
  * @route   GET /api/dashboard/member-block-summary
  * @access  Private
  */
-const getMemberBlockSummary = asyncHandler(async (req, res) => {
+const getMemberDistrictSummary = asyncHandler(async (req, res) => {
   const tenantId = req.tenantId;
   const tenantFilter = tenantId ? { tenantId } : {};
 
@@ -398,7 +398,7 @@ const getMemberBlockSummary = asyncHandler(async (req, res) => {
     { $match: tenantFilter },
     {
       $group: {
-        _id: "$block",
+        _id: "$district",
         bc: {
           $sum: {
             $cond: [
@@ -686,7 +686,7 @@ module.exports = {
   getDepartmentSummary,
   getBlockSummary,
   getChartData,
-  getMemberBlockSummary,
+  getMemberDistrictSummary,
   getMpDepartmentSummary,
   getMpBlockSummary,
 };

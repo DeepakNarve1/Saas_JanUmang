@@ -77,13 +77,13 @@ const tenantSchema = new mongoose.Schema(
     subscriptionEndDate: {
       type: Date,
     },
-    // ─── Stripe Billing ────────────────────────────────────────────────────────
-    stripeCustomerId: {
+    // ─── Razorpay Billing ──────────────────────────────────────────────────────
+    razorpayCustomerId: {
       type: String,
       index: true,
       sparse: true,
     },
-    stripeSubscriptionId: {
+    razorpaySubscriptionId: {
       type: String,
       index: true,
       sparse: true,

@@ -100,7 +100,7 @@ const MODULES = {
 
   VIDHAN_SABHA_SAMITI: {
     id: "vidhan_sabha_samiti",
-    name: "Vidhasabha Samiti",
+    name: "Vidhansabha Samiti",
     description: "Vidhasabha Samiti management",
     category: "legislative",
     permissions: [

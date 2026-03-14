@@ -81,7 +81,7 @@ const MenuItem = ({ menuItem }: { menuItem: IMenuItem }) => {
     : "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200";
 
   return (
-    <li className={`relative w-full ${isMenuExtended ? "menu-open" : ""}`}>
+    <li className={`relative w-full group ${isMenuExtended ? "menu-open" : ""}`}>
       {isExpandable ? (
         <a
           className={`${linkBaseClasses} ${
@@ -104,15 +104,23 @@ const MenuItem = ({ menuItem }: { menuItem: IMenuItem }) => {
           <p className="flex-1 truncate font-medium text-sm tracking-wide">
             {t(menuItem.name)}
           </p>
-          <i
-            className={`fas fa-chevron-right text-xs transition-transform duration-200 ${
-              isMenuExtended ? "rotate-90" : ""
-            } ${
-              isMainActive || isOneOfChildrenActive
-                ? "text-white/70"
-                : "opacity-50"
+          <div
+            className={`flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 ${
+              isMenuExtended
+                ? "bg-white/20 shadow-inner"
+                : "hover:bg-black/5 dark:hover:bg-white/5"
             }`}
-          />
+          >
+            <i
+              className={`fas fa-chevron-right text-[10px] transition-transform duration-300 ${
+                isMenuExtended ? "rotate-90" : ""
+              } ${
+                isMainActive || isOneOfChildrenActive
+                  ? "text-white"
+                  : "opacity-60 group-hover:opacity-100"
+              }`}
+            />
+          </div>
         </a>
       ) : (
         <Link

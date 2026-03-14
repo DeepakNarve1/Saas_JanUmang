@@ -35,13 +35,11 @@ import { ITenant } from "@app/types/tenant";
 import { Skeleton } from "@app/components/ui/skeleton";
 import { PLANS, IPlan } from "@app/config/plans";
 import {
-  initiateCheckout,
-  openCustomerPortal,
-  verifyPaymentSession,
+  initiateSubscription,
   formatPrice,
   BillingCycle,
   PlanId,
-} from "@app/utils/stripe";
+} from "@app/utils/razorpay";
 import { toast } from "react-toastify";
 
 // ─── Payment History Row ──────────────────────────────────────────────────────
@@ -370,27 +368,20 @@ const Subscription = () => {
     return currentUser.level === "tenant_admin";
   }, [currentUser]);
 
-  // Handle post-payment redirect from Stripe
+  // Inject Razorpay script
   useEffect(() => {
-    const payment = searchParams.get("payment");
-    const sessionId = searchParams.get("session_id");
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
-    if (payment === "success" && sessionId) {
-      verifyPaymentSession(sessionId)
-        .then((data) => {
-          toast.success(`🎉 Successfully upgraded to ${data.plan} plan!`);
-          queryClient.invalidateQueries({ queryKey: ["my-tenant"] });
-          queryClient.invalidateQueries({ queryKey: ["payment-history"] });
-        })
-        .catch(() => {
-          toast.info("Payment received! It may take a moment to reflect.");
-        });
-      router.replace("/subscription");
-    } else if (payment === "cancelled") {
-      toast.info("Payment cancelled. Your current plan remains active.");
-      router.replace("/subscription");
-    }
-  }, [searchParams, queryClient, router]);
+  // Razorpay handle post-payment is done via handler usually, 
+  // but we can still check searchParams for success/cancel if we add a callback_url.
+  // For now, most logic is moving to handleUpgrade.
 
   // Fetch tenant
   const { data: tenant, isLoading } = useQuery({
@@ -413,9 +404,27 @@ const Subscription = () => {
   });
 
   const handleUpgrade = async (planId: PlanId) => {
+    if (!currentUser) return;
     try {
       setUpgrading(planId);
-      await initiateCheckout(planId, billingCycle);
+      await initiateSubscription(
+        planId,
+        billingCycle,
+        {
+          name: currentUser.name || "User",
+          email: currentUser.email || "",
+        },
+        (data) => {
+          toast.success(`🎉 Successfully upgraded to ${data.plan} plan!`);
+          queryClient.invalidateQueries({ queryKey: ["my-tenant"] });
+          queryClient.invalidateQueries({ queryKey: ["payment-history"] });
+          setUpgrading(null);
+        },
+        (error) => {
+          toast.error(error);
+          setUpgrading(null);
+        }
+      );
     } catch (error) {
       handleError(error, "Failed to start checkout");
       setUpgrading(null);
@@ -423,11 +432,7 @@ const Subscription = () => {
   };
 
   const handleManageBilling = async () => {
-    try {
-      await openCustomerPortal();
-    } catch (error) {
-      handleError(error, "Could not open billing portal");
-    }
+    toast.info("Billing management is available via your Razorpay account.");
   };
 
   if (!hasAccess) {
@@ -592,7 +597,7 @@ const Subscription = () => {
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0">
-                  {tenant?.stripeCustomerId && (
+                  {tenant?.razorpayCustomerId && (
                     <Button
                       id="manage-billing-btn"
                       variant="outline"
@@ -707,8 +712,7 @@ const Subscription = () => {
               </div>
 
               <p className="text-center text-xs text-gray-400 dark:text-gray-500">
-                All prices in INR. Billed via Stripe — secure, encrypted
-                payments. Cancel anytime from the billing portal.
+                All prices in INR. Billed via Razorpay — supports UPI, PhonePe, Google Pay & Cards.
               </p>
             </>
           )}

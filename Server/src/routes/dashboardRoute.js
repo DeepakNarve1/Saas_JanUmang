@@ -5,7 +5,7 @@ const {
   getDepartmentSummary,
   getBlockSummary,
   getChartData,
-  getMemberBlockSummary,
+  getMemberDistrictSummary,
   getMpDepartmentSummary,
   getMpBlockSummary,
 } = require("../controller/dashboardController");
@@ -43,13 +43,13 @@ router.get(
 // @access  Private (requires view_dashboard permission)
 router.get("/charts", checkPermission("view_dashboard"), getChartData);
 
-// @route   GET /api/dashboard/member-block-summary
-// @desc    Get member block summary with code counts
+// @route   GET /api/dashboard/member-district-summary
+// @desc    Get member district summary with code counts
 // @access  Private (requires view_dashboard permission)
 router.get(
-  "/member-block-summary",
+  "/member-district-summary",
   checkPermission("view_dashboard"),
-  getMemberBlockSummary,
+  getMemberDistrictSummary,
 );
 
 // @route   GET /api/dashboard/mp-department-summary

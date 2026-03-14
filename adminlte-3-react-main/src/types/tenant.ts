@@ -21,7 +21,7 @@ export interface ITenant {
     | "expired";
   enabledModules?: string[];
   subscriptionEndDate?: string;
-  stripeCustomerId?: string;
+  razorpayCustomerId?: string;
   trialEndsAt?: string;
 }
 
