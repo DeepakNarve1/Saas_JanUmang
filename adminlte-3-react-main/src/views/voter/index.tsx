@@ -77,6 +77,7 @@ interface IVoterColumns {
   fallaMarjra: boolean;
   voterId: boolean;
   image: boolean;
+  organization?: boolean;
 }
 
 const Voter = () => {
@@ -84,6 +85,8 @@ const Voter = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const queryClient = useQueryClient();
+  const { hasPermission, isSuperAdmin } = usePermissions();
+  const isGlobalAdmin = isSuperAdmin();
 
   // Filters
   const [filterBlock, setFilterBlock] = useState("all");
@@ -171,9 +174,9 @@ const Voter = () => {
     fallaMarjra: true,
     voterId: true,
     image: true,
+    organization: isGlobalAdmin,
   });
 
-  const { hasPermission } = usePermissions();
   const canDelete = hasPermission(PERMISSIONS.DELETE_VOTERS);
   const canCreate = hasPermission(PERMISSIONS.CREATE_VOTERS);
   const canEdit = hasPermission(PERMISSIONS.EDIT_VOTERS);
@@ -200,9 +203,6 @@ const Voter = () => {
   const handleExport = async () => {
     if (data.length === 0) return toast.warning("No data to export");
     try {
-      // setLoading(true); // Don't manage loading state manually for exports if possible, or create a separate state.
-      // Re-using specific export loading state might be better, or just toast.
-      // For now, removing manual setLoading calls related to data fetching.
       const XLSX = await import("xlsx");
       const dataToExport = data.map((v: IVoter) => {
         const block =
@@ -229,6 +229,7 @@ const Voter = () => {
           Village: village,
           "Falia/Majra": v.fallaMarjra,
           "Voter ID": v.voterId,
+          Organization: typeof v.tenantId === "object" ? v.tenantId?.name : "Platform"
         };
       });
       const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -238,8 +239,6 @@ const Voter = () => {
       toast.success("Exported successfully");
     } catch (error: unknown) {
       handleError(error, "Failed to load export library");
-    } finally {
-      // setLoading(false);
     }
   };
 
@@ -250,7 +249,6 @@ const Voter = () => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        // setLoading(true); // We can add an importLoading state if desired, but not reusing the main query loading
         const XLSX = await import("xlsx");
         const buffer = e.target?.result;
         const workbook = XLSX.read(buffer, { type: "binary" });
@@ -316,7 +314,6 @@ const Voter = () => {
       } catch (error: unknown) {
         handleError(error, "Failed to import file");
       } finally {
-        // setLoading(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     };
@@ -568,6 +565,11 @@ const Voter = () => {
                         Image
                       </TableHead>
                     )}
+                    {visibleColumns.organization && (
+                      <TableHead className="font-semibold text-white dark:text-white uppercase tracking-wider text-xs">
+                        Organization
+                      </TableHead>
+                    )}
                     <TableHead className="font-semibold text-white dark:text-white uppercase tracking-wider text-xs text-right">
                       Actions
                     </TableHead>
@@ -706,6 +708,13 @@ const Voter = () => {
                             )}
                           </TableCell>
                         )}
+                        {visibleColumns.organization && (
+                          <TableCell className="font-medium text-blue-600 dark:text-blue-400">
+                            {typeof row.tenantId === "object"
+                              ? row.tenantId?.name
+                              : "Platform"}
+                          </TableCell>
+                        )}
 
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -755,9 +764,6 @@ const Voter = () => {
 
             {/* Pagination */}
             <div className="border-t border-gray-200 dark:border-gray-800 p-6 bg-gray-50/30 dark:bg-gray-800/30 flex flex-col sm:flex-row justify-between items-center gap-4">
-              {/* Entries Select */}
-
-              {/* Controls */}
               <div className="flex items-center gap-2">
                 <div className="text-sm text-gray-500 dark:text-gray-400 mr-2">
                   {entriesPerPage === -1

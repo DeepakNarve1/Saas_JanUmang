@@ -38,7 +38,6 @@ const tenantSchema = new mongoose.Schema(
     // ============================================
     plan: {
       type: String,
-      enum: ["basic", "professional", "enterprise", "custom"],
       default: "basic",
       lowercase: true,
     },

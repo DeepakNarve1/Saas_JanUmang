@@ -68,6 +68,7 @@ export interface IUserRow {
   role?: string | IRole;
   level?: string;
   tenantId?: string;
+  tenant?: ITenantShort;
   createdAt?: string;
 }
 

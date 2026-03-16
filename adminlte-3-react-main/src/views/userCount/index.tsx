@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"; // Added
 import { usePermissions } from "@app/hooks/usePermissions"; // Added
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
-import * as XLSX from "xlsx";
 import { ContentHeader } from "@app/components";
 import {
   Table,
@@ -149,21 +148,27 @@ const UserCount = () => {
       (entriesPerPage === -1 ? filteredUsers.length || 1 : entriesPerPage),
   );
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (filteredUsers.length === 0) {
       return toast.warning("No data to export");
     }
 
-    const dataToExport = filteredUsers.map((u: IUserCountRow) => ({
-      Name: u.name,
-      "Total Count": u.count,
-    }));
+    try {
+      const XLSX = await import("xlsx");
+      const dataToExport = filteredUsers.map((u: IUserCountRow) => ({
+        Name: u.name,
+        "Total Count": u.count,
+      }));
 
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "UserCounts");
-    XLSX.writeFile(wb, `User_Counts_${Date.now()}.xlsx`);
-    toast.success("Exported successfully");
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "UserCounts");
+      XLSX.writeFile(wb, `User_Counts_${Date.now()}.xlsx`);
+      toast.success("Exported successfully");
+    } catch (error) {
+      console.error("XLSX import failed:", error);
+      toast.error("Export failed. Please try again later.");
+    }
   };
 
   if (!hasPermission(PERMISSIONS.VIEW_USER_COUNT)) {

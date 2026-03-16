@@ -59,7 +59,7 @@ import { PERMISSIONS } from "@app/config/permissions";
 const Visitors = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, isSuperAdmin } = usePermissions();
   const canDelete = hasPermission(PERMISSIONS.DELETE_VISITORS);
   const canCreate = hasPermission(PERMISSIONS.CREATE_VISITORS);
   const canEdit = hasPermission(PERMISSIONS.EDIT_VISITORS);
@@ -102,6 +102,7 @@ const Visitors = () => {
     remarks: true,
     bhaiyakanirdesh: true,
     addedBy: true,
+    organization: isSuperAdmin(),
   });
 
   const toggleColumn = (key: keyof typeof visibleColumns) => {
@@ -240,6 +241,7 @@ const Visitors = () => {
         Remarks: v.remarks || "-",
         "Bhaiya Ka Nirdesh": v.bhaiyakanirdesh || "-",
         "Added By": v.addedBy || "-",
+        Organization: (v.tenantId && typeof v.tenantId === "object") ? v.tenantId.name : "Platform"
       }));
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
@@ -743,6 +745,11 @@ const Visitors = () => {
                         Added By
                       </TableHead>
                     )}
+                    {visibleColumns.organization && (
+                      <TableHead className="font-semibold text-white dark:text-white uppercase tracking-wider text-xs">
+                        Organization
+                      </TableHead>
+                    )}
                     <TableHead className="font-semibold text-white dark:text-white uppercase tracking-wider text-xs text-right">
                       Actions
                     </TableHead>
@@ -754,8 +761,7 @@ const Visitors = () => {
                       <TableRow key={i}>
                         <TableCell
                           colSpan={
-                            Object.values(visibleColumns).filter(Boolean)
-                              .length + 1
+                            Object.values(visibleColumns).filter(Boolean).length + 1
                           }
                         >
                           <Skeleton className="h-12 w-full" />
@@ -766,8 +772,7 @@ const Visitors = () => {
                     <TableRow>
                       <TableCell
                         colSpan={
-                          Object.values(visibleColumns).filter(Boolean).length +
-                          1
+                          Object.values(visibleColumns).filter(Boolean).length + 1
                         }
                         className="text-center py-20 text-red-500 font-medium"
                       >
@@ -778,8 +783,7 @@ const Visitors = () => {
                     <TableRow>
                       <TableCell
                         colSpan={
-                          Object.values(visibleColumns).filter(Boolean).length +
-                          1
+                          Object.values(visibleColumns).filter(Boolean).length + 1
                         }
                         className="text-center py-20 text-gray-500 dark:text-gray-400"
                       >
@@ -875,6 +879,13 @@ const Visitors = () => {
                         {visibleColumns.addedBy && (
                           <TableCell>{row.addedBy}</TableCell>
                         )}
+                        {visibleColumns.organization && (
+                          <TableCell className="font-medium text-blue-600 dark:text-blue-400">
+                            {row.tenantId && typeof row.tenantId === "object"
+                              ? row.tenantId?.name
+                              : "Platform"}
+                          </TableCell>
+                        )}
 
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -884,16 +895,16 @@ const Visitors = () => {
                                 size="icon"
                                 className="h-8 w-8 rounded-full"
                               >
-                                <MoreVertical className="w-4 h-4 text-gray-600" />
+                                <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 onClick={() =>
-                                  router.push(`/visitors/${row._id}`)
+                                  router.push(`/visitors/${row._id}/view`)
                                 }
                               >
-                                <Eye className="mr-2 h-4 w-4" /> View
+                                <Eye className="mr-2 h-4 w-4" /> View Details
                               </DropdownMenuItem>
                               {canEdit && (
                                 <DropdownMenuItem
@@ -904,16 +915,21 @@ const Visitors = () => {
                                   <Edit className="mr-2 h-4 w-4" /> Edit
                                 </DropdownMenuItem>
                               )}
-                              {canDelete && (
-                                <ConfirmDialog
+                                {canDelete && (
+                                  <ConfirmDialog
+                                    title="Delete Visitor"
+                                    description="Are you sure you want to delete this visitor? This action cannot be undone."
                                     onConfirm={() => handleDelete(row._id)}
                                     trigger={
-                                      <div className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-red-50 focus:bg-red-50 text-red-600 hover:text-red-700 w-full">
+                                      <DropdownMenuItem
+                                        onSelect={(e) => e.preventDefault()}
+                                        className="text-red-600 focus:text-red-600"
+                                      >
                                         <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                      </div>
+                                      </DropdownMenuItem>
                                     }
                                   />
-                              )}
+                                )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -925,29 +941,27 @@ const Visitors = () => {
             </div>
 
             {/* Pagination */}
-            {!isLoading && data && data.length > 0 && response && (
-              <div className="border-t border-gray-200 dark:border-gray-800 p-6 bg-gray-50/30 dark:bg-gray-800/30 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {pagination.limit === -1
-                    ? `Showing all ${totalCount} entries`
-                    : `Showing ${Math.min((pagination.page - 1) * pagination.limit + 1, totalCount)} to ${Math.min(pagination.page * pagination.limit, totalCount)} of ${totalCount} entries`}
-                </div>
-                <div className="flex items-center gap-2">
+            <div className="border-t border-gray-200 dark:border-gray-800 p-6 bg-gray-50/30 dark:bg-gray-800/30">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 order-2 sm:order-1">
+                  Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                  {Math.min(pagination.page * pagination.limit, totalCount)} of{" "}
+                  {totalCount} visitors
+                </p>
+                <div className="order-1 sm:order-2">
                   <Pagination
                     currentPage={pagination.page}
-                    totalPages={
-                      pagination.limit === -1
-                        ? 1
-                        : Math.ceil(totalCount / pagination.limit)
-                    }
+                    totalPages={Math.ceil(
+                      totalCount / (pagination.limit === -1 ? 1 : pagination.limit),
+                    )}
                     onPageChange={(page) =>
                       setPagination((prev) => ({ ...prev, page }))
                     }
-                    activeColor="bg-[#00563B]"
+                    activeColor="bg-[#368F8B]"
                   />
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </section>

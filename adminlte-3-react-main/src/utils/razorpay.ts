@@ -6,7 +6,8 @@
 import axios from "@app/utils/axios";
 
 export type BillingCycle = "monthly" | "yearly";
-export type PlanId = "basic" | "professional" | "enterprise";
+// PlanId is a flexible string — any planId from the DB is valid (not just the 3 seeded ones)
+export type PlanId = string;
 
 interface RazorpayOptions {
   key: string;

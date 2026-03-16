@@ -39,7 +39,6 @@ const paymentSchema = new mongoose.Schema(
     // ─── Plan Details ─────────────────────────────────────────────────────────
     plan: {
       type: String,
-      enum: ["basic", "professional", "enterprise"],
       required: true,
     },
     billingCycle: {

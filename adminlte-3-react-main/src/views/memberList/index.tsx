@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "@app/utils/axios";
 import { toast } from "react-toastify";
 import { ContentHeader } from "@app/components";
@@ -70,7 +70,7 @@ const MemberList = () => {
 
 const MemberListContent = () => {
   const router = useRouter();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, isSuperAdmin } = usePermissions();
   const queryClient = useQueryClient();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -123,6 +123,7 @@ const MemberListContent = () => {
     remark: true,
     createdAt: true,
     updatedAt: true,
+    organization: isSuperAdmin(),
     action: true,
   });
 
@@ -338,6 +339,9 @@ const MemberListContent = () => {
           } else {
             row["Update Date"] = "-";
           }
+        }
+        if (visibleColumns.organization) {
+          row["Organization"] = (member.tenantId && typeof member.tenantId === "object") ? member.tenantId.name : "Platform";
         }
 
         return row;
@@ -850,6 +854,11 @@ const MemberListContent = () => {
                         Update Date
                       </TableHead>
                     )}
+                    {visibleColumns.organization && (
+                      <TableHead className="font-semibold text-white uppercase tracking-wider text-xs whitespace-nowrap">
+                        Organization
+                      </TableHead>
+                    )}
                     {visibleColumns.action && (
                       <TableHead className="font-semibold text-white dark:text-gray-200 uppercase tracking-wider text-xs whitespace-nowrap text-right min-w-[100px]">
                         Actions
@@ -899,14 +908,14 @@ const MemberListContent = () => {
                           </p>
                           <Button
                             variant="outline"
-                            className="border-red-200 hover:bg-red-50"
                             onClick={() =>
                               queryClient.invalidateQueries({
                                 queryKey: ["members"],
                               })
                             }
+                            className="bg-white dark:bg-gray-800"
                           >
-                            Retry Fetch
+                            Try Again
                           </Button>
                         </div>
                       </TableCell>
@@ -920,7 +929,7 @@ const MemberListContent = () => {
                         }
                         className="text-center py-20 text-gray-500 dark:text-gray-400"
                       >
-                        No members found matching your criteria.
+                        No members found matching your search.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -929,16 +938,14 @@ const MemberListContent = () => {
                         key={member._id}
                         className="hover:bg-gray-50 dark:hover:bg-white/5 border-gray-100 dark:border-gray-800 transition-colors"
                       >
-                        <TableCell className="font-medium dark:text-gray-300">
+                        <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                           {(pagination.page - 1) * pagination.limit + idx + 1}
                         </TableCell>
                         {visibleColumns.addedBy && (
-                          <TableCell className="whitespace-nowrap">
-                            {member.addedBy || "-"}
-                          </TableCell>
+                          <TableCell>{member.addedBy || "-"}</TableCell>
                         )}
                         {visibleColumns.name && (
-                          <TableCell className="font-semibold whitespace-nowrap">
+                          <TableCell className="font-semibold text-gray-900 dark:text-gray-100">
                             {member.name}
                           </TableCell>
                         )}
@@ -949,9 +956,7 @@ const MemberListContent = () => {
                           <TableCell>{member.mobile || "-"}</TableCell>
                         )}
                         {visibleColumns.fatherName && (
-                          <TableCell className="whitespace-nowrap">
-                            {member.fatherName || "-"}
-                          </TableCell>
+                          <TableCell>{member.fatherName || "-"}</TableCell>
                         )}
                         {visibleColumns.dob && (
                           <TableCell>
@@ -968,32 +973,22 @@ const MemberListContent = () => {
                           </TableCell>
                         )}
                         {visibleColumns.block && (
-                          <TableCell className="whitespace-nowrap">
-                            {member.block || "-"}
-                          </TableCell>
+                          <TableCell>{member.block || "-"}</TableCell>
                         )}
                         {visibleColumns.boothName && (
-                          <TableCell className="whitespace-nowrap">
-                            {member.boothName || "-"}
-                          </TableCell>
+                          <TableCell>{member.boothName || "-"}</TableCell>
                         )}
                         {visibleColumns.boothNumber && (
                           <TableCell>{member.boothNumber || "-"}</TableCell>
                         )}
                         {visibleColumns.grampanchayat && (
-                          <TableCell className="whitespace-nowrap">
-                            {member.grampanchayat || "-"}
-                          </TableCell>
+                          <TableCell>{member.grampanchayat || "-"}</TableCell>
                         )}
                         {visibleColumns.village && (
-                          <TableCell className="whitespace-nowrap">
-                            {member.village || "-"}
-                          </TableCell>
+                          <TableCell>{member.village || "-"}</TableCell>
                         )}
                         {visibleColumns.samiti && (
-                          <TableCell className="whitespace-nowrap">
-                            {member.samiti || "-"}
-                          </TableCell>
+                          <TableCell>{member.samiti || "-"}</TableCell>
                         )}
                         {visibleColumns.toll && (
                           <TableCell>{member.toll || "-"}</TableCell>
@@ -1187,6 +1182,14 @@ const MemberListContent = () => {
                             )}
                           </TableCell>
                         )}
+                        {visibleColumns.organization && (
+                          <TableCell className="font-medium text-blue-600 dark:text-blue-400">
+                            {member.tenantId && typeof member.tenantId === "object"
+                              ? member.tenantId.name
+                              : "Platform"}
+                          </TableCell>
+                        )}
+
                         {visibleColumns.action && (
                           <TableCell className="text-right">
                             <DropdownMenu>
@@ -1194,9 +1197,9 @@ const MemberListContent = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                                  className="h-8 w-8 rounded-full dark:hover:bg-gray-800"
                                 >
-                                  <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                  <MoreVertical className="w-4 h-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
@@ -1207,7 +1210,7 @@ const MemberListContent = () => {
                                     )
                                   }
                                 >
-                                  <Eye className="mr-2 h-4 w-4" /> View
+                                  <Eye className="mr-2 h-4 w-4" /> View Details
                                 </DropdownMenuItem>
                                 {hasPermission(PERMISSIONS.EDIT_MEMBERS) && (
                                   <DropdownMenuItem
@@ -1222,11 +1225,17 @@ const MemberListContent = () => {
                                 )}
                                 {hasPermission(PERMISSIONS.DELETE_MEMBERS) && (
                                   <ConfirmDialog
+                                    title="Delete Member"
+                                    description="Are you sure you want to delete this member? This action cannot be undone."
                                     onConfirm={() => handleDelete(member._id)}
                                     trigger={
-                                      <div className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-red-50 focus:bg-red-50 text-red-600 hover:text-red-700 w-full">
-                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                      </div>
+                                      <DropdownMenuItem
+                                        onSelect={(e) => e.preventDefault()}
+                                        className="text-red-600 focus:text-red-500"
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />{" "}
+                                        Delete
+                                      </DropdownMenuItem>
                                     }
                                   />
                                 )}
@@ -1241,81 +1250,57 @@ const MemberListContent = () => {
               </Table>
             </div>
 
-            {/* Pagination */}
-            {!isLoading && members && members.length > 0 && response && (
-              <div className="border-t border-gray-200 dark:border-gray-800 p-6 bg-gray-50/30 dark:bg-gray-800/30">
-                <div className="flex items-center justify-between">
-                  {pagination.limit !== -1 ? (
-                    <>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing {(pagination.page - 1) * pagination.limit + 1}{" "}
-                        to{" "}
-                        {Math.min(
-                          pagination.page * pagination.limit,
-                          totalCount,
-                        )}{" "}
-                        of {totalCount} entries
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <Pagination
-                          currentPage={pagination.page}
-                          totalPages={Math.ceil(totalCount / pagination.limit)}
-                          onPageChange={(page) =>
-                            setPagination((prev) => ({ ...prev, page }))
-                          }
-                          activeColor="bg-[#368F8B]"
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Showing all {members.length} entries
-                    </p>
-                  )}
+            {/* Pagination Controls */}
+            <div className="border-t border-gray-200 dark:border-gray-800 p-6 bg-gray-50/30 dark:bg-gray-800/30">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 order-2 sm:order-1">
+                  Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                  {Math.min(pagination.page * pagination.limit, totalCount)} of{" "}
+                  {totalCount} members
+                </p>
+                <div className="order-1 sm:order-2">
+                  <Pagination
+                    currentPage={pagination.page}
+                    totalPages={Math.ceil(
+                      totalCount /
+                        (pagination.limit === -1 ? 1 : pagination.limit),
+                    )}
+                    onPageChange={(page) =>
+                      setPagination((prev) => ({ ...prev, page }))
+                    }
+                    activeColor="bg-[#368F8B]"
+                  />
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Image Preview Modal */}
+      {/* Image Modal */}
       <Dialog
         open={!!selectedImage}
         onOpenChange={() => setSelectedImage(null)}
       >
-        <DialogContent className="max-w-3xl p-0 overflow-hidden bg-transparent border-none shadow-none">
-          <DialogTitle className="sr-only">Image Preview</DialogTitle>
-          {selectedImage && (
-            <div className="relative flex items-center justify-center w-full h-full">
+        <DialogContent className="max-w-3xl p-0 overflow-hidden bg-transparent border-none">
+          <DialogTitle className="sr-only">Member Photo</DialogTitle>
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-2 z-10 text-white bg-black/50 hover:bg-black/70 rounded-full"
+              onClick={() => setSelectedImage(null)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+            {selectedImage && (
               <img
                 src={selectedImage}
-                alt="Full Preview"
-                className="max-w-full max-h-[90vh] object-contain rounded-md"
+                alt="Member Full View"
+                className="w-full h-auto max-h-[85vh] object-contain rounded-lg"
               />
-              <button
-                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
-                onClick={() => setSelectedImage(null)}
-              >
-                <span className="sr-only">Close</span>
-                {/* Close Icon SVG */}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </>

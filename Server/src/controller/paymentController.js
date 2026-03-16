@@ -2,13 +2,13 @@ const asyncHandler = require("express-async-handler");
 const { getRazorpay } = require("../services/razorpayService");
 const Payment = require("../models/paymentModel");
 const Tenant = require("../models/tenantModel");
-const PLANS = require("../config/plans");
+const Plan = require("../models/planModel");
 const AppError = require("../utils/AppError");
 const crypto = require("crypto");
 
 // ─── Helper: apply plan limits to a Tenant document ────────────────────────────
-const applyPlanToTenant = (tenant, planId, billingCycle, endDate) => {
-  const plan = PLANS[planId];
+const applyPlanToTenant = async (tenant, planId, billingCycle, endDate) => {
+  const plan = await Plan.findOne({ planId });
   if (!plan) return;
 
   tenant.plan = planId;
@@ -17,18 +17,15 @@ const applyPlanToTenant = (tenant, planId, billingCycle, endDate) => {
   tenant.maxUsers = plan.maxUsers;
   tenant.maxStorage = plan.maxStorage;
 
-  const { getPlanConfig } = require("../config/modules");
-  const modulePlanConfig = getPlanConfig(planId);
+  const { getCoreModuleIds, getAllModuleIds } = require("../config/modules");
 
-  if (
-    modulePlanConfig.enabledModules &&
-    modulePlanConfig.enabledModules.includes("*")
-  ) {
-    const { getAllModuleIds } = require("../config/modules");
+  if (plan.enabledModules && plan.enabledModules.includes("*")) {
     tenant.enabledModules = getAllModuleIds();
   } else {
+    // Merge core modules with plan modules to be safe
+    const coreModules = getCoreModuleIds();
     tenant.enabledModules = Array.from(
-      new Set(modulePlanConfig.enabledModules || []),
+      new Set([...coreModules, ...(plan.enabledModules || [])])
     );
   }
 };
@@ -41,14 +38,15 @@ exports.createSubscription = asyncHandler(async (req, res) => {
   const { plan, billingCycle = "monthly" } = req.body;
   const razorpay = getRazorpay();
 
-  if (!PLANS[plan]) {
+  const planConfig = await Plan.findOne({ planId: plan });
+  if (!planConfig) {
     throw new AppError(`Invalid plan: ${plan}`, 400);
   }
+
   if (!["monthly", "yearly"].includes(billingCycle)) {
     throw new AppError("billingCycle must be 'monthly' or 'yearly'", 400);
   }
 
-  const planConfig = PLANS[plan];
   const razorpayPlanId =
     billingCycle === "yearly"
       ? planConfig.razorpayPlanIdYearly
@@ -56,8 +54,8 @@ exports.createSubscription = asyncHandler(async (req, res) => {
 
   if (!razorpayPlanId || razorpayPlanId.startsWith("plan_REPLACE")) {
     throw new AppError(
-      `Razorpay Plan ID is not configured for the "${plan}" ${billingCycle} plan. Please add the correct plan_ ID to your .env file.`,
-      503,
+      `Razorpay Plan ID is not configured for the "${plan}" ${billingCycle} plan. Please contact support.`,
+      503
     );
   }
 
@@ -149,7 +147,7 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
   if (tenant) {
     // Razorpay ends_at is in seconds
     const endDate = new Date(subscription.end_at * 1000);
-    applyPlanToTenant(tenant, payment.plan, payment.billingCycle, endDate);
+    await applyPlanToTenant(tenant, payment.plan, payment.billingCycle, endDate);
     tenant.razorpaySubscriptionId = subscription.id;
     await tenant.save();
 
@@ -273,12 +271,11 @@ exports.cancelSubscription = asyncHandler(async (req, res) => {
 // GET /api/payment/plans
 // ─────────────────────────────────────────────────────────────────────────────
 exports.getPlans = asyncHandler(async (req, res) => {
-  const { MODULES, getPlanConfig } = require("../config/modules");
+  const { MODULES } = require("../config/modules");
+  const plans = await Plan.find({ isActive: true }).sort({ priceMonthlyPaise: 1 });
 
-  const publicPlans = Object.values(PLANS).map((p) => {
-    // Get module IDs for this plan
-    const planConfig = getPlanConfig(p.id);
-    const moduleIds = planConfig.enabledModules || [];
+  const publicPlans = plans.map((p) => {
+    const moduleIds = p.enabledModules || [];
 
     // Map to full module objects
     const planModules = moduleIds
@@ -297,7 +294,7 @@ exports.getPlans = asyncHandler(async (req, res) => {
       .filter(Boolean);
 
     return {
-      id: p.id,
+      id: p.planId,
       name: p.name,
       description: p.description,
       maxUsers: p.maxUsers,
@@ -308,6 +305,7 @@ exports.getPlans = asyncHandler(async (req, res) => {
       modules: planModules,
       enabled: !!p.razorpayPlanIdMonthly,
       color: p.color,
+      icon: p.icon,
       highlighted: p.highlighted,
     };
   });
@@ -354,7 +352,7 @@ async function handleSubscriptionCharged(subscription, paymentEntity) {
   if (!tenant) return;
 
   const endDate = new Date(subscription.end_at * 1000);
-  applyPlanToTenant(tenant, plan || tenant.plan, billingCycle, endDate);
+  await applyPlanToTenant(tenant, plan || tenant.plan, billingCycle, endDate);
   tenant.razorpaySubscriptionId = subscription.id;
   await tenant.save();
 

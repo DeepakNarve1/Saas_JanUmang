@@ -1,3 +1,5 @@
+import { ITenantShort } from "./user";
+
 export interface IVoterFormValues {
   name: string;
   fatherName: string;
@@ -39,4 +41,5 @@ export interface IVoter {
   boothNo?: string;
   createdAt?: string;
   updatedAt?: string;
+  tenantId?: string | ITenantShort;
 }

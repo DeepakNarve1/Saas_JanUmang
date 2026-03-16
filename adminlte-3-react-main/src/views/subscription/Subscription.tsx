@@ -31,10 +31,11 @@ import {
   Grid3X3,
   List,
   Download,
+  Layers,
 } from "lucide-react";
 import { ITenant } from "@app/types/tenant";
 import { Skeleton } from "@app/components/ui/skeleton";
-import { IPlan } from "@app/config/plans";
+import { IFrontendPlan } from "@app/config/plans";
 import {
   initiateSubscription,
   formatPrice,
@@ -42,6 +43,7 @@ import {
   PlanId,
 } from "@app/utils/razorpay";
 import { toast } from "react-toastify";
+import { PLAN_ICONS } from "@app/views/plans/PlanForm";
 
 // ─── Payment History Row ──────────────────────────────────────────────────────
 interface IPaymentRecord {
@@ -122,7 +124,7 @@ const PlanCard = ({
   upgrading,
   onSelect,
 }: {
-  plan: IPlan;
+  plan: IFrontendPlan;
   currentPlan?: string;
   billingCycle: BillingCycle;
   upgrading: string | null;
@@ -187,15 +189,11 @@ const PlanCard = ({
           className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
           style={{ backgroundColor: `${plan.color}20` }}
         >
-          {plan.id === "basic" && (
-            <ShieldCheck className="w-5 h-5" style={{ color: plan.color }} />
-          )}
-          {plan.id === "professional" && (
-            <Zap className="w-5 h-5" style={{ color: plan.color }} />
-          )}
-          {plan.id === "enterprise" && (
-            <Crown className="w-5 h-5" style={{ color: plan.color }} />
-          )}
+          {(() => {
+            const iconEntry = PLAN_ICONS.find((i) => i.name === plan.icon) || PLAN_ICONS.find((i) => i.name === "Layers");
+            const Icon = iconEntry?.component || Layers;
+            return <Icon className="w-5 h-5" style={{ color: plan.color }} />;
+          })()}
         </div>
 
         <h3 className="text-xl font-black text-gray-900 dark:text-white">
@@ -321,17 +319,22 @@ const PlanCard = ({
 
       {/* CTA */}
       <div className="px-6 pb-6 pt-2">
+        {plan.enabled === false && !isCurrentPlan && (
+          <p className="text-[10px] text-amber-600 dark:text-amber-400 text-center mb-2 font-medium">
+            ⚠️ Payment gateway not yet configured for this plan
+          </p>
+        )}
         <Button
           id={`plan-cta-${plan.id}`}
           className="w-full h-11 font-bold rounded-xl transition-all"
-          disabled={isCurrentPlan || upgrading === plan.id}
+          disabled={isCurrentPlan || upgrading === plan.id || plan.enabled === false}
           onClick={() => onSelect(plan.id)}
           style={
-            !isCurrentPlan
+            !isCurrentPlan && plan.enabled !== false
               ? { backgroundColor: plan.color, color: "white" }
               : undefined
           }
-          variant={isCurrentPlan ? "outline" : "default"}
+          variant={isCurrentPlan || plan.enabled === false ? "outline" : "default"}
         >
           {upgrading === plan.id ? (
             <>
@@ -339,6 +342,8 @@ const PlanCard = ({
             </>
           ) : isCurrentPlan ? (
             "Current Plan"
+          ) : plan.enabled === false ? (
+            "Coming Soon"
           ) : (
             <>
               Upgrade to {plan.name} <ChevronRight className="w-4 h-4 ml-1" />
@@ -409,7 +414,7 @@ const Subscription = () => {
     queryKey: ["payment-plans"],
     queryFn: async () => {
       const res = await axios.get("/payment/plans");
-      return res.data?.data as IPlan[];
+      return res.data?.data as IFrontendPlan[];
     },
     enabled: hasAccess,
   });

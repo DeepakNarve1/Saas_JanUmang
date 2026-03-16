@@ -58,6 +58,7 @@ exports.getMembers = asyncHandler(async (req, res) => {
     }
 
     let queryBuilder = Member.find(query)
+      .populate("tenantId", "name")
       .sort({ createdAt: -1 })
       .allowDiskUse(true);
 
@@ -106,7 +107,7 @@ exports.getMemberById = asyncHandler(async (req, res) => {
   const member = await Member.findOne({
     _id: req.params.id,
     ...req.scopeFilter,
-  });
+  }).populate("tenantId", "name");
 
   if (!member) {
     res.status(404);

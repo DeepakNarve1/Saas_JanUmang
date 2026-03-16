@@ -67,11 +67,14 @@ exports.getVisitors = asyncHandler(async (req, res) => {
   let totalCount = await Visitor.countDocuments({ ...req.scopeFilter });
 
   if (limitNum === -1) {
-    visitors = await Visitor.find(query).sort({ createdAt: -1 });
+    visitors = await Visitor.find(query)
+      .populate("tenantId", "name")
+      .sort({ createdAt: -1 });
     filteredCount = visitors.length;
   } else {
     const skip = (pageNum - 1) * limitNum;
     visitors = await Visitor.find(query)
+      .populate("tenantId", "name")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum);
@@ -89,7 +92,10 @@ exports.getVisitors = asyncHandler(async (req, res) => {
 // @desc    Get single visitor
 // @route   GET /api/visitors/:id
 exports.getVisitorById = asyncHandler(async (req, res) => {
-  const visitor = await Visitor.findById(req.params.id);
+  const visitor = await Visitor.findById(req.params.id).populate(
+    "tenantId",
+    "name",
+  );
 
   if (!visitor) {
     res.status(404);

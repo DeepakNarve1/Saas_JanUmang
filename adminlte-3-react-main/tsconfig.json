@@ -28,7 +28,15 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "paths": {
+      "@app/*": ["src/*"],
+      "@store/*": ["src/store/*"],
+      "@store": ["src/store/"],
+      "@components": ["src/components/index"],
+      "@modules/*": ["src/modules/*"],
+      "@pages/*": ["src/views/*"]
+    }
   },
   "include": [
     "src/**/*",
@@ -36,7 +44,6 @@
     "jest.setup.ts",
     "jest.config.ts"
   ],
-  "extends": "./paths.json",
   "exclude": [
     "node_modules"
   ]

@@ -3,12 +3,12 @@ const Tenant = require("../models/tenantModel");
 const User = require("../models/userModel");
 const Role = require("../models/roleModel");
 const Permission = require("../models/permissionModel");
+const Payment = require("../models/paymentModel"); // Added for completeness if needed
+const Plan = require("../models/planModel");
 const asyncHandler = require("express-async-handler");
 const AppError = require("../utils/AppError");
 const {
   MODULES,
-  PLANS,
-  getPlanConfig,
   getCoreModuleIds,
 } = require("../config/modules");
 
@@ -376,26 +376,31 @@ const createTenant = asyncHandler(async (req, res) => {
     }
   }
 
-  // Get plan configuration
-  const planConfig = getPlanConfig(plan || "basic");
+  // Get plan configuration from database
+  const planId = plan || "basic";
+  const planConfig = await Plan.findOne({ planId });
+
+  if (!planConfig) {
+    throw new AppError(`Plan '${planId}' not found in system database.`, 400);
+  }
 
   // Determine enabled modules
-  let modules = enabledModules || planConfig.enabledModules;
+  let modules = enabledModules || planConfig.enabledModules || [];
 
   // Ensure core modules are always included
   const coreModules = getCoreModuleIds();
   modules = [...new Set([...coreModules, ...modules])];
 
-  // Handle maxUsers and maxStorage for custom plans
+  // Handle maxUsers and maxStorage
   let finalMaxUsers = maxUsers;
   let finalMaxStorage = planConfig.maxStorage;
 
-  // For custom plan, use provided values or defaults
-  if (planConfig.id === "custom") {
-    finalMaxUsers = maxUsers || 50; // Default to 50 if not provided
-    finalMaxStorage = planConfig.maxStorage || 5120; // Default to 5GB if not provided
+  // If it's the custom plan, use provided values or sensible defaults
+  if (planConfig.planId === "custom") {
+    finalMaxUsers = maxUsers || 50; 
+    finalMaxStorage = maxStorage || 5120;
   } else {
-    // For predefined plans, use plan config (can be overridden by maxUsers param)
+    // For predefined plans, use plan config (can be overridden by params)
     finalMaxUsers = maxUsers || planConfig.maxUsers;
     finalMaxStorage = planConfig.maxStorage;
   }
@@ -831,11 +836,13 @@ const getAvailableModules = asyncHandler(async (req, res) => {
 // @route   GET /api/tenants/plans
 // @access  Private/SystemAdmin
 const getAvailablePlans = asyncHandler(async (req, res) => {
-  const plans = Object.values(PLANS).map((p) => ({
-    id: p.id,
+  const plans = await Plan.find({ isActive: true }).sort({ priceMonthlyPaise: 1 });
+  
+  const mappedPlans = plans.map((p) => ({
+    id: p.planId,
     name: p.name,
     description: p.description,
-    price: p.price,
+    price: p.priceMonthlyPaise / 100,
     maxUsers: p.maxUsers,
     maxStorage: p.maxStorage,
     enabledModules: p.enabledModules,
@@ -843,7 +850,7 @@ const getAvailablePlans = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     status: "success",
-    data: plans,
+    data: mappedPlans,
   });
 });
 
@@ -851,7 +858,7 @@ const getAvailablePlans = asyncHandler(async (req, res) => {
 // @route   PUT /api/tenants/:id/modules
 // @access  Private/SystemAdmin
 const updateTenantModules = asyncHandler(async (req, res) => {
-  const { enabledModules, plan } = req.body;
+  const { enabledModules, plan, maxUsers, maxStorage } = req.body;
   const tenantId = req.params.id;
 
   const tenant = await Tenant.findById(tenantId);
@@ -859,30 +866,36 @@ const updateTenantModules = asyncHandler(async (req, res) => {
     throw new AppError("Tenant not found", 404);
   }
 
-  // Update modules
+  // Update modules manually if provided
   if (enabledModules) {
-    // Ensure core modules are included
     const coreModules = getCoreModuleIds();
     tenant.enabledModules = [...new Set([...coreModules, ...enabledModules])];
   }
 
-  // Update plan
+  // Update plan and its associated defaults
   if (plan) {
-    const planConfig = getPlanConfig(plan);
+    const planConfig = await Plan.findOne({ planId: plan });
     if (planConfig) {
-      tenant.plan = planConfig.id;
-      tenant.maxUsers = planConfig.maxUsers;
-      tenant.maxStorage = planConfig.maxStorage;
+      tenant.plan = planConfig.planId;
+      
+      // Only override if not explicitly providing new limits
+      if (maxUsers === undefined) tenant.maxUsers = planConfig.maxUsers;
+      if (maxStorage === undefined) tenant.maxStorage = planConfig.maxStorage;
 
-      // If not custom plan, use plan's default modules
-      if (plan !== "custom") {
+      // If switching to a standard plan (not custom), reset modules to plan defaults
+      // unless user explicitly passed enabledModules in the same request
+      if (plan !== "custom" && !enabledModules) {
         const coreModules = getCoreModuleIds();
         tenant.enabledModules = [
-          ...new Set([...coreModules, ...planConfig.enabledModules]),
+          ...new Set([...coreModules, ...(planConfig.enabledModules || [])]),
         ];
       }
     }
   }
+
+  // Explicit limit overrides
+  if (maxUsers !== undefined) tenant.maxUsers = maxUsers;
+  if (maxStorage !== undefined) tenant.maxStorage = maxStorage;
 
   await tenant.save();
 

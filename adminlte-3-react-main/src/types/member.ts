@@ -1,3 +1,5 @@
+import { ITenantShort } from "./user";
+
 export interface IMemberFormValues {
   name: string;
   voterId: string;
@@ -84,6 +86,7 @@ export interface IMember {
   image: string;
   createdAt: string;
   updatedAt: string;
+  tenantId?: string | ITenantShort;
 }
 
 export interface IMemberResponse {

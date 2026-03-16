@@ -68,6 +68,7 @@ interface IUserColumns {
   role: boolean;
   createdOn: boolean;
   action: boolean;
+  organization?: boolean;
 }
 
 const Users = () => {
@@ -109,6 +110,7 @@ const Users = () => {
     role: true,
     createdOn: true,
     action: true,
+    organization: isGlobalAdmin,
   });
 
   const toggleColumn = (key: keyof IUserColumns) => {
@@ -229,6 +231,7 @@ const Users = () => {
         "Created On": user.createdAt
           ? new Date(user.createdAt).toLocaleString()
           : "-",
+        Organization: user.tenant?.name || "Platform"
       }));
 
       const ws = XLSX.utils.json_to_sheet(data);
@@ -400,7 +403,8 @@ const Users = () => {
                           .replace("mobile", "Mobile")
                           .replace("role", "Role")
                           .replace("createdOn", "Created On")
-                          .replace("action", "Actions")}
+                          .replace("action", "Actions")
+                          .replace("organization", "Organization")}
                       </DropdownMenuCheckboxItem>
                     ),
                   )}
@@ -450,6 +454,11 @@ const Users = () => {
                         Created On
                       </TableHead>
                     )}
+                    {visibleColumns.organization && (
+                      <TableHead className="font-semibold text-white dark:text-white uppercase tracking-wider text-xs">
+                        Organization
+                      </TableHead>
+                    )}
                     {visibleColumns.action && (
                       <TableHead className="text-right font-semibold text-white dark:text-white uppercase tracking-wider text-xs">
                         Actions
@@ -461,41 +470,14 @@ const Users = () => {
                   {loadingUsers ? (
                     Array.from({ length: 8 }).map((_, i) => (
                       <TableRow key={i}>
-                        {visibleColumns.srNo && (
-                          <TableCell>
-                            <Skeleton className="h-10 w-12" />
-                          </TableCell>
-                        )}
-                        {visibleColumns.name && (
-                          <TableCell>
-                            <Skeleton className="h-10 w-48" />
-                          </TableCell>
-                        )}
-                        {visibleColumns.email && (
-                          <TableCell>
-                            <Skeleton className="h-10 w-56" />
-                          </TableCell>
-                        )}
-                        {visibleColumns.mobile && (
-                          <TableCell>
-                            <Skeleton className="h-10 w-32" />
-                          </TableCell>
-                        )}
-                        {visibleColumns.role && (
-                          <TableCell>
-                            <Skeleton className="h-10 w-32" />
-                          </TableCell>
-                        )}
-                        {visibleColumns.createdOn && (
-                          <TableCell>
-                            <Skeleton className="h-16 w-40" />
-                          </TableCell>
-                        )}
-                        {visibleColumns.action && (
-                          <TableCell>
-                            <Skeleton className="h-10 w-10 ml-auto" />
-                          </TableCell>
-                        )}
+                        <TableCell
+                          colSpan={
+                            Object.values(visibleColumns).filter(Boolean)
+                              .length
+                          }
+                        >
+                           <Skeleton className="h-12 w-full" />
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : paginatedUsers.length === 0 ? (
@@ -575,6 +557,11 @@ const Users = () => {
                               {user.createdAt
                                 ? new Date(user.createdAt).toLocaleDateString()
                                 : "-"}
+                            </TableCell>
+                          )}
+                          {visibleColumns.organization && (
+                            <TableCell className="font-medium text-blue-600 dark:text-blue-400">
+                              {user.tenant?.name || "Platform"}
                             </TableCell>
                           )}
                           {visibleColumns.action && (

@@ -9,8 +9,8 @@ export interface IModuleItem {
   category: string;
 }
 
-export interface IPlan {
-  id: "basic" | "professional" | "enterprise";
+export interface IFrontendPlan {
+  id: string;
   name: string;
   description: string;
   priceMonthly: number; // in INR
@@ -22,10 +22,13 @@ export interface IPlan {
   modules: IModuleItem[];
   highlighted?: boolean; // show "Most Popular" badge
   color: string;
+  icon?: string;
+  /** Whether Razorpay plan IDs are configured for this plan (from backend) */
+  enabled?: boolean;
 }
 
 // ─── Module catalogue (mirrors server modules.js) ────────────────────────────
-const ALL_MODULES: IModuleItem[] = [
+export const ALL_MODULES: IModuleItem[] = [
   { id: "dashboard", label: "Dashboard", category: "Core" },
   { id: "users", label: "User Management", category: "Core" },
   { id: "roles", label: "Roles & Permissions", category: "Core" },
@@ -152,7 +155,7 @@ const PRO_MODULE_IDS = [
   "vidhan_sabha_samiti",
 ];
 
-export const PLANS: IPlan[] = [
+export const PLANS: IFrontendPlan[] = [
   {
     id: "basic",
     name: "Basic",

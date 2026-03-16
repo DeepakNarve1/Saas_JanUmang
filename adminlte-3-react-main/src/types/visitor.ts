@@ -1,3 +1,5 @@
+import { ITenantShort } from "./user";
+
 export interface IVisitorFormValues {
   district: string;
   vidhansabha: string;
@@ -16,6 +18,7 @@ export interface IVisitorFormValues {
   remarks: string;
   bhaiyakanirdesh: string;
   addedBy: string;
+  tenantId?: string;
 }
 
 export interface IVisitor {
@@ -37,6 +40,7 @@ export interface IVisitor {
   remarks: string;
   bhaiyakanirdesh: string;
   addedBy: string;
+  tenantId?: string | ITenantShort;
 }
 
 export interface IVisitorResponse {

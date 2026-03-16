@@ -4,9 +4,9 @@
  */
 
 const Tenant = require("../models/tenantModel");
+const Plan = require("../models/planModel");
 const {
   getModuleById,
-  getPlanConfig,
   getCoreModuleIds,
 } = require("../config/modules");
 const { isGlobalAdmin } = require("../utils/authHelpers");
@@ -70,32 +70,42 @@ exports.checkModuleAccess = (moduleId) => {
         throw new Error("Subscription has expired. Please renew to continue.");
       }
 
-      // Check if module is enabled for tenant
+      // Check if module is always enabled (core system module)
       const module = getModuleById(moduleId);
-      const isAlwaysEnabled = module?.alwaysEnabled || false;
+      if (module?.alwaysEnabled) {
+        return next();
+      }
 
-      if (!isAlwaysEnabled) {
-        const planConfig = getPlanConfig(tenant.plan || "basic");
-        const coreModules = getCoreModuleIds();
+      // Also allow core modules to always pass
+      const coreModules = getCoreModuleIds();
+      if (coreModules.includes(moduleId)) {
+        return next();
+      }
 
-        let hasAccess = false;
-        if (planConfig.id === "custom") {
-          // Custom plan: check DB
-          hasAccess = (tenant.enabledModules || []).includes(moduleId);
-        } else {
-          // Predefined plans: check plan config
-          hasAccess =
-            coreModules.includes(moduleId) ||
-            (planConfig.enabledModules || []).includes(moduleId);
-        }
+      // Fetch plan from DB — uses the tenant's current plan slug
+      const planConfig = await Plan.findOne({ planId: tenant.plan || "basic" });
 
-        if (!hasAccess) {
-          const moduleName = module ? module.name : moduleId;
-          res.status(403);
-          throw new Error(
-            `Module '${moduleName}' is not available on your current plan. Please upgrade your plan.`,
-          );
-        }
+      if (!planConfig) {
+        // Plan not found in DB — warn and fall back to tenant's own enabledModules only
+        console.warn(
+          `[ModuleAccess] Plan "${tenant.plan}" not found in DB for tenant ${tenantId}. Falling back to tenant.enabledModules.`
+        );
+      }
+
+      // Build the full set of accessible modules for this tenant
+      const tenantModuleOverrides = tenant.enabledModules || [];
+      const planModules = planConfig?.enabledModules || [];
+
+      const hasAccess =
+        planModules.includes(moduleId) ||
+        tenantModuleOverrides.includes(moduleId);
+
+      if (!hasAccess) {
+        const moduleName = module ? module.name : moduleId;
+        res.status(403);
+        throw new Error(
+          `Module '${moduleName}' is not available on your current plan. Please upgrade your plan.`,
+        );
       }
 
       // Module access granted
@@ -118,45 +128,31 @@ exports.checkModuleAccess = (moduleId) => {
 exports.checkAnyModuleAccess = (moduleIds) => {
   return async (req, res, next) => {
     try {
-      // System admins bypass
-      if (isGlobalAdmin(req.user)) {
-        return next();
-      }
+      if (isGlobalAdmin(req.user)) return next();
 
       const tenantId = req.user?.tenantId || req.tenantId;
-
       if (!tenantId) {
         res.status(403);
         throw new Error("No tenant associated with user");
       }
 
       const tenant = req.tenant || (await Tenant.findById(tenantId));
-
-      if (
-        !tenant ||
-        !tenant.isActive ||
-        tenant.status === "suspended" ||
-        tenant.status === "inactive"
-      ) {
+      if (!tenant || !tenant.isActive) {
         res.status(403);
         throw new Error("Tenant not found or inactive");
       }
 
-      const planConfig = getPlanConfig(tenant.plan || "basic");
       const coreModules = getCoreModuleIds();
+      const planConfig = await Plan.findOne({ planId: tenant.plan || "basic" });
 
-      let allEnabled;
-      if (planConfig.id === "custom") {
-        allEnabled = [
-          ...new Set([...(tenant.enabledModules || []), ...coreModules]),
-        ];
-      } else {
-        allEnabled = [
-          ...new Set([...(planConfig.enabledModules || []), ...coreModules]),
-        ];
-      }
+      const allEnabled = [
+        ...new Set([
+          ...coreModules,
+          ...(planConfig?.enabledModules || []),
+          ...(tenant.enabledModules || []),
+        ]),
+      ];
 
-      // Check if tenant has access to at least one module
       const hasAccess = moduleIds.some((moduleId) =>
         allEnabled.includes(moduleId),
       );
@@ -187,45 +183,31 @@ exports.checkAnyModuleAccess = (moduleIds) => {
 exports.checkAllModulesAccess = (moduleIds) => {
   return async (req, res, next) => {
     try {
-      // System admins bypass
-      if (isGlobalAdmin(req.user)) {
-        return next();
-      }
+      if (isGlobalAdmin(req.user)) return next();
 
       const tenantId = req.user?.tenantId || req.tenantId;
-
       if (!tenantId) {
         res.status(403);
         throw new Error("No tenant associated with user");
       }
 
       const tenant = req.tenant || (await Tenant.findById(tenantId));
-
-      if (
-        !tenant ||
-        !tenant.isActive ||
-        tenant.status === "suspended" ||
-        tenant.status === "inactive"
-      ) {
+      if (!tenant || !tenant.isActive) {
         res.status(403);
         throw new Error("Tenant not found or inactive");
       }
 
-      const planConfig = getPlanConfig(tenant.plan || "basic");
       const coreModules = getCoreModuleIds();
+      const planConfig = await Plan.findOne({ planId: tenant.plan || "basic" });
 
-      let allEnabled;
-      if (planConfig.id === "custom") {
-        allEnabled = [
-          ...new Set([...(tenant.enabledModules || []), ...coreModules]),
-        ];
-      } else {
-        allEnabled = [
-          ...new Set([...(planConfig.enabledModules || []), ...coreModules]),
-        ];
-      }
+      const allEnabled = [
+        ...new Set([
+          ...coreModules,
+          ...(planConfig?.enabledModules || []),
+          ...(tenant.enabledModules || []),
+        ]),
+      ];
 
-      // Check if tenant has access to ALL modules
       const missingModules = moduleIds.filter(
         (moduleId) => !allEnabled.includes(moduleId),
       );
@@ -271,18 +253,16 @@ exports.attachEnabledModules = async (req, res, next) => {
     const tenant = req.tenant || (await Tenant.findById(tenantId).select(
       "enabledModules plan",
     ));
-    const planConfig = getPlanConfig(tenant?.plan || "basic");
     const coreModules = getCoreModuleIds();
+    const planConfig = await Plan.findOne({ planId: tenant?.plan || "basic" });
 
-    if (planConfig.id === "custom") {
-      req.enabledModules = [
-        ...new Set([...(tenant?.enabledModules || []), ...coreModules]),
-      ];
-    } else {
-      req.enabledModules = [
-        ...new Set([...(planConfig.enabledModules || []), ...coreModules]),
-      ];
-    }
+    req.enabledModules = [
+      ...new Set([
+        ...coreModules,
+        ...(planConfig?.enabledModules || []),
+        ...(tenant?.enabledModules || []),
+      ]),
+    ];
 
     next();
   } catch (error) {

@@ -68,6 +68,7 @@ const projectRoutes = require("./routes/projectRoute");
 const publicProblemRoutes = require("./routes/publicProblemRoute");
 const villageRoutes = require("./routes/villageRoute");
 const paymentRoutes = require("./routes/paymentRoute");
+const planRoutes = require("./routes/planRoute");
 
 const app = express();
 
@@ -172,6 +173,7 @@ app.use("/api/parliament", parliamentRoutes); // alias for backwards compatibili
 app.use("/api/projects", projectRoutes);
 app.use("/api/public-problems", publicProblemRoutes);
 app.use("/api/villages", villageRoutes);
+app.use("/api/plans", planRoutes);
 
 const SAMITI_TYPES = [
   "ganesh-samiti",

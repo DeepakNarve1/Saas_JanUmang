@@ -3,7 +3,7 @@ const Role = require("../models/roleModel");
 const Permission = require("../models/permissionModel");
 const Tenant = require("../models/tenantModel");
 const { logActivity } = require("./activityLogController");
-const { MODULES, getModuleById } = require("../config/modules");
+const { MODULES, getModuleById, getCoreModuleIds } = require("../config/modules");
 const { validateUserTenant, isGlobalAdmin } = require("../utils/authHelpers");
 
 // ==================== PERMISSION CONTROLLERS ====================
@@ -65,21 +65,17 @@ exports.getAvailablePermissions = asyncHandler(async (req, res) => {
     throw new Error("Tenant not found");
   }
 
-  const { getCoreModuleIds, getPlanConfig } = require("../config/modules");
+  const Plan = require("../models/planModel");
+  const planConfig = await Plan.findOne({ planId: tenant.plan || "basic" });
   const coreModules = getCoreModuleIds();
-  const planConfig = getPlanConfig(tenant.plan || "basic");
 
-  let allEnabledModules;
-  if (planConfig.id === "custom") {
-    allEnabledModules = [
-      ...new Set([...(tenant.enabledModules || []), ...coreModules]),
-    ];
-  } else {
-    // Predefined plans (basic, professional, enterprise) use plan config
-    allEnabledModules = [
-      ...new Set([...(planConfig.enabledModules || []), ...coreModules]),
-    ];
-  }
+  const allEnabledModules = [
+    ...new Set([
+      ...coreModules,
+      ...(planConfig?.enabledModules || []),
+      ...(tenant.enabledModules || []),
+    ]),
+  ];
 
   // Get permissions only for enabled modules
   const permissions = await Permission.find({

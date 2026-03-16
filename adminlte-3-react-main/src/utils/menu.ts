@@ -31,6 +31,12 @@ export const MENU: IMenuItem[] = [
     resource: "tenants",
   },
   {
+    name: "Plans",
+    icon: "fas fa-layer-group nav-icon",
+    path: "/plans",
+    allowedRoles: ["superadmin", "system_admin"],
+  },
+  {
     name: "Subscription",
     icon: "fas fa-credit-card nav-icon",
     path: "/subscription",

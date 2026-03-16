@@ -6,7 +6,7 @@ const Role = require("../models/roleModel");
 const { OAuth2Client } = require("google-auth-library");
 const { logActivity } = require("./activityLogController");
 const AppError = require("../utils/AppError");
-const { getCoreModuleIds, getPlanConfig } = require("../config/modules");
+const { getCoreModuleIds } = require("../config/modules");
 const { isGlobalAdmin } = require("../utils/authHelpers");
 const { sendAdminPasswordResetEmail } = require("../services/emailService");
 
@@ -55,30 +55,18 @@ const getTenantData = async (tenantId) => {
   }
 
   // ── Plan-enforced module list ────────────────────────────────────────────
-  // Predefined plans (basic, professional, enterprise) use their config as truth.
-  // This ensures existing tenants get access to all plan modules even if their
-  // DB record is outdated (e.g. missing new 'panchayats' or 'parliaments' IDs).
-  const planConfig = getPlanConfig(tenant.plan || "basic");
+  const Plan = require("../models/planModel");
+  const planConfig = await Plan.findOne({ planId: tenant.plan || "basic" });
   const coreModules = getCoreModuleIds();
 
-  let allowedModules;
-  if (planConfig.id === "custom") {
-    // Custom plan: use what is explicitly stored in the tenant document
-    allowedModules = [
-      ...new Set([...(tenant.enabledModules || []), ...coreModules]),
-    ];
-  } else if (planConfig.id === "enterprise") {
-    // Enterprise: they get everything (dynamic list)
-    allowedModules = [
-      ...new Set([...planConfig.enabledModules, ...coreModules]),
-    ];
-  } else {
-    // Predefined plans: use the plan config modules
-    // This allows us to "broadcast" new modules to all plan subscribers instantly.
-    allowedModules = [
-      ...new Set([...(planConfig.enabledModules || []), ...coreModules]),
-    ];
-  }
+  // Merge: Core Modules + Plan-defined Modules + Tenant-specific overriding modules
+  const allowedModules = [
+    ...new Set([
+      ...coreModules,
+      ...(planConfig?.enabledModules || []),
+      ...(tenant.enabledModules || []),
+    ]),
+  ];
 
   return {
     _id: tenant._id,
@@ -261,6 +249,9 @@ exports.getUsers = asyncHandler(async (req, res) => {
           if (roleDoc) userObj.role = roleDoc;
         }
       }
+      if (userObj.tenantId) {
+        userObj.tenant = await getTenantData(userObj.tenantId);
+      }
       return userObj;
     }),
   );
@@ -342,15 +333,17 @@ exports.getCurrentUser = asyncHandler(async (req, res) => {
       isTrialExpiringSoon = daysLeftInTrial <= 7;
     }
 
-    const planConfig = getPlanConfig(tenant.plan || "basic");
+    const Plan = require("../models/planModel");
+    const planConfig = await Plan.findOne({ planId: tenant.plan || "basic" });
     const coreModules = getCoreModuleIds();
 
-    let allowedModules;
-    if (planConfig.id === "custom") {
-      allowedModules = [...new Set([...(tenant.enabledModules || []), ...coreModules])];
-    } else {
-      allowedModules = [...new Set([...(planConfig.enabledModules || []), ...coreModules])];
-    }
+    const allowedModules = [
+      ...new Set([
+        ...coreModules,
+        ...(planConfig?.enabledModules || []),
+        ...(tenant.enabledModules || []),
+      ]),
+    ];
 
     userObj.tenant = {
       _id: tenant._id,

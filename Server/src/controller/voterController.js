@@ -154,6 +154,7 @@ exports.getVoters = asyncHandler(async (req, res) => {
     { path: "panchayat", select: "name" },
     { path: "booth", select: "name" },
     { path: "createdBy", select: "name" },
+    { path: "tenantId", select: "name" },
   ];
 
   const skip = (pageNum - 1) * limitNum;

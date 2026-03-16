@@ -128,23 +128,28 @@ const MenuSidebar = () => {
   };
 
   const filteredMenu = useMemo(() => {
-    // 1. Super Admin Logic: Dashboard & Tenants + Modules Dropdown
+    // 1. Super Admin Logic: Dashboard & Tenants + Modules Dropdown + Plans
     if (isSuperadmin) {
       const superAdminPaths = ["/dashboard", "/tenants"];
+      const planPath = "/plans";
+
       // Core items (Dashboard, Organizations)
       const mainItems = MENU.filter((item) => {
         const path = item.path ?? item.children?.[0]?.path;
         return path && superAdminPaths.includes(path);
       });
 
+      // Plans item
+      const planItem = MENU.find((item) => item.path === planPath);
+
       // All other items go into "Modules" dropdown
-      // Exclude paths that only make sense for tenant users (e.g. subscription)
       const tenantOnlyPaths = ["/subscription"];
       const moduleItems = MENU.filter((item) => {
         const path = item.path ?? item.children?.[0]?.path;
-        // Exclude core admin items
-        if (path && superAdminPaths.includes(path)) return false;
-        // Exclude tenant-only items that platform admins don't need
+        // Exclude core admin items and Plans (as we handle it standalone)
+        if (path && (superAdminPaths.includes(path) || path === planPath))
+          return false;
+        // Exclude tenant-only items
         if (path && tenantOnlyPaths.includes(path)) return false;
         return true;
       });
@@ -155,7 +160,12 @@ const MenuSidebar = () => {
         children: moduleItems,
       };
 
-      return [...mainItems, modulesDropdown];
+      // Return order: Dashboard & Organizations, then Plans, then Modules dropdown
+      const finalMenu = [...mainItems];
+      if (planItem) finalMenu.push(planItem);
+      finalMenu.push(modulesDropdown);
+
+      return finalMenu;
     }
 
     // 2. Normal Logic for Tenant Admins / Others
