@@ -38,6 +38,12 @@ const protect = asyncHandler(async (req, res, next) => {
 
       if (req.tenantId) {
         req.tenant = await Tenant.findById(req.tenantId);
+        
+        // SaaS: Block access if organization is suspended
+        // (Only for non-global admins, so SuperAdmins can still manage the organization)
+        if (req.tenant && req.tenant.status === "suspended" && !isGlobalAdmin(req.user)) {
+          throw new AppError("Your organization has been suspended. Please contact support.", 403);
+        }
       }
 
       // System Admin / Superadmin override logic... [unchanged]

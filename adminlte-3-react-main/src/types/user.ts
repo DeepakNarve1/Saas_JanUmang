@@ -30,6 +30,8 @@ export interface IUser {
 export interface ITenantShort {
   _id: string;
   name: string;
+  slug?: string;
+  status?: 'active' | 'inactive' | 'suspended' | 'trialing';
   enabledModules?: string[];
   plan?: string;
   // Trial / subscription status

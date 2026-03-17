@@ -39,7 +39,7 @@ const getTenantData = async (tenantId) => {
   if (!tenantId) return null;
   const Tenant = require("../models/tenantModel");
   const tenant = await Tenant.findById(tenantId).select(
-    "name slug enabledModules plan subscriptionStatus trialEndsAt subscriptionEndDate",
+    "status name slug enabledModules plan subscriptionStatus trialEndsAt subscriptionEndDate",
   );
   if (!tenant) return null;
 
@@ -75,6 +75,7 @@ const getTenantData = async (tenantId) => {
     enabledModules: allowedModules,
     plan: tenant.plan,
     // Subscription / trial status — used by frontend warning banner
+    status: tenant.status || "active",
     subscriptionStatus: tenant.subscriptionStatus,
     trialEndsAt: tenant.trialEndsAt || null,
     daysLeftInTrial,
@@ -349,6 +350,7 @@ exports.getCurrentUser = asyncHandler(async (req, res) => {
       _id: tenant._id,
       name: tenant.name,
       slug: tenant.slug,
+      status: tenant.status || "active",
       enabledModules: allowedModules,
       plan: tenant.plan,
       subscriptionStatus: tenant.subscriptionStatus,

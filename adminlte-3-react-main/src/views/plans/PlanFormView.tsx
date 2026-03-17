@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@app/utils/axios";
@@ -94,7 +94,11 @@ const PlanFormView = ({ id }: PlanFormViewProps) => {
     onError: (err: any) => handleError(err),
   });
 
-  const toggleModule = (moduleId: string) => {
+  const toggleModule = useCallback((moduleId: string) => {
+    // Prevent toggling of core modules
+    const coreModuleIds = ALL_MODULES.filter(m => m.category === "Core").map(m => m.id);
+    if (coreModuleIds.includes(moduleId)) return;
+
     setFormData(prev => {
       const current = prev.enabledModules || [];
       const updated = current.includes(moduleId)
@@ -102,7 +106,42 @@ const PlanFormView = ({ id }: PlanFormViewProps) => {
         : [...current, moduleId];
       return { ...prev, enabledModules: updated };
     });
-  };
+  }, []);
+
+  const toggleCategory = useCallback((category: string) => {
+    const categoryModules = ALL_MODULES.filter(m => m.category === category).map(m => m.id);
+    const coreModuleIds = ALL_MODULES.filter(m => m.category === "Core").map(m => m.id);
+    
+    setFormData(prev => {
+      const current = prev.enabledModules || [];
+      // If all non-core modules in category are checked, uncheck them (keep core modules)
+      const allChecked = categoryModules.every(id => current.includes(id) || coreModuleIds.includes(id));
+      
+      let updated: string[];
+      if (allChecked) {
+        // Remove non-core modules of this category
+        updated = current.filter(id => !categoryModules.includes(id) || coreModuleIds.includes(id));
+      } else {
+        // Add all modules of this category and deduplicate
+        const combined = current.concat(categoryModules).concat(coreModuleIds);
+        updated = combined.filter((val, index) => combined.indexOf(val) === index);
+      }
+      return { ...prev, enabledModules: updated };
+    });
+  }, []);
+
+  // Ensure core modules are always checked when component mounts or data loads
+  useEffect(() => {
+    const coreModuleIds = ALL_MODULES.filter(m => m.category === "Core").map(m => m.id);
+    setFormData(prev => {
+      const current = prev.enabledModules || [];
+      const missingCore = coreModuleIds.filter(id => !current.includes(id));
+      if (missingCore.length > 0) {
+        return { ...prev, enabledModules: [...current, ...missingCore] };
+      }
+      return prev;
+    });
+  }, [planData]);
 
   const addFeature = () => {
     if (featureInput.trim()) {
@@ -399,35 +438,70 @@ const PlanFormView = ({ id }: PlanFormViewProps) => {
                     Module Access Control
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {categories.map(category => (
-                      <div key={category} className="space-y-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Layers size={14} className="text-[#368F8B]" />
-                          <h5 className="font-bold text-xs text-gray-400 uppercase tracking-wider">{category}</h5>
-                        </div>
-                        <div className="space-y-2 bg-gray-50/50 dark:bg-gray-800/30 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                          {ALL_MODULES.filter(m => m.category === category).map(module => (
-                            <div 
-                              key={module.id} 
-                              className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white dark:hover:bg-gray-800 hover:shadow-sm transition-all group cursor-pointer"
-                            >
-                              <Checkbox 
-                                id={`mod-${module.id}`}
-                                checked={(formData.enabledModules || []).includes(module.id)}
-                                onCheckedChange={() => toggleModule(module.id)}
-                                className="border-gray-300 data-[state=checked]:bg-[#368F8B]"
-                              />
-                              <label 
-                                htmlFor={`mod-${module.id}`}
-                                className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer flex-1 group-hover:text-[#368F8B]"
-                              >
-                                {module.label}
-                              </label>
+                    {categories.map(category => {
+                      const categoryModules = ALL_MODULES.filter(m => m.category === category);
+                      const isCoreCategory = category === "Core";
+                      const isAllChecked = categoryModules.length > 0 && categoryModules.every(m => 
+                        (formData.enabledModules || []).includes(m.id)
+                      );
+
+                      return (
+                        <div key={category} className="space-y-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Layers size={14} className="text-[#368F8B]" />
+                              <h5 className="font-bold text-xs text-gray-400 uppercase tracking-wider">{category}</h5>
                             </div>
-                          ))}
+                            {!isCoreCategory && (
+                              <div className="flex items-center gap-2">
+                                <Checkbox 
+                                  id={`select-all-${category.replace(/\s+/g, '-')}`}
+                                  checked={isAllChecked}
+                                  onCheckedChange={() => toggleCategory(category)}
+                                  className="w-4 h-4 border-gray-300 data-[state=checked]:bg-[#368F8B]"
+                                />
+                                <Label 
+                                  htmlFor={`select-all-${category.replace(/\s+/g, '-')}`}
+                                  className="text-xs font-semibold text-gray-500 cursor-pointer hover:text-[#368F8B] transition-colors"
+                                >
+                                  Select All
+                                </Label>
+                              </div>
+                            )}
+                          </div>
+                          <div className="space-y-2 bg-gray-50/50 dark:bg-gray-800/30 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+                            {categoryModules.map(module => {
+                              const isCore = isCoreCategory;
+                              const isChecked = isCore || (formData.enabledModules || []).includes(module.id);
+                              
+                              return (
+                                <Label 
+                                  key={module.id} 
+                                  className={`flex items-center space-x-3 p-2 rounded-lg transition-all group ${
+                                    isCore ? 'opacity-80 bg-gray-100/50 dark:bg-gray-800/50 cursor-not-allowed' : 'hover:bg-white dark:hover:bg-gray-800 hover:shadow-sm cursor-pointer'
+                                  }`}
+                                >
+                                  <Checkbox 
+                                    id={`mod-${module.id}`}
+                                    checked={isChecked}
+                                    disabled={isCore}
+                                    onCheckedChange={() => !isCore && toggleModule(module.id)}
+                                    className="border-gray-300 data-[state=checked]:bg-[#368F8B] disabled:opacity-70 disabled:cursor-not-allowed"
+                                  />
+                                  <span className={`text-sm font-medium flex-1 ${
+                                      isCore 
+                                        ? 'text-gray-500 dark:text-gray-400 cursor-not-allowed' 
+                                        : 'text-gray-700 dark:text-gray-300 cursor-pointer group-hover:text-[#368F8B]'
+                                    }`}>
+                                    {module.label}
+                                  </span>
+                                </Label>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
